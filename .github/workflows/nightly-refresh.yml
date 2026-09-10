@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: nightly-refresh
@@ -41,14 +42,35 @@ jobs:
       - name: Verify
         run: python scripts/verify.py
 
-      - name: Commit updated DB
+      - name: Detect DB changes
+        id: db_changes
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [[ -n "$(git status --porcelain data/solar_system.sqlite)" ]]; then
-            git add data/solar_system.sqlite
-            git commit -m "chore(data): nightly refresh $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
-            git push
-          else
+          if git diff --quiet --exit-code -- data/solar_system.sqlite; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No changes to commit."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Check for unexpected tracked changes
+        if: steps.db_changes.outputs.changed == 'true'
+        run: |
+          unexpected="$(git status --porcelain --untracked-files=no -- . ':(exclude)data/solar_system.sqlite')"
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected tracked changes detected:"
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
+      - name: Create refresh PR
+        if: steps.db_changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7.0.8
+        with:
+          add-paths: data/solar_system.sqlite
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          branch: nightly-refresh
+          commit-message: "chore(data): nightly refresh"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          title: "chore(data): nightly refresh"
+          body: |
+            Automated nightly refresh for `data/solar_system.sqlite`.
