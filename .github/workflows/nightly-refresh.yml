@@ -58,6 +58,7 @@ jobs:
         with:
           add-paths: data/solar_system.sqlite
           branch: nightly-refresh
+          branch-suffix: timestamp
           commit-message: "chore(data): nightly refresh"
           delete-branch: true
           title: "chore(data): nightly refresh"
