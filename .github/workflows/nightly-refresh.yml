@@ -52,6 +52,19 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Clean up closed refresh branches
+        if: steps.db_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --state closed --limit 100 --json headRefName \
+            --jq '.[] | select(.headRefName | startswith("nightly-refresh")) | .headRefName' |
+          while read -r branch; do
+            if [[ -n "$branch" ]]; then
+              git push origin --delete "$branch" || true
+            fi
+          done
+
       - name: Create refresh PR
         if: steps.db_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7.0.8
