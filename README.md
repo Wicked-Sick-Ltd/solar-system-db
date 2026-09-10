@@ -192,8 +192,9 @@ bespoke config needed.
 ### Nightly cron coordination
 
 ```
-GitHub Actions @ 03:00 UTC     →   commits new data/solar_system.sqlite to main
-Host cron @ 03:15 UTC          →   scripts/pull_latest.sh
+GitHub Actions @ 03:00 UTC     →   opens/updates a PR with a refreshed
+                                    data/solar_system.sqlite
+After merge                    →   scripts/pull_latest.sh
                                     git pull && docker compose restart rest-api mcp-server
 ```
 
