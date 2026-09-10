@@ -57,8 +57,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr list --state closed --limit 100 --json headRefName \
-            --jq '.[] | select(.headRefName | startswith("nightly-refresh")) | .headRefName' |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" \
+            --jq '.[] | select(.head.ref | startswith("nightly-refresh")) | .head.ref' |
           while read -r branch; do
             if [[ -n "$branch" ]]; then
               git push origin --delete "$branch" || true
@@ -70,8 +70,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr list --state open --limit 100 --json number,headRefName \
-            --jq '.[] | select(.headRefName | startswith("nightly-refresh")) | .number' |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            --jq '.[] | select(.head.ref | startswith("nightly-refresh")) | .number' |
           while read -r pr_number; do
             if [[ -n "$pr_number" ]]; then
               gh pr close "$pr_number" --delete-branch || true
