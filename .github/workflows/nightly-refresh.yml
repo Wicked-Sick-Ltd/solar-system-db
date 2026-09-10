@@ -52,6 +52,16 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check for unexpected tracked changes
+        if: steps.db_changes.outputs.changed == 'true'
+        run: |
+          unexpected="$(git status --porcelain --untracked-files=no -- . ':(exclude)data/solar_system.sqlite')"
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected tracked changes detected:"
+            printf '%s\n' "$unexpected"
+            exit 1
+          fi
+
       - name: Create refresh PR
         if: steps.db_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7.0.8
