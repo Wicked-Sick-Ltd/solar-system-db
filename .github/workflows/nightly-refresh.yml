@@ -65,6 +65,19 @@ jobs:
             fi
           done
 
+      - name: Close existing refresh PRs
+        if: steps.db_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --state open --limit 100 --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("nightly-refresh")) | .number' |
+          while read -r pr_number; do
+            if [[ -n "$pr_number" ]]; then
+              gh pr close "$pr_number" --delete-branch || true
+            fi
+          done
+
       - name: Create refresh PR
         if: steps.db_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7.0.8
