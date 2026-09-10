@@ -42,7 +42,18 @@ jobs:
       - name: Verify
         run: python scripts/verify.py
 
+      - name: Detect DB changes
+        id: db_changes
+        run: |
+          if git diff --quiet --exit-code -- data/solar_system.sqlite; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes to commit."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create refresh PR
+        if: steps.db_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7.0.8
         with:
           add-paths: data/solar_system.sqlite
