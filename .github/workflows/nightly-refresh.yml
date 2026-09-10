@@ -52,39 +52,12 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Clean up closed refresh branches
-        if: steps.db_changes.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=closed&per_page=100" \
-            --jq '.[] | select(.head.ref | startswith("nightly-refresh")) | .head.ref' |
-          while read -r branch; do
-            if [[ -n "$branch" ]]; then
-              git push origin --delete "$branch" || true
-            fi
-          done
-
-      - name: Close existing refresh PRs
-        if: steps.db_changes.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
-            --jq '.[] | select(.head.ref | startswith("nightly-refresh")) | .number' |
-          while read -r pr_number; do
-            if [[ -n "$pr_number" ]]; then
-              gh pr close "$pr_number" --delete-branch || true
-            fi
-          done
-
       - name: Create refresh PR
         if: steps.db_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7.0.8
         with:
           add-paths: data/solar_system.sqlite
           branch: nightly-refresh
-          branch-suffix: timestamp
           commit-message: "chore(data): nightly refresh"
           delete-branch: true
           title: "chore(data): nightly refresh"
