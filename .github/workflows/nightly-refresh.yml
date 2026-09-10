@@ -57,8 +57,10 @@ jobs:
         uses: peter-evans/create-pull-request@v7.0.8
         with:
           add-paths: data/solar_system.sqlite
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           branch: nightly-refresh
           commit-message: "chore(data): nightly refresh"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           title: "chore(data): nightly refresh"
           body: |
             Automated nightly refresh for `data/solar_system.sqlite`.
