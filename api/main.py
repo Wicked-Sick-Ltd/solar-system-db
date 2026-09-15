@@ -25,6 +25,7 @@ from slowapi.util import get_remote_address
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.positions import date_to_jd
+from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
 # --------------------------------------------------------------------------
 # App + rate limiter
@@ -176,6 +177,25 @@ def compute_position(request: Request, name_or_designation: str,
         }
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/api/v1/sky/{name_or_designation:path}", tags=["positions"],
+         summary="Where an object appears in Earth's sky (RA/Dec, constellation, optional observer view)")
+@limiter.limit("60/minute")
+def sky_position(request: Request, name_or_designation: str,
+                 date: Optional[str] = Query(None, description="ISO date or datetime (UTC); default now"),
+                 lat: Optional[float] = Query(None, ge=-90, le=90,
+                                              description="Observer latitude, degrees north"),
+                 lon: Optional[float] = Query(None, ge=-180, le=180,
+                                              description="Observer longitude, degrees east")):
+    """Geocentric RA/Dec (J2000), constellation, hemisphere, distance from
+    Earth and elongation from the Sun. Supply `lat` and `lon` together to add
+    altitude/azimuth, whether it is up after dark, and rise/transit/set for
+    that UT day. Moons report their parent's position. Two-body accuracy (~1°)."""
+    try:
+        return resolve_and_report(db, name_or_designation, date, lat, lon)
+    except SkyLookupError as e:
+        raise HTTPException(status_code=e.status, detail=e.detail)
 
 
 @app.get("/api/v1/perihelion/{name_or_designation:path}",

@@ -151,3 +151,11 @@ def test_astronomy_branding():
     for word in forbidden:
         assert word not in primary_use, (
             f"Astrology term {word!r} appears in a tool definition")
+
+
+def test_get_sky_position_jupiter(db):
+    from solar_db.sky_lookup import resolve_and_report
+    r = resolve_and_report(db, "Jupiter", "2026-09-15T00:00:00Z")
+    assert r["constellation"]["abbr"] == "Cnc"
+    assert r["hemisphere"] == "northern"
+    assert r["observer"] is None

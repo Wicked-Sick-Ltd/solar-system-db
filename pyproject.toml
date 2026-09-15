@@ -43,7 +43,10 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["solar_db"]
+packages = ["solar_db", "solar_db.data"]
+
+[tool.setuptools.package-data]
+solar_db = ["data/*.dat"]
 
 [tool.pytest.ini_options]
 testpaths = ["mcp-server/tests", "api/tests"]

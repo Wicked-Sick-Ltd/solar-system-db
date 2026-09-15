@@ -28,6 +28,7 @@ from mcp.server.fastmcp import FastMCP
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.positions import date_to_jd
+from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
 mcp = FastMCP(
     name="solar-system-db",
@@ -195,6 +196,29 @@ def compute_position(name_or_designation: str, date: str) -> dict:
         "input_date": date,
         **pos,
     }
+
+
+@mcp.tool()
+def get_sky_position(name_or_designation: str, date: str | None = None,
+                     lat: float | None = None, lon: float | None = None) -> dict:
+    """Where an object appears in Earth's sky: RA/Dec (J2000), constellation,
+    hemisphere, distance from Earth and elongation from the Sun.
+
+    Args:
+      name_or_designation: any planet, dwarf planet, asteroid, comet or moon
+        (moons report their parent planet's position), or "sun".
+      date: ISO 8601 date or datetime, UTC. Defaults to now.
+      lat, lon: observer's latitude (north-positive) and longitude
+        (east-positive) in degrees. Give both to add altitude/azimuth, whether
+        it is above the horizon after dark, and rise/transit/set for that day.
+
+    Two-body accuracy (about a degree for the planets) — enough to name the
+    constellation and say whether it is up; use JPL Horizons for precision.
+    """
+    try:
+        return resolve_and_report(db(), name_or_designation, date, lat, lon)
+    except SkyLookupError as e:
+        return {"error": e.detail}
 
 
 @mcp.tool()

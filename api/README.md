@@ -34,6 +34,7 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 | GET | `/api/v1/tnos` | Trans-Neptunian objects + centaurs |
 | GET | `/api/v1/search?q=…` | Fuzzy search across names/designations |
 | GET | `/api/v1/positions/{name}?date=YYYY-MM-DD` | Heliocentric position (two-body Kepler) |
+| GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
 | GET | `/api/v1/perihelion/{name}` | Next perihelion (JD) |
 | GET | `/api/v1/object-types` | Object types and counts |
 | GET | `/api/v1/sources` | Upstream data sources + timestamps |
@@ -61,6 +62,9 @@ curl https://solar.example.com/api/v1/planets/Saturn/moons | jq
 
 # Earth's position on 2030-01-01
 curl 'https://solar.example.com/api/v1/positions/Earth?date=2030-01-01' | jq
+
+# Where is Jupiter in the sky tonight from London?
+curl 'https://solar.example.com/api/v1/sky/Jupiter?date=2026-09-15T21:00:00Z&lat=51.5&lon=-0.12' | jq
 
 # Search for Halley
 curl 'https://solar.example.com/api/v1/search?q=Halley' | jq

@@ -32,7 +32,9 @@ solar-system-db/
 ├── schema/schema.sql       the SQLite schema (single source of truth)
 ├── solar_db/               shared data-access layer (used by MCP + REST)
 │   ├── data_access.py      read-only SQLite wrapper, all query methods
-│   └── positions.py        two-body Kepler propagation
+│   ├── positions.py        two-body Kepler propagation
+│   ├── sky.py              RA/Dec, constellation, alt/az, rise/set from those positions
+│   └── data/               vendored IAU constellation boundaries (CDS VI/42)
 ├── scripts/
 │   ├── populate_initial.py  full rebuild from JPL/MPC
 │   ├── update_nightly.py    incremental refresh (run by GitHub Actions)
@@ -225,6 +227,7 @@ All upstream sources are public-domain or freely redistributable:
 | [JPL Small-Body Database](https://ssd-api.jpl.nasa.gov/doc/sbdb.html) | Asteroids, comets, TNOs, orbital elements | NASA public domain |
 | [NASA Planetary Fact Sheets](https://nssdc.gsfc.nasa.gov/planetary/factsheet/) | Physical properties | NASA public domain |
 | [IAU Minor Planet Center](https://www.minorplanetcenter.net/) | Named-asteroid + periodic-comet lists (via SBDB) | Free use with attribution |
+| [CDS catalogue VI/42](https://cdsarc.cds.unistra.fr/ftp/VI/42/) (Roman 1987) | Constellation boundaries for sky lookups | Public domain |
 
 Wikipedia is referenced in `wikipedia_url` columns for human reading; it is
 not used as a canonical data source.

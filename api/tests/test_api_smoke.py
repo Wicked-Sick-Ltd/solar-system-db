@@ -145,3 +145,40 @@ def test_no_astrology_paths(client):
     spec_text = r.text.lower()
     for term in ("horoscope", "natal", "ascendant", "zodiac"):
         assert term not in spec_text, f"Astrology term {term!r} in OpenAPI"
+
+
+def test_sky_mars(client):
+    r = client.get("/api/v1/sky/Mars", params={"date": "2026-09-15T00:00:00Z"})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["name"] == "Mars"
+    assert d["constellation"]["abbr"] == "Gem"
+    assert d["observer"] is None and d["resolved_from"] is None
+
+
+def test_sky_observer(client):
+    r = client.get("/api/v1/sky/Mars", params={"date": "2026-09-15T21:00:00Z", "lat": 51.5, "lon": -0.12})
+    assert r.status_code == 200, r.text
+    o = r.json()["observer"]
+    assert o["lat"] == 51.5 and o["lon"] == -0.12
+    assert isinstance(o["is_up"], bool) and isinstance(o["is_dark"], bool)
+
+
+def test_sky_lat_without_lon_is_422(client):
+    assert client.get("/api/v1/sky/Mars", params={"lat": 51.5}).status_code == 422
+
+
+def test_sky_moon_uses_parent(client):
+    r = client.get("/api/v1/sky/Titan", params={"date": "2026-09-15"})
+    assert r.status_code == 200, r.text
+    assert r.json()["resolved_from"] == "planet-saturn"
+
+
+def test_sky_sun(client):
+    r = client.get("/api/v1/sky/sun", params={"date": "2026-09-15"})
+    assert r.status_code == 200, r.text
+    assert r.json()["elongation_deg"] == 0.0
+
+
+def test_sky_404_without_match(client):
+    assert client.get("/api/v1/sky/nothing-here-xyz").status_code == 404
