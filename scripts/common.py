@@ -49,9 +49,11 @@ def connect(create: bool = False) -> sqlite3.Connection:
 
 
 def publish() -> Path:
-    """Copy the working DB to its published location (a no-op if already in place)."""
-    if DB_PATH.resolve() == PUBLISH_PATH.resolve():
-        return PUBLISH_PATH
+    """Copy the working DB to its published location (a no-op if already in place).
+
+    SSDB_NO_PUBLISH=1 leaves the build where it is (tests, scratch builds)."""
+    if DB_PATH.resolve() == PUBLISH_PATH.resolve() or os.environ.get("SSDB_NO_PUBLISH") == "1":
+        return DB_PATH
     PUBLISH_PATH.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(DB_PATH, PUBLISH_PATH)
     return PUBLISH_PATH
@@ -103,6 +105,25 @@ def upsert_row(conn, table: str, object_id: str, fields: dict[str, Any]) -> None
         f"updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')"
     )
     conn.execute(sql, fields)
+
+
+def upsert_row_fill(conn, table: str, object_id: str, fields: dict[str, Any]) -> None:
+    """Like upsert_row, but existing non-null values win: bulk sources may only
+    fill gaps in curated rows, never overwrite fact-sheet values."""
+    fields = {k: v for k, v in fields.items() if v is not None}
+    if not fields:
+        conn.execute(f"INSERT OR IGNORE INTO {table} (object_id) VALUES (?)", (object_id,))
+        return
+    fields["object_id"] = object_id
+    cols = ", ".join(fields.keys())
+    placeholders = ", ".join(f":{k}" for k in fields)
+    updates = ", ".join(f"{k} = COALESCE({table}.{k}, excluded.{k})" for k in fields if k != "object_id")
+    conn.execute(
+        f"INSERT INTO {table} ({cols}) VALUES ({placeholders}) "
+        f"ON CONFLICT(object_id) DO UPDATE SET {updates}, "
+        f"updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')",
+        fields,
+    )
 
 
 def add_classification(conn, object_id: str, label: str) -> None:

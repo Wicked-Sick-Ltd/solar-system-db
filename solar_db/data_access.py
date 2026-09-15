@@ -8,6 +8,7 @@ mistake.
 """
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -169,6 +170,45 @@ class SolarDB:
                     (obj_id,),
                 )
             ]
+            # v2 detail blocks — each guarded so a v1 file still serves.
+            if self._has_table(conn, "designations"):
+                out["designations"] = [
+                    dict(r) for r in conn.execute(
+                        "SELECT designation, kind, source FROM designations WHERE object_id = ? "
+                        "ORDER BY CASE kind WHEN 'number' THEN 0 WHEN 'name' THEN 1 WHEN 'provisional' THEN 2 ELSE 3 END",
+                        (obj_id,))
+                ]
+            if self._has_table(conn, "discoveries"):
+                row = conn.execute("SELECT * FROM discoveries WHERE object_id = ?", (obj_id,)).fetchone()
+                out["discovery"] = dict(row) if row else None
+            if self._has_table(conn, "close_approaches"):
+                out["close_approach_count"] = conn.execute(
+                    "SELECT COUNT(*) FROM close_approaches WHERE object_id = ?", (obj_id,)).fetchone()[0]
+                out["close_approaches"] = [
+                    dict(r) for r in conn.execute(
+                        "SELECT body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au, v_rel_km_s, v_inf_km_s, t_sigma "
+                        "FROM close_approaches WHERE object_id = ? AND cd_jd >= julianday('now') - 30 "
+                        "ORDER BY cd_jd LIMIT 10", (obj_id,))
+                ]
+            if self._has_table(conn, "atmospheres"):
+                row = conn.execute("SELECT * FROM atmospheres WHERE object_id = ?", (obj_id,)).fetchone()
+                atm = dict(row) if row else None
+                if atm and atm.get("composition_json"):
+                    try:
+                        atm["composition"] = json.loads(atm.pop("composition_json"))
+                    except ValueError:
+                        atm["composition"] = None
+                out["atmosphere"] = atm
+            if self._has_table(conn, "radar_observations"):
+                out["radar_observations"] = [
+                    dict(r) for r in conn.execute(
+                        "SELECT epoch, obs_type, reference FROM radar_observations WHERE object_id = ? ORDER BY epoch",
+                        (obj_id,))
+                ]
+            if self._has_table(conn, "impact_monitoring"):
+                row = conn.execute("SELECT flagged, source, retrieved_at FROM impact_monitoring WHERE object_id = ?",
+                                   (obj_id,)).fetchone()
+                out["impact_monitoring"] = dict(row) if row else None
             out["sources"] = [
                 dict(r) for r in conn.execute(
                     "SELECT table_name, source_name, source_url, retrieved_at "
@@ -178,9 +218,28 @@ class SolarDB:
             ]
             return out
 
+    def _has_table(self, conn: sqlite3.Connection, name: str) -> bool:
+        cache = getattr(self, "_table_cache", None)
+        if cache is None:
+            cache = self._table_cache = {
+                r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type IN ('table','view')")
+            }
+        return name in cache
+
     def _resolve_id(self, name_or_designation: str) -> str | None:
-        """Look up an object id from name, designation, or id."""
+        """Look up an object id from id, name, designation, or any alternate designation."""
         with self._conn() as conn:
+            if self._has_table(conn, "designations"):
+                exact = [
+                    "SELECT id FROM objects WHERE id = ? LIMIT 1",
+                    "SELECT id FROM objects WHERE name = ? COLLATE NOCASE LIMIT 1",
+                    "SELECT id FROM objects WHERE designation = ? COLLATE NOCASE LIMIT 1",
+                    "SELECT object_id AS id FROM designations WHERE designation = ? COLLATE NOCASE LIMIT 1",
+                ]
+                for sql in exact:
+                    row = conn.execute(sql, (name_or_designation,)).fetchone()
+                    if row:
+                        return row["id"]
             for sql in (
                 "SELECT id FROM objects WHERE id = ? LIMIT 1",
                 "SELECT id FROM objects WHERE name = ? COLLATE NOCASE LIMIT 1",

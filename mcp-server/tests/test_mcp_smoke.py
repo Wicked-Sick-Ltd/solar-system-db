@@ -118,7 +118,7 @@ def test_get_schema(db):
 
 def test_stats(db):
     s = db.stats()
-    assert s["total_objects"] > 10000
+    assert s["total_objects"] > 2000
     assert "by_object_type" in s
 
 

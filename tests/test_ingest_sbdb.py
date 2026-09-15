@@ -42,12 +42,25 @@ def test_ceres_maps_every_field():
     assert "Named" in m["classifications"] and "MBA" in m["classifications"]
 
 
-def test_curated_row_routes_to_curated_id_without_physical():
+def test_curated_row_routes_to_curated_id():
     fields, r = _row(FIX / "sbdb_asteroids.json", 20134340)
     m = map_row(fields, r, curated={134340: "dwarf-pluto"})
     assert m["id"] == "dwarf-pluto" and m["is_curated"] is True
-    assert m["physical"] is None and m["visual"] is None
     assert m["orbital"]["semi_major_axis_au"] > 39
+
+
+def test_curated_rows_keep_seed_values_and_fill_gaps():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript((ROOT / "schema" / "schema.sql").read_text())
+    conn.execute("INSERT INTO objects (id, name, object_type) VALUES ('sun', 'Sun', 'star')")
+    conn.execute("INSERT INTO objects (id, name, object_type, parent_id) VALUES ('dwarf-ceres', 'Ceres', 'dwarf_planet', 'sun')")
+    conn.execute("INSERT INTO physical_properties (object_id, radius_km) VALUES ('dwarf-ceres', 469.73)")
+    fields, r = _row(FIX / "sbdb_asteroids.json", 20000001)
+    write_mapped(conn, [map_row(fields, r, curated={1: "dwarf-ceres"})])
+    row = conn.execute("SELECT radius_km, gm_km3_s2, pole_ra_dec FROM physical_properties WHERE object_id='dwarf-ceres'").fetchone()
+    assert row["radius_km"] == 469.73            # seed value kept (SBDB says 469.7)
+    assert abs(row["gm_km3_s2"] - 62.6284) < 1e-4 and row["pole_ra_dec"]   # gaps filled
 
 
 def test_comet_maps_from_perihelion_with_magnitude_params():

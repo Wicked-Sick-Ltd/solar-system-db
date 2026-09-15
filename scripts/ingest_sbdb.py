@@ -15,7 +15,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (SBDB_QUERY_URL, add_classification, add_source, asteroid_id,  # noqa: E402
-                    comet_id, fetch_json, slugify, upsert_object, upsert_row)
+                    comet_id, fetch_json, upsert_object, upsert_row, upsert_row_fill)
 
 # Every field the SBDB query API accepts for small bodies (verified 2026-09-15).
 FIELDS: list[str] = [
@@ -218,8 +218,8 @@ def map_row(fields: list[str], row: list[Any], *, curated: dict[int, str] | None
         "id": obj_id, "is_curated": bool(curated_id),
         "object": {"id": obj_id, "name": display, "designation": (full_name or pdes), "object_type": obj_type},
         "orbital": orbital,
-        "physical": None if curated_id else physical,
-        "visual": None if curated_id else visual,
+        "physical": physical,
+        "visual": visual,
         "classifications": labels,
         "designations": designations,
     }
@@ -263,12 +263,13 @@ def write_mapped(conn, mapped: Iterable[dict[str, Any]], *, source_name: str = "
             upsert_object(conn, id=o["id"], name=o["name"], designation=o["designation"],
                           object_type=o["object_type"], parent_id="sun")
         upsert_row(conn, "orbital_elements", m["id"], m["orbital"])
-        if m["physical"] is not None:
+        if m["is_curated"]:
+            # Fact-sheet values win; SBDB only fills what the seed lacks (GM, pole, colours …).
+            upsert_row_fill(conn, "physical_properties", m["id"], m["physical"])
+            upsert_row_fill(conn, "visual_properties", m["id"], m["visual"])
+        else:
             upsert_row(conn, "physical_properties", m["id"], m["physical"])
             upsert_row(conn, "visual_properties", m["id"], m["visual"])
-        else:
-            upsert_row(conn, "physical_properties", m["id"], {})
-            upsert_row(conn, "visual_properties", m["id"], {})
         for label in m["classifications"]:
             add_classification(conn, m["id"], label)
         conn.executemany(
