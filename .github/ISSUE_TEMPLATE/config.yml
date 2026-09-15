@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Problem with the website (sol.wickedsick.com)?
+    url: https://github.com/Wicked-Sick-Ltd/solar-system-web/issues/new/choose
+    about: The front end is a separate repository. Bugs in pages, layout or search go there.
+  - name: Security issue
+    url: https://github.com/Wicked-Sick-Ltd/solar-system-db/blob/main/SECURITY.md
+    about: Please report privately to hello@wickedsick.com rather than opening an issue.

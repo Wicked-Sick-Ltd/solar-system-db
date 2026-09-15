@@ -1,0 +1,36 @@
+name: Bug report
+description: The API, MCP server or a script is broken or behaves wrongly
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - REST API
+        - MCP server
+        - Refresh / populate scripts
+        - Schema or SQLite file
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: The request or command you ran, what you got, what you expected. Include the full error output.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: Python 3.12 on macOS, or the public instance at api.sol.wickedsick.com
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is not a wrong catalogue value (use the Data correction template for those)
+          required: true
+        - label: This is not a security issue (those go to hello@wickedsick.com, see SECURITY.md)
+          required: true
