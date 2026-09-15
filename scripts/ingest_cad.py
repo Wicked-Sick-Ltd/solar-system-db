@@ -55,9 +55,10 @@ def iter_window(date_min: str, date_max: str, *, body: str = "ALL", dist_max: st
     """One request per calendar year keeps each response well under JPL's size cap."""
     y0, y1 = int(date_min[:4]), int(date_max[:4])
     for y in range(y0, y1 + 1):
+        # neo=false: the CAD API defaults to NEOs only; we want every small body.
         params = {"date-min": f"{y}-01-01" if y > y0 else date_min,
                   "date-max": f"{y}-12-31" if y < y1 else date_max,
-                  "dist-max": dist_max, "body": body, "fullname": "false"}
+                  "dist-max": dist_max, "body": body, "neo": "false", "fullname": "false"}
         data = fetch_json(CAD_URL, params=params, timeout=timeout)
         rows = data.get("data") or []
         if rows:

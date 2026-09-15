@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS close_approaches (
     t_sigma         TEXT,                          -- formatted uncertainty, e.g. '04:08'
     orbit_ref       TEXT,
     source          TEXT NOT NULL DEFAULT 'JPL CAD',
-    UNIQUE (object_id, body, cd_jd)
+    UNIQUE (object_id, body, cd_iso)                -- minute resolution: CAD and SBDB-lookup rows dedupe
 );
 CREATE INDEX IF NOT EXISTS idx_ca_object ON close_approaches(object_id, cd_jd);
 CREATE INDEX IF NOT EXISTS idx_ca_date   ON close_approaches(cd_jd);

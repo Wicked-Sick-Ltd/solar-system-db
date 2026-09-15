@@ -149,8 +149,6 @@ def main(argv: list[str] | None = None) -> int:
     totals["seed"] = stage_seed(conn)
     print("Stage 2: SBDB bulk (all fields)")
     totals["sbdb"] = stage_sbdb(conn, offline=offline, page=args.page)
-    print("Stage 3: full-text index")
-    totals["fts_rows"] = stage_fts(conn)
     if not args.skip_mpc:
         print("Stage 4: MPC discoveries")
         totals["mpc"] = stage_mpc(conn, offline=offline)
@@ -159,6 +157,8 @@ def main(argv: list[str] | None = None) -> int:
         totals["cad"] = stage_cad(conn, offline=offline, years=args.cad_years)
     print("Stage 6: crawler tiers")
     totals["tiers"] = stage_tiers(conn)
+    print("Stage 3: full-text index (after every designation source)")
+    totals["fts_rows"] = stage_fts(conn)
 
     row_count = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
     conn.execute("UPDATE build_meta SET finished_at = ?, row_count = ?, notes = ? WHERE id = ?",
