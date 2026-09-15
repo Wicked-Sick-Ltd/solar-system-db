@@ -77,7 +77,7 @@ Selection: `enrichment_state.tier` is set by the nightly build from the same rul
 - Artefact: `solar_system-YYYYMMDD.sqlite.zst` (zstd level 9) + `solar_system-YYYYMMDD.sqlite.zst.sha256`, uploaded with `aws s3 cp` to bucket `solar-system-db` on `s3.wickedsick.com` (public-read objects, private bucket listing), plus `latest.json` (`{url, size_bytes, sha256, built_at, build_id, counts_by_type, enrichment_coverage, schema_version, licence}`) and a rolling 30-day retention.
 - Host update: `scripts/pull_latest.sh` becomes "fetch `latest.json`, download if sha differs, verify, decompress to a temp file, atomic rename over the live file, `docker compose restart`". Cron every 15 min.
 - Public surface: `GET /api/v1/download` returns the manifest; the landing page (`web/index.html`) gets a Download section (size, date, checksum, licence, `sqlite3` one-liner); MCP tool `get_download_info`.
-- Licence text shipped with the artefact: NASA/JPL public domain, MPC free-use-with-attribution, our own compilation under MIT/CC0 (Craig to confirm which).
+- Licence text shipped with the artefact: NASA/JPL public domain, MPC free-use-with-attribution, our own compilation under MIT.
 
 ## 7. API and MCP changes
 
