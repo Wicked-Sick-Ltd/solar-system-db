@@ -113,3 +113,23 @@ def test_merge_store_applies_only_known_ok_rows(tmp_path):
     assert cat.execute("SELECT COUNT(*) FROM designations WHERE object_id='dwarf-pluto' AND designation LIKE 'satellite: %'").fetchone()[0] == 5
     es = cat.execute("SELECT lookup_status, lookup_at FROM enrichment_state WHERE object_id='dwarf-pluto'").fetchone()
     assert es["lookup_status"] == "ok" and es["lookup_at"]
+
+
+def test_failed_refetch_keeps_earlier_payload_and_ok_status(tmp_path):
+    cat = _catalogue()
+    store = open_store(tmp_path / "e.sqlite")
+    sync_queue(store, cat)
+    record(store, "dwarf-pluto", "ok", 200, {"object": {"des": "134340"}})
+    record(store, "dwarf-pluto", "error", 500, None, error="boom")
+    row = store.execute("SELECT status, payload, last_error, fetched_at, attempted_at FROM lookups WHERE object_id='dwarf-pluto'").fetchone()
+    assert row["status"] == "ok" and "134340" in row["payload"] and row["last_error"] == "boom"
+    assert row["fetched_at"] and row["attempted_at"] >= row["fetched_at"]
+
+
+def test_lookup_close_approaches_dedupe_against_cad_rows():
+    cat = _catalogue()
+    cat.execute("INSERT INTO close_approaches (object_id, body, cd_jd, cd_iso, dist_au, v_rel_km_s, source) "
+                "VALUES ('ast-20099942-apophis', 'Earth', 2462239.406944, '2029-04-13T21:46:00Z', 0.000254, 7.42, 'JPL CAD')")
+    apply_payload(cat, "ast-20099942-apophis", json.loads((FIX / "sbdb_lookup_99942.json").read_text()))
+    rows = cat.execute("SELECT cd_jd, source FROM close_approaches WHERE object_id='ast-20099942-apophis' AND cd_iso='2029-04-13T21:46:00Z'").fetchall()
+    assert len(rows) == 1 and rows[0]["source"] == "JPL CAD" and abs(rows[0]["cd_jd"] - 2462239.406944) < 1e-6

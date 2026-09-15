@@ -78,17 +78,24 @@ def apply_payload(conn: sqlite3.Connection, object_id: str, payload: dict[str, A
 
     rows = []
     for ca in payload.get("ca_data") or []:
-        rows.append((object_id, ca.get("body") or "Earth", _f(ca.get("jd")), _cd_to_iso(ca["cd"]), _f(ca.get("dist")),
+        rows.append((object_id, ca.get("body") or "Earth", _cd_to_iso(ca["cd"]), _f(ca.get("dist")),
                      _f(ca.get("dist_min")), _f(ca.get("dist_max")), _f(ca.get("v_rel")), _f(ca.get("v_inf")),
                      ca.get("sigma_t"), ca.get("orbit_ref"), SOURCE_NAME))
     if rows:
-        # jd missing in lookup payloads → derive from the ISO date via SQLite
-        rows = [(r[0], r[1], r[2], *r[3:]) for r in rows]
+        # Same encounter as a CAD row (stage 5) dedupes on (object, body, minute);
+        # CAD's precise JD and source are kept, the lookup fills what is missing.
         conn.executemany(
-            """INSERT OR REPLACE INTO close_approaches
-               (object_id, body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au, v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source)
-               VALUES (?, ?, COALESCE(?, julianday(?)), ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [(r[0], r[1], r[2], r[3], r[3], *r[4:]) for r in rows],
+            """INSERT INTO close_approaches
+               (object_id, body, cd_iso, cd_jd, dist_au, dist_min_au, dist_max_au, v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source)
+               VALUES (?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(object_id, body, cd_iso) DO UPDATE SET
+                 dist_au = COALESCE(close_approaches.dist_au, excluded.dist_au),
+                 dist_min_au = COALESCE(close_approaches.dist_min_au, excluded.dist_min_au),
+                 dist_max_au = COALESCE(close_approaches.dist_max_au, excluded.dist_max_au),
+                 v_rel_km_s = COALESCE(close_approaches.v_rel_km_s, excluded.v_rel_km_s),
+                 v_inf_km_s = COALESCE(close_approaches.v_inf_km_s, excluded.v_inf_km_s),
+                 t_sigma = COALESCE(close_approaches.t_sigma, excluded.t_sigma)""",
+            [(r[0], r[1], r[2], r[2], *r[3:]) for r in rows],
         )
         n["close_approaches"] = len(rows)
 
@@ -140,23 +147,37 @@ def apply_payload(conn: sqlite3.Connection, object_id: str, payload: dict[str, A
 
 
 def merge_store(conn: sqlite3.Connection, store_path: str | Path) -> dict[str, int]:
-    """Apply every successful lookup in the crawler store to the catalogue."""
+    """Apply every successful lookup in the crawler store to the catalogue.
+
+    Plain connection with a busy timeout (the crawler keeps writing in WAL mode);
+    rows are read in rowid pages so no long-lived cursor pins the store."""
     totals = {"applied": 0, "skipped": 0, "close_approaches": 0, "radar": 0}
-    store = sqlite3.connect(f"file:{store_path}?mode=ro", uri=True)
+    store = sqlite3.connect(store_path, timeout=60)
     store.row_factory = sqlite3.Row
+    store.execute("PRAGMA busy_timeout = 60000")
     known = {r[0] for r in conn.execute("SELECT id FROM objects")}
-    for i, row in enumerate(store.execute("SELECT object_id, fetched_at, status, payload FROM lookups WHERE status = 'ok'"), 1):
-        if row["object_id"] not in known or not row["payload"]:
-            totals["skipped"] += 1
-            continue
-        n = apply_payload(conn, row["object_id"], json.loads(row["payload"]))
-        conn.execute("INSERT OR REPLACE INTO enrichment_state (object_id, tier, lookup_at, lookup_status) "
-                     "VALUES (?, COALESCE((SELECT tier FROM enrichment_state WHERE object_id = ?), 2), ?, 'ok')",
-                     (row["object_id"], row["object_id"], row["fetched_at"]))
-        totals["applied"] += 1
-        totals["close_approaches"] += n["close_approaches"]
-        totals["radar"] += n["radar"]
-        if i % 5000 == 0:
-            conn.commit()
+    last_rowid, i = 0, 0
+    while True:
+        page = store.execute(
+            "SELECT rowid, object_id, fetched_at, status, payload FROM lookups "
+            "WHERE rowid > ? AND status = 'ok' ORDER BY rowid LIMIT 500", (last_rowid,)).fetchall()
+        if not page:
+            break
+        last_rowid = page[-1]["rowid"]
+        for row in page:
+            i += 1
+            if row["object_id"] not in known or not row["payload"]:
+                totals["skipped"] += 1
+                continue
+            n = apply_payload(conn, row["object_id"], json.loads(row["payload"]))
+            conn.execute("INSERT OR REPLACE INTO enrichment_state (object_id, tier, lookup_at, lookup_status) "
+                         "VALUES (?, COALESCE((SELECT tier FROM enrichment_state WHERE object_id = ?), 2), ?, 'ok')",
+                         (row["object_id"], row["object_id"], row["fetched_at"]))
+            totals["applied"] += 1
+            totals["close_approaches"] += n["close_approaches"]
+            totals["radar"] += n["radar"]
+            if i % 5000 == 0:
+                conn.commit()
     conn.commit()
+    store.close()
     return totals

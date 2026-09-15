@@ -17,6 +17,7 @@ import json
 import sqlite3
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import requests
@@ -34,19 +35,30 @@ CREATE TABLE IF NOT EXISTS lookups (
     object_id   TEXT PRIMARY KEY,
     sstr        TEXT NOT NULL,          -- what we asked SBDB for (number or designation)
     tier        INTEGER NOT NULL DEFAULT 2,
-    fetched_at  TEXT,                   -- ISO UTC of the last successful/failed attempt
-    status      TEXT,                   -- ok | not_found | error
+    fetched_at  TEXT,                   -- ISO UTC of the last SUCCESSFUL fetch (drives staleness/coverage)
+    attempted_at TEXT,                  -- ISO UTC of the last attempt of any outcome (drives queue order)
+    status      TEXT,                   -- ok | not_found | error   (a later failure never clears 'ok')
     http_status INTEGER,
-    payload     TEXT                    -- raw JSON on success
+    last_error  TEXT,
+    payload     TEXT                    -- raw JSON on success (kept across later failures)
 );
 CREATE INDEX IF NOT EXISTS idx_lookups_tier_fetched ON lookups(tier, fetched_at);
 """
 
 
 def open_store(path: str | Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(path)
+    """WAL + a long busy timeout: the crawler commits every second while the
+    nightly merge reads the same file — neither must block or die on a lock."""
+    conn = sqlite3.connect(path, timeout=60)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 60000")
     conn.executescript(STORE_SCHEMA)
+    have = {r[1] for r in conn.execute("PRAGMA table_info(lookups)")}
+    for col in ("attempted_at TEXT", "last_error TEXT"):      # stores created before these columns existed
+        if col.split()[0] not in have:
+            conn.execute(f"ALTER TABLE lookups ADD COLUMN {col}")
+    conn.commit()
     return conn
 
 
@@ -72,31 +84,43 @@ def sync_queue(store: sqlite3.Connection, catalogue: sqlite3.Connection) -> int:
 
 
 def next_batch(store: sqlite3.Connection, n: int, now: float | None = None) -> list[sqlite3.Row]:
-    """Tier-1 never-fetched → tier-1 stale → tier-2 never-fetched → tier-2 oldest."""
+    """Tier-1 never-fetched → tier-1 stale → tier-2 never-fetched → tier-2 oldest,
+    ordered by last attempt so failing bodies cycle rather than block the queue."""
     now = now or time.time()
     stale1 = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now - TIER1_REFRESH_DAYS * 86400))
     return store.execute(
         """
         SELECT object_id, sstr, tier FROM lookups
+        WHERE tier <> 1 OR fetched_at IS NULL OR fetched_at < ?
         ORDER BY
           CASE WHEN tier = 1 AND fetched_at IS NULL THEN 0
-               WHEN tier = 1 AND fetched_at < ? THEN 1
+               WHEN tier = 1 THEN 1
                WHEN tier = 2 AND fetched_at IS NULL THEN 2
-               WHEN tier = 2 THEN 3
-               ELSE 4 END,
-          fetched_at
+               ELSE 3 END,
+          attempted_at
         LIMIT ?
         """,
         (stale1, n),
     ).fetchall()
 
 
-def record(store: sqlite3.Connection, object_id: str, status: str, http_status: int | None, payload: dict | None) -> None:
-    store.execute(
-        "UPDATE lookups SET fetched_at = ?, status = ?, http_status = ?, payload = COALESCE(?, payload) WHERE object_id = ?",
-        (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), status, http_status,
-         json.dumps(payload) if payload is not None else None, object_id),
-    )
+def record(store: sqlite3.Connection, object_id: str, status: str, http_status: int | None, payload: dict | None,
+           error: str | None = None) -> None:
+    """A success sets fetched_at/status/payload. A failure records the attempt
+    and error but never demotes an earlier 'ok' or discards its payload."""
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if status == "ok":
+        store.execute(
+            "UPDATE lookups SET fetched_at = ?, attempted_at = ?, status = 'ok', http_status = ?, last_error = NULL, payload = ? "
+            "WHERE object_id = ?", (now, now, http_status, json.dumps(payload), object_id))
+    elif status == "not_found":
+        store.execute(
+            "UPDATE lookups SET attempted_at = ?, status = CASE WHEN status = 'ok' THEN 'ok' ELSE 'not_found' END, "
+            "http_status = ?, last_error = ? WHERE object_id = ?", (now, http_status, error or "not found", object_id))
+    else:
+        store.execute(
+            "UPDATE lookups SET attempted_at = ?, status = COALESCE(status, 'error'), http_status = ?, last_error = ? "
+            "WHERE object_id = ?", (now, http_status, error or status, object_id))
     store.commit()
 
 
@@ -123,12 +147,22 @@ class Crawler:
             return "error", r.status_code, None
         return "ok", 200, r.json()
 
-    def run(self, *, max_items: int | None = None, once: bool = False, batch: int = 200) -> dict[str, int]:
+    def run(self, *, max_items: int | None = None, once: bool = False, batch: int = 200,
+            resync: Callable[[], None] | None = None, resync_every: float = 900.0) -> dict[str, int]:
+        """`resync` (e.g. re-sync the queue from a freshly rebuilt catalogue) is
+        called between batches, at most every `resync_every` seconds."""
         done = {"ok": 0, "not_found": 0, "error": 0, "throttled": 0}
         processed = 0
+        last_sync = time.time()
         while True:
+            if resync and time.time() - last_sync >= resync_every:
+                resync()
+                last_sync = time.time()
             rows = next_batch(self.store, batch)
             if not rows:
+                if resync and not once:
+                    time.sleep(min(resync_every, 60))
+                    continue
                 return done
             for row in rows:
                 if max_items is not None and processed >= max_items:
@@ -173,11 +207,26 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     store = open_store(args.store)
-    catalogue = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
-    catalogue.row_factory = sqlite3.Row
-    n = sync_queue(store, catalogue)
-    print(f"queue synced: {n} bodies; coverage {coverage(store)}")
-    stats = Crawler(store, rps=args.rps).run(max_items=args.max, once=args.once, batch=args.batch)
+    state = {"mtime": 0.0}
+
+    def resync() -> None:
+        """Re-read the queue whenever the nightly build has replaced the catalogue."""
+        try:
+            mtime = Path(args.db).stat().st_mtime
+        except OSError:
+            return
+        if mtime == state["mtime"]:
+            return
+        catalogue = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
+        catalogue.row_factory = sqlite3.Row
+        n = sync_queue(store, catalogue)
+        catalogue.close()
+        state["mtime"] = mtime
+        print(f"queue synced: {n} bodies; coverage {coverage(store)}")
+
+    resync()
+    stats = Crawler(store, rps=args.rps).run(max_items=args.max, once=args.once, batch=args.batch,
+                                              resync=resync, resync_every=300.0)
     print(f"done: {stats}; coverage {coverage(store)}")
     return 0
 
