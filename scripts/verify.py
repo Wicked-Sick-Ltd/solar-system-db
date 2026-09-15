@@ -5,6 +5,7 @@ Exits non-zero on any failure so CI can fail fast.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 from common import DB_PATH, connect
 
@@ -116,6 +117,36 @@ def main() -> int:
         fail(f"dwarf planets without orbital elements: {', '.join(missing)}")
     else:
         ok("all IAU dwarf planets have orbital elements")
+
+    # ---- schema v2 invariants (skipped on v1 files) ------------------------
+    if conn.execute("PRAGMA user_version").fetchone()[0] >= 2:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from ingest_sbdb import ORBIT_CLASS_CODES
+        placeholders = ",".join("?" for _ in ORBIT_CLASS_CODES)
+        bad = conn.execute(f"SELECT COUNT(*) FROM visual_properties WHERE spectral_type IN ({placeholders})",
+                           tuple(ORBIT_CLASS_CODES)).fetchone()[0]
+        if bad:
+            failures.append(f"{bad} rows carry an orbit class in spectral_type")
+            fail(f"{bad} rows carry an orbit class in spectral_type")
+        else:
+            ok("spectral_type holds taxonomies only")
+        no_class = conn.execute(
+            "SELECT COUNT(*) FROM objects o JOIN orbital_elements oe ON oe.object_id=o.id "
+            "WHERE o.object_type IN ('asteroid','comet','tno','centaur') "
+            "AND oe.semi_major_axis_au IS NOT NULL AND oe.orbit_class_code IS NULL").fetchone()[0]
+        if no_class:
+            failures.append(f"{no_class} small bodies without orbit_class_code")
+            fail(f"{no_class} small bodies without orbit_class_code")
+        else:
+            ok("every small body has an orbit class")
+        n_des = conn.execute("SELECT COUNT(*) FROM designations").fetchone()[0]
+        n_fts = conn.execute("SELECT COUNT(*) FROM objects_fts").fetchone()[0]
+        n_obj = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
+        if n_des == 0 or n_fts != n_obj:
+            failures.append(f"designations={n_des}, fts={n_fts} vs objects={n_obj}")
+            fail(f"designations={n_des}, fts={n_fts} vs objects={n_obj}")
+        else:
+            ok(f"designations {n_des}; FTS covers all {n_obj} objects")
 
     # Halley (the comet, not asteroid 2688)
     halley = conn.execute(

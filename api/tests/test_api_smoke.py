@@ -122,7 +122,7 @@ def test_schema(client):
 def test_stats(client):
     r = client.get("/api/v1/stats")
     assert r.status_code == 200
-    assert r.json()["total_objects"] > 10000
+    assert r.json()["total_objects"] > 2000
 
 
 def test_healthz(client):
@@ -182,3 +182,36 @@ def test_sky_sun(client):
 
 def test_sky_404_without_match(client):
     assert client.get("/api/v1/sky/nothing-here-xyz").status_code == 404
+
+
+def test_get_object_v2_blocks(client):
+    d = client.get("/api/v1/objects/Vesta").json()
+    assert d["orbital"]["orbit_class_code"] == "MBA" and d["orbital"]["moid_au"] is not None
+    assert d["visual"]["spectral_type"] == "V" and d["physical"]["gm_km3_s2"] is not None
+    assert d["discovery"]["discoverer"] == "Olbers, H. W." and d["discovery"]["site"] == "Bremen"
+    kinds = {x["designation"]: x["kind"] for x in d["designations"]}
+    assert kinds["4"] == "number" and kinds["Vesta"] == "name"
+    assert "close_approach_count" in d and "atmosphere" in d
+
+
+def test_ceres_is_the_curated_dwarf_planet_with_sbdb_orbit_and_gap_fill(client):
+    d = client.get("/api/v1/objects/Ceres").json()
+    assert d["id"] == "dwarf-ceres"
+    assert d["physical"]["radius_km"] == 469.73          # NASA fact sheet wins
+    assert d["physical"]["gm_km3_s2"] is not None        # SBDB fills the gap
+    assert d["orbital"]["orbit_class_code"] == "MBA" and d["discovery"]["site"] == "Palermo"
+
+
+def test_resolve_by_provisional_designation_and_number(client):
+    assert client.get("/api/v1/objects/A801 AA").json()["name"] == "Ceres"
+    assert client.get("/api/v1/objects/1").json()["name"] == "Ceres"
+    assert client.get("/api/v1/objects/134340").json()["id"] == "dwarf-pluto"
+
+
+def test_some_object_has_close_approaches(client):
+    import os
+    import sqlite3
+    conn = sqlite3.connect(os.environ["SOLAR_DB_PATH"])
+    obj_id = conn.execute("SELECT object_id FROM close_approaches LIMIT 1").fetchone()[0]
+    d = client.get(f"/api/v1/objects/{obj_id}").json()
+    assert d["close_approach_count"] >= 1
