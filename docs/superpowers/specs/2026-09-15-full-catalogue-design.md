@@ -57,8 +57,17 @@ A dedicated build LXC/VM in the CML datacenter (proposed: proxmox5, VLAN 5, 4 vC
 8. Rebuild FTS, `ANALYZE`, `VACUUM`, `verify.py` (extended: row-count floors per type, spot checks against fixtures, no orbit class in `spectral_type`).
 9. Publish (§6). Total budget: under 45 minutes; the SBDB pull is ~30 requests of ~40 MB.
 
-### 5.3 Continuous enrichment crawler (`scripts/enrich_crawler.py`)
-A long-running service on the build box that walks `enrichment_state` in priority order (planets' moons → dwarf planets → PHAs → NEOs → numbered → unnumbered, then by staleness), calling the SBDB lookup API at a fixed polite rate (default 1 request/s, configurable; JPL asks for reasonable use, not a published quota) and writing results to its own SQLite store `enrichment.sqlite`. A full pass over 1.4 M bodies takes ~16 days at 1 rps; the store survives nightly rebuilds and is merged in at step 7, so completeness climbs monotonically and never regresses. If JPL rate-limits (HTTP 429/503), it backs off exponentially and logs. The crawler is the only part of the system that is not "done" after one night, and the manifest reports its coverage honestly (`enriched_objects / total_objects`).
+### 5.3 Continuous enrichment crawler (`scripts/enrich_crawler.py`) — "the Forth Road Bridge"
+A long-running service on the build box that calls the SBDB lookup API at a fixed polite rate (default 1 request/s; JPL publishes no quota, so we back off exponentially on 429/503 and never parallelise) and writes results to its own store `enrichment.sqlite`, which survives nightly rebuilds and is merged into the fresh DB at step 7. Completeness climbs monotonically and never regresses.
+
+Two rings, one queue, tier 1 always wins when both are due:
+
+| Tier | Members | Cycle | Size |
+|---|---|---|---|
+| **1 — shown today** | Sun, planets, every named moon, dwarf planets + candidates, all NEOs and PHAs, all periodic comets, every named asteroid, bright TNOs and centaurs — i.e. exactly the v1 curated set the site already renders (~39 k) | re-crawled every 7 days (~1.5 h/day at 1 rps) | ~39 k |
+| **2 — everything else** | all remaining numbered and unnumbered bodies | rolling pass; when the last one is done, start again (~16 days per pass at 1 rps, minus tier 1's share) | ~1.36 M |
+
+Selection: `enrichment_state.tier` is set by the nightly build from the same rules the site uses (`classifications` NEO/PHA/Named, type, H caps), so a body promoted to tier 1 (newly named, newly flagged PHA) moves ring on the next build. Ordering inside a ring is oldest-`lookup_at`-first, new bodies (never crawled) first of all. The manifest reports coverage per tier (`tier1_fresh_within_7d`, `tier2_enriched_fraction`) so "how complete are we" is always a visible number.
 
 ### 5.4 Fixture for tests
 `tests/fixtures/sbdb_sample.jsonl` (2 000 rows spanning every kind/class) and `tests/fixtures/cad_sample.json`, `mpc_sample.txt`, `sats_sample.html`. `build_full.py --offline` builds a complete small DB from seed + fixtures; the API/MCP tests run against it. CI needs no network.
@@ -104,7 +113,8 @@ A long-running service on the build box that walks `enrichment_state` in priorit
 7. Web: cards, moons table, search-all, download links.
 8. Retire the git-committed DB and the Actions nightly job; README rewrite (hosting requirements, sources table, MPC attribution).
 
-## 11. Open questions for Craig
-- Compilation licence for our own artefact: MIT (like the code) or CC0 (data-friendly)?
-- RGW account for the `solar-system-db` bucket: existing `wizmedia` (as the web app's OG cache uses) or a new one?
-- Crawler rate: 1 rps default; say if you'd rather start slower.
+## 11. Decisions taken by default (Craig to override if wrong)
+- Compilation licence for our artefact: **MIT**, matching the code (CC0 is the data-friendlier alternative; a one-line change in the manifest and landing page).
+- RGW account for the `solar-system-db` bucket: the existing **`wizmedia`** account, as the web app's OG cache already uses.
+- Crawler rate: **1 request/second**, single-threaded, exponential back-off on 429/503.
+- Git LFS: not used for the nightly artefact (≈12 GB/month of churn against GitHub quotas). Optional later: a monthly LFS-tracked snapshot for provenance.
