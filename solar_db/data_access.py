@@ -50,7 +50,8 @@ class SolarDB:
         if not self.db_path.exists():
             raise FileNotFoundError(
                 f"Solar System DB not found at {self.db_path}. "
-                f"Run scripts/populate_initial.py first or set SOLAR_DB_PATH."
+                f"Download it with scripts/pull_latest.sh (MANIFEST_URL=…), build it with "
+                f"scripts/build_full.py --fresh --online, or set SOLAR_DB_PATH."
             )
 
     @staticmethod

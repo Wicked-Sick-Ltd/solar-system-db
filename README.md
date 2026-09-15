@@ -12,8 +12,8 @@ refreshed nightly.
 
 ## Three ways to use it
 
-1. **Clone and query locally.** The SQLite file `data/solar_system.sqlite` is
-   committed to the repo — open it with `sqlite3`, DBeaver, DuckDB, Python's
+1. **Download and query locally.** The whole catalogue is one SQLite file,
+   published nightly (see *Download the database* below) — open it with `sqlite3`, DBeaver, DuckDB, Python's
    stdlib, R, Datasette (if you self-host it), or whatever you like.
 2. **Run the MCP server locally.** A FastMCP server exposes the catalogue as
    typed tools for Claude Desktop, Cursor, Continue, and any other MCP-aware
@@ -36,7 +36,7 @@ solar-system-db/
 │   ├── sky.py              RA/Dec, constellation, alt/az, rise/set from those positions
 │   └── data/               vendored IAU constellation boundaries (CDS VI/42)
 ├── scripts/
-│   ├── populate_initial.py  full rebuild from JPL/MPC
+│   ├── build_full.py        full rebuild from JPL/MPC/NASA (--offline uses tests/fixtures)
 │   ├── update_nightly.py    incremental refresh (run by GitHub Actions)
 │   ├── verify.py            sanity checks; CI fails if these don't pass
 │   ├── pull_latest.sh       host-side: git-pull + restart services
@@ -57,13 +57,13 @@ solar-system-db/
 ├── Caddyfile               reverse proxy (TLS, gzip, CORS)
 ├── web/index.html          public landing page
 ├── .env.example            copy → .env, set PUBLIC_HOSTNAME
-├── data/solar_system.sqlite  the actual catalogue (committed)
+├── data/                    the catalogue lands here (downloaded or built; not in git)
 └── .github/workflows/
     ├── nightly-refresh.yml  scheduled: 03:00 UTC daily
     └── test.yml             CI on push/PR
 ```
 
-## Install & rebuild
+## Install & build
 
 ```bash
 git clone https://github.com/wizzouk2/solar-system-db.git
@@ -72,15 +72,15 @@ cd solar-system-db
 # Editable install of the root package (data_access + positions + scripts)
 pip install -e .
 
-# To rebuild data/solar_system.sqlite from scratch (5–10 min, hits JPL SBDB)
-python scripts/populate_initial.py
+# To rebuild the whole catalogue from scratch (~1.4 M bodies; see docs/BUILD-HOST.md)
+python scripts/build_full.py --fresh --online
 
 # Verify the rebuild
 python scripts/verify.py
 ```
 
 Or with [uv](https://docs.astral.sh/uv/): `uv sync` then `uv run python
-scripts/populate_initial.py`.
+scripts/build_full.py --fresh --offline` (fixtures, no network).
 
 ## Query locally (no server needed)
 
@@ -168,8 +168,9 @@ That brings up:
   - `/api/*`       → REST API
   - `/mcp/*`       → MCP HTTP endpoint
 
-**Minimal box requirements:** 1 CPU, 512 MB RAM, 1 GB disk. The whole stack
-sits idle most of the time; the DB is 12 MB.
+**API host requirements:** 2 CPU, 2 GB RAM, 10 GB disk (the uncompressed DB is
+~2.5 GB; keep room for the swap). The **build host** is separate — see
+`docs/BUILD-HOST.md`.
 
 ### Behind Cloudflare Tunnel (Craig's pattern)
 
@@ -191,31 +192,19 @@ Then `cloudflared tunnel run` (or run it as a systemd service). Cloudflare
 handles TLS, caching, rate limits, and DDoS protection at the edge — no
 bespoke config needed.
 
-### Nightly cron coordination
+### Nightly flow
 
 ```
-GitHub Actions @ 03:00 UTC     →   opens/updates a PR with a refreshed
-                                    data/solar_system.sqlite
-After merge                    →   scripts/pull_latest.sh
-                                    git pull && docker compose restart rest-api mcp-server
+Build host, 03:00 UTC   →  build_full.py --online → verify.py → publish_artifact.py
+                            (solar_system-YYYYMMDD.sqlite.zst + latest.json → Ceph RGW)
+API host, every 15 min  →  scripts/pull_latest.sh: new sha? download, verify, swap, restart
 ```
 
-Add the host cron once:
+Add the host cron once (after setting `MANIFEST_URL` in `.env`):
 
 ```bash
-echo "15 3 * * * cd /opt/solar-system-db && ./scripts/pull_latest.sh >> /var/log/solar-pull.log 2>&1" \
-  | crontab -
+echo "*/15 * * * * cd /opt/solar-system-db && set -a && . ./.env && set +a && ./scripts/pull_latest.sh >> /var/log/solar-pull.log 2>&1" | crontab -
 ```
-
-### What's NOT included by default
-
-- **No auth.** Public is public; both interfaces are read-only by design. The
-  REST API has no write endpoints and the DB is opened with `mode=ro&immutable=1`.
-- **No analytics.** If you want plausible.io or similar, drop a tag in
-  `web/index.html` — that's a 2-line change.
-- **No public SQL.** Datasette was considered and dropped because it exposes
-  arbitrary SQL over HTTP by default. The REST API is the contract; Laravel
-  or any other front-end can be built against the OpenAPI spec.
 
 ## Data sources & licensing
 
@@ -226,7 +215,9 @@ All upstream sources are public-domain or freely redistributable:
 | [NASA JPL Solar System Dynamics](https://ssd.jpl.nasa.gov/) | Planet/moon facts | NASA public domain |
 | [JPL Small-Body Database](https://ssd-api.jpl.nasa.gov/doc/sbdb.html) | Asteroids, comets, TNOs, orbital elements | NASA public domain |
 | [NASA Planetary Fact Sheets](https://nssdc.gsfc.nasa.gov/planetary/factsheet/) | Physical properties | NASA public domain |
-| [IAU Minor Planet Center](https://www.minorplanetcenter.net/) | Named-asteroid + periodic-comet lists (via SBDB) | Free use with attribution |
+| [JPL CAD API](https://ssd-api.jpl.nasa.gov/doc/cad.html) | Close approaches to planets and the Moon | NASA public domain |
+| [JPL planetary satellites](https://ssd.jpl.nasa.gov/sats/elem/) | Elements + physical parameters of every known moon | NASA public domain |
+| [IAU Minor Planet Center](https://www.minorplanetcenter.net/iau/lists/NumberedMPs.txt) | Discovery circumstances of every numbered minor planet | Free use with attribution |
 | [CDS catalogue VI/42](https://cdsarc.cds.unistra.fr/ftp/VI/42/) (Roman 1987) | Constellation boundaries for sky lookups | Public domain |
 
 Wikipedia is referenced in `wikipedia_url` columns for human reading; it is
@@ -250,12 +241,39 @@ build_meta               one row per refresh
 Plus views: `v_planets`, `v_moons_by_planet`, `v_dwarf_planets`, `v_neos`,
 `v_phas`, `v_comets`, `v_tnos`, `v_object_counts`.
 
-## Out of scope for v1
+## Download the database
 
-- The full 1.4M asteroid catalogue (we cap at named + bright + classified).
-- Artificial satellites.
-- Meteor showers.
-- The Oort cloud as such.
+Every night the build host publishes the complete catalogue as a single
+zstd-compressed SQLite file with a manifest:
+
+```bash
+curl -s https://s3.wickedsick.com/solar-system-db/latest.json | jq .   # size, sha256, counts, licence
+curl -O "$(curl -s https://s3.wickedsick.com/solar-system-db/latest.json | jq -r .url)"
+zstd -d solar_system-*.sqlite.zst && sqlite3 solar_system-*.sqlite 'SELECT COUNT(*) FROM objects'
+```
+
+The same manifest is served at `GET /api/v1/download` and by the MCP tool
+`get_download_info`. Dated artefacts are kept for 30 days.
+
+## What's in it
+
+Everything the public sources publish, refreshed nightly:
+
+- every body in JPL's Small-Body Database (~1.4 M asteroids, ~4 k comets) with
+  all 75 query-API fields — elements with uncertainties, orbit quality, MOIDs,
+  Tisserand, physical and colour parameters, taxonomies, comet magnitude terms;
+- discovery circumstances for every numbered minor planet (Minor Planet Center);
+- close approaches to every planet and the Moon, ±200 years (JPL CAD);
+- every known natural satellite with planetocentric elements (JPL SSD);
+- the complete NASA planetary fact sheets, atmospheres included;
+- per-object detail from the SBDB lookup API — citations, alternate
+  designations, radar observations, impact-monitoring flags, referenced
+  physical parameters — filled by a perpetual polite crawler (tier 1, the
+  bodies the website shows, weekly; tier 2, everything else, rolling).
+
+## Out of scope
+
+- Artificial satellites, meteor showers, exoplanets.
 - Sub-arcsecond precision ephemerides (use JPL Horizons directly).
 
 ## TBC
