@@ -265,6 +265,10 @@ Plus views: `v_planets`, `v_moons_by_planet`, `v_dwarf_planets`, `v_neos`,
 
 ## Contributing
 
-PRs welcome — especially for: backfilling moon orbital data, adding canned
-queries to the REST API, or a dashboard / planetarium widget that consumes
-the API.
+PRs welcome — especially for: data corrections with a primary source,
+backfilling moon orbital data, adding canned queries to the REST API, or a
+dashboard / planetarium widget that consumes the API. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for local setup, the checks CI runs, and
+how to propose a data correction. For security problems please follow
+[SECURITY.md](SECURITY.md) rather than opening an issue. MIT licensed
+([LICENSE](LICENSE)).

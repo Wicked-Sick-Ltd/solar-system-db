@@ -1,0 +1,47 @@
+name: Data correction
+description: A value in the catalogue is wrong or missing
+labels: [data]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See "Proposing a data correction" in [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+        A primary source (NASA/JPL, IAU MPC, or a paper) is required; we don't change values on a Wikipedia citation alone.
+  - type: input
+    id: object
+    attributes:
+      label: Object id, name or designation
+      placeholder: dwarf-pluto, or (134340) Pluto
+    validations:
+      required: true
+  - type: input
+    id: field
+    attributes:
+      label: Table and field
+      placeholder: orbital_elements.semi_major_axis_au
+    validations:
+      required: true
+  - type: input
+    id: current
+    attributes:
+      label: Current value
+    validations:
+      required: true
+  - type: input
+    id: proposed
+    attributes:
+      label: Proposed value
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source URL
+      description: NASA/JPL, the IAU Minor Planet Center, or a peer-reviewed paper.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: e.g. if you know whether the value comes from the curated seed or from SBDB.
