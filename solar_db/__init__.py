@@ -5,5 +5,6 @@ import from here, so their behaviour cannot drift apart.
 """
 from .data_access import SolarDB
 from .positions import compute_heliocentric_position, next_perihelion_jd
+from .sky import sky_report
 
-__all__ = ["SolarDB", "compute_heliocentric_position", "next_perihelion_jd"]
+__all__ = ["SolarDB", "compute_heliocentric_position", "next_perihelion_jd", "sky_report"]
