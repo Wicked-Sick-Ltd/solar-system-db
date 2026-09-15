@@ -179,7 +179,9 @@ DWARF_PLANETS = [
      "object_type": "dwarf_planet", "discoverer": "Clyde Tombaugh",
      "discovery_date": "1930-02-18",
      "wikipedia_url": "https://en.wikipedia.org/wiki/Pluto",
-     "spkid": 999,
+     # SBDB small-body SPK-ID (2000000 + number). 999 is the NAIF id of the
+     # Pluto body and resolves on SBDB to asteroid (999) Zachia.
+     "spkid": 2134340,
      "physical": {"radius_km": 1188.3, "mass_kg": 1.303e22, "density_g_cm3": 1.854,
                   "rotation_period_hours": -153.2928, "axial_tilt_deg": 119.591,
                   "surface_gravity_m_s2": 0.62, "escape_velocity_km_s": 1.21},

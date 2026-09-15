@@ -93,6 +93,30 @@ def main() -> int:
     else:
         ok("5 IAU dwarf planets")
 
+    # Every IAU dwarf planet needs orbital elements, else /positions 404s and
+    # the orrery silently drops it (Pluto was missing until 2026-09).
+    missing = [r[0] for r in conn.execute(
+        """
+        SELECT o.name FROM objects o
+        LEFT JOIN orbital_elements oe ON oe.object_id = o.id
+        WHERE o.object_type='dwarf_planet' AND (
+            oe.semi_major_axis_au IS NULL
+            OR oe.eccentricity IS NULL
+            OR oe.inclination_deg IS NULL
+            OR oe.longitude_ascending_node_deg IS NULL
+            OR oe.argument_periapsis_deg IS NULL
+            OR oe.mean_anomaly_deg IS NULL
+            OR oe.epoch_jd IS NULL
+        )
+        ORDER BY o.name
+        """
+    ).fetchall()]
+    if missing:
+        failures.append(f"dwarf planets without orbital elements: {', '.join(missing)}")
+        fail(f"dwarf planets without orbital elements: {', '.join(missing)}")
+    else:
+        ok("all IAU dwarf planets have orbital elements")
+
     # Halley (the comet, not asteroid 2688)
     halley = conn.execute(
         """
