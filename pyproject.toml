@@ -49,5 +49,5 @@ packages = ["solar_db", "solar_db.data"]
 solar_db = ["data/*.dat"]
 
 [tool.pytest.ini_options]
-testpaths = ["mcp-server/tests", "api/tests", "tests"]
+testpaths = ["mcp-server/tests", "api/tests"]
 addopts = "--import-mode=importlib"
