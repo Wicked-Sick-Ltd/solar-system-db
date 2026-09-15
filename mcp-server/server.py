@@ -169,6 +169,58 @@ def search(query: str, limit: int = 20) -> list[dict]:
 # Position / ephemeris tools
 # ---------------------------------------------------------------------------
 @mcp.tool()
+def get_close_approaches(name_or_designation: str, date_min: str | None = None, date_max: str | None = None,
+                         body: str | None = None, limit: int = 100) -> dict:
+    """Close approaches of one body to the planets or the Moon (JPL CAD + SBDB).
+    Dates are ISO; `body` filters to e.g. "Earth". Nearest-in-time first."""
+    rows = db().close_approaches_for(name_or_designation, date_min=date_min, date_max=date_max, body=body, limit=limit)
+    if rows is None:
+        return {"error": f"No object found matching {name_or_designation!r}."}
+    return {"object": name_or_designation, "results": rows}
+
+
+@mcp.tool()
+def find_close_approaches(date_min: str, date_max: str, body: str = "Earth",
+                          max_dist_au: float = 0.05, limit: int = 200) -> list[dict]:
+    """Every catalogued close approach to `body` between two ISO dates, nearest
+    first. 1 lunar distance ≈ 0.00257 AU. Example: what passes Earth this year?"""
+    return db().close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)
+
+
+@mcp.tool()
+def get_discovery(name_or_designation: str) -> dict:
+    """Discovery circumstances: date, discoverer(s), site, and the naming
+    citation where one exists (MPC numbered list + SBDB)."""
+    d = db().get_discovery(name_or_designation)
+    return d if d is not None else {"error": f"No object found matching {name_or_designation!r}."}
+
+
+@mcp.tool()
+def get_designations(name_or_designation: str) -> list[dict] | dict:
+    """Every identifier a body has carried: permanent number, name, provisional
+    and alternate designations, legacy ids."""
+    d = db().get_designations(name_or_designation)
+    return d if d is not None else {"error": f"No object found matching {name_or_designation!r}."}
+
+
+@mcp.tool()
+def get_atmosphere(planet: str) -> dict:
+    """Atmosphere of a planet, Pluto or Titan-class body from the NASA fact
+    sheets: surface pressure, temperature, density, scale height, winds and
+    composition by volume."""
+    a = db().get_atmosphere(planet)
+    return a if a is not None else {"error": f"No object found matching {planet!r}."}
+
+
+@mcp.tool()
+def get_download_info() -> dict:
+    """How to download the entire catalogue as one SQLite file: URL, size,
+    SHA-256, build date, row counts, enrichment coverage and licence."""
+    m = db().download_manifest()
+    return m if m is not None else {"error": "No published artefact yet."}
+
+
+@mcp.tool()
 def compute_position(name_or_designation: str, date: str) -> dict:
     """Compute the heliocentric ecliptic position (J2000) of an object at a
     given date by Keplerian two-body propagation.
