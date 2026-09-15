@@ -82,7 +82,10 @@ def refresh_stale_elements(conn, *, days_stale: int = 90,
         SELECT o.id, o.designation
         FROM objects o
         JOIN orbital_elements oe ON oe.object_id = o.id
-        WHERE o.object_type IN ('asteroid','comet','tno','centaur')
+        WHERE o.object_type IN (
+            'asteroid','comet','tno','centaur',
+            'dwarf_planet','dwarf_planet_candidate'
+        )
           AND (oe.updated_at IS NULL
                OR strftime('%s', oe.updated_at) < ?)
         ORDER BY oe.updated_at
