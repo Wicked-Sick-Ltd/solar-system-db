@@ -53,6 +53,14 @@ class SolarDB:
                 f"Run scripts/populate_initial.py first or set SOLAR_DB_PATH."
             )
 
+    @staticmethod
+    def _lim(limit: int | None, cap: int) -> int:
+        """Clamp a caller-supplied limit to [1, cap]; SQLite treats LIMIT -1 as unbounded."""
+        try:
+            return max(1, min(int(limit if limit is not None else cap), cap))
+        except (TypeError, ValueError):
+            return cap
+
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
         uri = f"file:{self.db_path}?mode=ro&immutable=1"
@@ -175,7 +183,7 @@ class SolarDB:
             ORDER BY {order}
             LIMIT ? OFFSET ?
         """
-        params.extend([min(limit, 1000), 0 if after is not None else offset])
+        params.extend([self._lim(limit, 1000), max(0, int(offset or 0)) if after is None else 0])
         with self._conn() as conn:
             return [dict(r) for r in conn.execute(sql, params)]
 
@@ -350,7 +358,7 @@ class SolarDB:
             clauses.append("p.radius_km <= ?")
             params.append(max_diameter_km / 2.0)
         where_extra = (" AND " + " AND ".join(clauses)) if clauses else ""
-        params.append(min(limit, 1000))
+        params.append(self._lim(limit, 1000))
         with self._conn() as conn:
             return [dict(r) for r in conn.execute(
                 f"""
@@ -445,7 +453,7 @@ class SolarDB:
                                    WHEN o.object_type='moon' THEN 2 WHEN o.object_type='comet' THEN 3 ELSE 4 END),
                              score, length(o.name)
                     LIMIT ?
-                    """, (self._fts_query(query), query, query, min(limit, 100)),
+                    """, (self._fts_query(query), query, query, self._lim(limit, 100)),
                 ).fetchall()
                 if rows:
                     return [dict(r) for r in rows]
@@ -464,7 +472,7 @@ class SolarDB:
                                ELSE 4 END),
                          length(name)
                 LIMIT ?
-                """, (like, like, like, min(limit, 100)),
+                """, (like, like, like, self._lim(limit, 100)),
             )]
 
     # ----------------------------------------------------------------------
@@ -485,7 +493,7 @@ class SolarDB:
         if body:
             clauses.append("body = ? COLLATE NOCASE")
             params.append(body)
-        params.append(min(limit, 1000))
+        params.append(self._lim(limit, 1000))
         with self._conn() as conn:
             if not self._has_table(conn, "close_approaches"):
                 return []
@@ -509,7 +517,7 @@ class SolarDB:
                 LEFT JOIN physical_properties p ON p.object_id = ca.object_id
                 WHERE ca.cd_iso >= ? AND ca.cd_iso <= ? AND ca.body = ? COLLATE NOCASE AND ca.dist_au <= ?
                 ORDER BY ca.dist_au LIMIT ?
-                """, (date_min, date_max, body, max_dist_au, min(limit, 1000)))]
+                """, (date_min, date_max, body, max(0.0, min(float(max_dist_au), 1.0)), self._lim(limit, 1000)))]
 
     def _one(self, table: str, name_or_designation: str) -> dict | None:
         obj_id = self._resolve_id(name_or_designation)

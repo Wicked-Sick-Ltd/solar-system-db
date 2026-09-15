@@ -73,3 +73,14 @@ def test_download_manifest_404_then_served(client, tmp_path, monkeypatch):
     (tmp_path / "latest.json").write_text(json.dumps({"url": "https://s3.wickedsick.com/solar-system-db/solar_system-20260915.sqlite.zst",
                                                        "sha256": "abc", "size_bytes": 1, "built_at": "2026-09-15T03:00:00Z"}))
     assert client.get("/api/v1/download").json()["sha256"] == "abc"
+
+
+def test_negative_limits_are_clamped_everywhere(client):
+    from solar_db import SolarDB
+    db = SolarDB(os.environ["SOLAR_DB_PATH"])
+    assert len(db.search("a", limit=-1)) <= 100
+    assert len(db.find_objects(limit=-5)) == 1
+    assert len(db.close_approaches_between("1900-01-01", "2200-01-01", max_dist_au=5, limit=-1)) <= 1000
+    conn = _db()
+    obj_id = conn.execute("SELECT object_id FROM close_approaches LIMIT 1").fetchone()[0]
+    assert len(db.close_approaches_for(obj_id, limit=0)) >= 1
