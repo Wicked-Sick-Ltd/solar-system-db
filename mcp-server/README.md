@@ -74,6 +74,7 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 | Tool | One-liner |
 |---|---|
 | `compute_position` | Heliocentric ecliptic (x, y, z) at a given date by two-body Kepler propagation. |
+| `get_sky_position` | Where it appears in Earth's sky: RA/Dec, constellation, hemisphere, elongation; with `lat`/`lon` also alt/az, up-after-dark and rise/transit/set. |
 | `next_perihelion` | Next perihelion passage of a periodic body. |
 
 ### Reference / discovery
