@@ -19,7 +19,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ingest_cad  # noqa: E402
+import ingest_factsheets  # noqa: E402
 import ingest_mpc  # noqa: E402
+import ingest_sats  # noqa: E402
 import ingest_sbdb  # noqa: E402
 import ingest_seed  # noqa: E402
 from common import DB_PATH, ROOT, connect, publish  # noqa: E402
@@ -44,6 +46,19 @@ def stage_seed(conn) -> dict[str, int]:
     counts["tno_notable"] = ingest_seed.seed_notable_tnos(conn)
     conn.commit()
     return counts
+
+
+def stage_factsheets(conn) -> dict[str, int]:
+    return ingest_factsheets.write_factsheets(conn, ingest_factsheets.load_seed())
+
+
+def stage_satellites(conn, *, offline: bool) -> dict[str, int]:
+    if offline:
+        elem = (FIXTURES / "jpl_sats_elem.html").read_text()
+        phys = (FIXTURES / "jpl_sats_phys_par.html").read_text()
+    else:
+        elem, phys = ingest_sats.fetch_pages()
+    return ingest_sats.write_satellites(conn, ingest_sats.parse_elements(elem), ingest_sats.parse_physical(phys))
 
 
 def stage_sbdb(conn, *, offline: bool, page: int) -> dict[str, int]:
@@ -147,6 +162,10 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.time()
     print("Stage 1: curated seed")
     totals["seed"] = stage_seed(conn)
+    print("Stage 1b: NASA fact sheets (seed/factsheets.json)")
+    totals["factsheets"] = stage_factsheets(conn)
+    print("Stage 1c: JPL planetary satellites")
+    totals["satellites"] = stage_satellites(conn, offline=offline)
     print("Stage 2: SBDB bulk (all fields)")
     totals["sbdb"] = stage_sbdb(conn, offline=offline, page=args.page)
     if not args.skip_mpc:
