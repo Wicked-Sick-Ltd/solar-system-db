@@ -54,3 +54,20 @@ def test_pull_latest_installs_verified_artefact(tmp_path):
     # second run is a no-op
     r2 = subprocess.run(["bash", str(ROOT / "scripts" / "pull_latest.sh")], env=env, capture_output=True, text=True)
     assert "already at" in r2.stdout
+
+
+@pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
+def test_pull_latest_rejects_traversal_and_records_only_after_restart(tmp_path):
+    out = tmp_path / "out"
+    dest = LocalDest(out, public_base="file://" + str(out))
+    publish(_db(), dest, enrichment_store=None, keep_days=30, level=3, stamp="20260915")
+    bad = json.loads((out / "latest.json").read_text())
+    bad["artefact"] = "../../etc/passwd"
+    (out / "evil.json").write_text(json.dumps(bad))
+    data = tmp_path / "data"
+    env = {**os.environ, "MANIFEST_URL": "file://" + str(out / "evil.json"), "DATA_DIR": str(data), "RESTART_CMD": "true"}
+    r = subprocess.run(["bash", str(ROOT / "scripts" / "pull_latest.sh")], env=env, capture_output=True, text=True)
+    assert r.returncode != 0 and "refusing" in r.stdout
+    env = {**os.environ, "MANIFEST_URL": "file://" + str(out / "latest.json"), "DATA_DIR": str(data), "RESTART_CMD": "false"}
+    r = subprocess.run(["bash", str(ROOT / "scripts" / "pull_latest.sh")], env=env, capture_output=True, text=True)
+    assert r.returncode != 0 and (data / "solar_system.sqlite").exists() and not (data / "latest.json").exists()

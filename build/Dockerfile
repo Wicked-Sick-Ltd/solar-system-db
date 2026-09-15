@@ -12,4 +12,6 @@ RUN pip install --no-cache-dir -e ".[publish]"
 ENV PYTHONUNBUFFERED=1 SSDB_BUILD_PATH=/build/solar_system.sqlite SSDB_NO_PUBLISH=1
 VOLUME ["/build", "/data"]
 # Nightly: build → verify → publish. The crawler runs as a separate long-lived container (see docker-compose, profile "build").
-CMD ["bash", "-lc", "python scripts/build_full.py --fresh --online --enrichment-store /data/enrichment.sqlite && python scripts/verify.py && python scripts/publish_artifact.py --db /build/solar_system.sqlite --enrichment-store /data/enrichment.sqlite --bucket \"$S3_BUCKET\" --endpoint \"$S3_ENDPOINT\" --public-base \"$S3_PUBLIC_BASE\""]
+# After a verified publish, install the fresh catalogue on /data too so the
+# always-on crawler re-syncs its queue against it (it watches the file mtime).
+CMD ["bash", "-lc", "python scripts/build_full.py --fresh --online --enrichment-store /data/enrichment.sqlite && python scripts/verify.py && python scripts/publish_artifact.py --db /build/solar_system.sqlite --enrichment-store /data/enrichment.sqlite --bucket \"$S3_BUCKET\" --endpoint \"$S3_ENDPOINT\" --public-base \"$S3_PUBLIC_BASE\" && cp /build/solar_system.sqlite /data/.solar_system.sqlite.new && mv -f /data/.solar_system.sqlite.new /data/solar_system.sqlite"]

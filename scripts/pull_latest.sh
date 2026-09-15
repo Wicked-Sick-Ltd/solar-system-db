@@ -37,6 +37,10 @@ manifest="$(curl -fsSL "$url")"
 want_sha="$(printf '%s' "$manifest" | json '["sha256"]')"
 art_url="$(printf '%s' "$manifest" | json '["url"]')"
 name="$(printf '%s' "$manifest" | json '["artefact"]')"
+# The manifest is fetched over HTTPS but not signed: never let its fields shape a path.
+name="$(basename -- "$name")"
+[[ "$name" =~ ^solar_system-[0-9]{8}\.sqlite\.zst$ ]] || { log "refusing unexpected artefact name: $name"; exit 1; }
+case "$art_url" in "${MANIFEST_URL%/*}"/solar_system-*.sqlite.zst) ;; *) log "refusing artefact URL outside the manifest's directory: $art_url"; exit 1 ;; esac
 
 have_sha=""
 [[ -f "$DATA_DIR/latest.json" ]] && have_sha="$(json '["sha256"]' < "$DATA_DIR/latest.json" || true)"
@@ -60,7 +64,9 @@ assert n > 1000, n
 print(f"integrity ok, {n} objects")
 PY
 mv -f "$tmp/solar_system.sqlite" "$DATA_DIR/solar_system.sqlite"          # atomic on the same filesystem
-printf '%s\n' "$manifest" > "$DATA_DIR/latest.json"
 log "installed $name; restarting services"
-eval "$RESTART_CMD"
+# Only record the install once the services have actually been recycled, so a
+# failed restart is retried on the next cron run instead of being masked.
+eval "$RESTART_CMD" || { log "restart failed — latest.json not written; will retry"; exit 1; }
+printf '%s\n' "$manifest" > "$DATA_DIR/latest.json"
 log "done"
