@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ingest_cad  # noqa: E402
+import ingest_enrichment  # noqa: E402
 import ingest_factsheets  # noqa: E402
 import ingest_mpc  # noqa: E402
 import ingest_sats  # noqa: E402
@@ -100,6 +101,12 @@ def stage_cad(conn, *, offline: bool, years: int) -> dict[str, int]:
     return total
 
 
+def stage_enrichment(conn, store: str | None) -> dict[str, int]:
+    if not store or not Path(store).exists():
+        return {"applied": 0, "skipped": 0, "note": "no enrichment store"}  # type: ignore[dict-item]
+    return ingest_enrichment.merge_store(conn, store)
+
+
 def stage_fts(conn) -> int:
     conn.execute("DELETE FROM objects_fts")
     conn.execute(
@@ -143,6 +150,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-cad", action="store_true")
     p.add_argument("--skip-mpc", action="store_true")
     p.add_argument("--no-vacuum", action="store_true")
+    p.add_argument("--enrichment-store", default=None, help="crawler store (enrichment.sqlite) to merge in")
     args = p.parse_args(argv)
     offline = args.offline
 
@@ -176,7 +184,9 @@ def main(argv: list[str] | None = None) -> int:
         totals["cad"] = stage_cad(conn, offline=offline, years=args.cad_years)
     print("Stage 6: crawler tiers")
     totals["tiers"] = stage_tiers(conn)
-    print("Stage 3: full-text index (after every designation source)")
+    print("Stage 7: merge crawler enrichment")
+    totals["enrichment"] = stage_enrichment(conn, args.enrichment_store)
+    print("Stage 8: full-text index (after every designation source, incl. lookups)")
     totals["fts_rows"] = stage_fts(conn)
 
     row_count = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
