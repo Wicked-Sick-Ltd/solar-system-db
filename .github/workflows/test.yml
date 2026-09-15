@@ -35,4 +35,4 @@ jobs:
         run: python scripts/verify.py
 
       - name: Smoke tests — MCP server + REST API
-        run: pytest mcp-server/tests/ api/tests/ -v --import-mode=importlib
+        run: pytest mcp-server/tests/ api/tests/ tests/ -v --import-mode=importlib
