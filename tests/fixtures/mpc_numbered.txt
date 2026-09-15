@@ -1,0 +1,1527 @@
+     (1) Ceres                           1801 01 01  Palermo                  Piazzi, G.
+     (2) Pallas                          1802 03 28  Bremen                   Olbers, H. W.
+     (3) Juno                            1804 09 01  Lilienthal               Harding, K.
+     (4) Vesta                           1807 03 29  Bremen                   Olbers, H. W.
+     (5) Astraea                         1845 12 08  Driesen                  Hencke, K. L.
+     (6) Hebe                            1847 07 01  Driesen                  Hencke, K. L.
+     (7) Iris                            1847 08 13  London                   Hind, J. R.
+     (8) Flora                           1847 10 18  London                   Hind, J. R.
+     (9) Metis                           1848 04 25  Markree                  Graham, A.
+    (10) Hygiea                          1849 04 12  Naples                   de Gasparis, A.
+    (11) Parthenope                      1850 05 11  Naples                   de Gasparis, A.
+    (12) Victoria                        1850 09 13  London                   Hind, J. R.
+    (13) Egeria                          1850 11 02  Naples                   de Gasparis, A.
+    (14) Irene                           1851 05 19  London                   Hind, J. R.
+    (15) Eunomia                         1851 07 29  Naples                   de Gasparis, A.
+    (16) Psyche                          1852 03 17  Naples                   de Gasparis, A.
+    (17) Thetis                          1852 04 17  Dusseldorf               Luther, R.
+    (18) Melpomene                       1852 06 24  London                   Hind, J. R.
+    (19) Fortuna                         1852 08 22  London                   Hind, J. R.
+    (20) Massalia                        1852 09 19  Naples                   de Gasparis, A.
+    (21) Lutetia                         1852 11 15  Paris                    Goldschmidt, H.
+    (22) Kalliope                        1852 11 16  London                   Hind, J. R.
+    (23) Thalia                          1852 12 15  London                   Hind, J. R.
+    (24) Themis                          1853 04 05  Naples                   de Gasparis, A.
+    (25) Phocaea                         1853 04 06  Marseilles               Chacornac, J.
+    (26) Proserpina                      1853 05 05  Dusseldorf               Luther, R.
+    (27) Euterpe                         1853 11 08  London                   Hind, J. R.
+    (28) Bellona                         1854 03 01  Dusseldorf               Luther, R.
+    (29) Amphitrite                      1854 03 01  London                   Marth, A.
+    (30) Urania                          1854 07 22  London                   Hind, J. R.
+    (31) Euphrosyne                      1854 09 01  Washington               Ferguson, J.
+    (32) Pomona                          1854 10 26  Paris                    Goldschmidt, H.
+    (33) Polyhymnia                      1854 10 28  Paris                    Chacornac, J.
+    (34) Circe                           1855 04 06  Paris                    Chacornac, J.
+    (35) Leukothea                       1855 04 19  Dusseldorf               Luther, R.
+    (36) Atalante                        1855 10 05  Paris                    Goldschmidt, H.
+    (37) Fides                           1855 10 05  Dusseldorf               Luther, R.
+    (38) Leda                            1856 01 12  Paris                    Chacornac, J.
+    (39) Laetitia                        1856 02 08  Paris                    Chacornac, J.
+    (40) Harmonia                        1856 03 31  Paris                    Goldschmidt, H.
+    (41) Daphne                          1856 05 22  Paris                    Goldschmidt, H.
+    (42) Isis                            1856 05 23  Oxford                   Pogson, N. R.
+    (43) Ariadne                         1857 04 15  Oxford                   Pogson, N. R.
+    (44) Nysa                            1857 05 27  Paris                    Goldschmidt, H.
+    (45) Eugenia                         1857 06 27  Paris                    Goldschmidt, H.
+    (46) Hestia                          1857 08 16  Oxford                   Pogson, N. R.
+    (47) Aglaja                          1857 09 15  Dusseldorf               Luther, R.
+    (48) Doris                           1857 09 19  Paris                    Goldschmidt, H.
+    (49) Pales                           1857 09 19  Paris                    Goldschmidt, H.
+    (50) Virginia                        1857 10 04  Washington               Ferguson, J.
+    (51) Nemausa                         1858 01 22  Nimes                    Laurent, J. J. P.
+    (52) Europa                          1858 02 04  Paris                    Goldschmidt, H.
+    (53) Kalypso                         1858 04 04  Dusseldorf               Luther, R.
+    (54) Alexandra                       1858 09 10  Paris                    Goldschmidt, H.
+    (55) Pandora                         1858 09 10  Albany                   Searle, G.
+    (56) Melete                          1857 09 09  Paris                    Goldschmidt, H.
+    (57) Mnemosyne                       1859 09 22  Dusseldorf               Luther, R.
+    (58) Concordia                       1860 03 24  Dusseldorf               Luther, R.
+    (59) Elpis                           1860 09 12  Paris                    Chacornac, J.
+    (60) Echo                            1860 09 14  Washington               Ferguson, J.
+    (61) Danae                           1860 09 09  Paris                    Goldschmidt, H.
+    (62) Erato                           1860 09 14  Berlin                   Lesser, O., Forster, W.
+    (63) Ausonia                         1861 02 10  Naples                   de Gasparis, A.
+    (64) Angelina                        1861 03 04  Marseilles               Tempel, E. W.
+    (65) Cybele                          1861 03 08  Marseilles               Tempel, E. W.
+    (66) Maja                            1861 04 09  Cambridge                Tuttle, H. P.
+    (67) Asia                            1861 04 17  Madras                   Pogson, N. R.
+    (68) Leto                            1861 04 29  Dusseldorf               Luther, R.
+    (69) Hesperia                        1861 04 29  Milan                    Schiaparelli, G.
+    (70) Panopaea                        1861 05 05  Paris                    Goldschmidt, H.
+    (71) Niobe                           1861 08 13  Dusseldorf               Luther, R.
+    (72) Feronia                         1861 05 29  Clinton                  Peters, C. H. F.
+    (73) Klytia                          1862 04 07  Cambridge                Tuttle, H. P.
+    (74) Galatea                         1862 08 29  Marseilles               Tempel, E. W.
+    (75) Eurydike                        1862 09 22  Clinton                  Peters, C. H. F.
+    (76) Freia                           1862 10 21  Copenhagen               d'Arrest, H.
+    (77) Frigga                          1862 11 12  Clinton                  Peters, C. H. F.
+    (78) Diana                           1863 03 15  Dusseldorf               Luther, R.
+    (79) Eurynome                        1863 09 14  Ann Arbor                Watson, J. C.
+    (80) Sappho                          1864 05 02  Madras                   Pogson, N. R.
+    (81) Terpsichore                     1864 09 30  Marseilles               Tempel, E. W.
+    (82) Alkmene                         1864 11 27  Dusseldorf               Luther, R.
+    (83) Beatrix                         1865 04 26  Naples                   de Gasparis, A.
+    (84) Klio                            1865 08 25  Dusseldorf               Luther, R.
+    (85) Io                              1865 09 19  Clinton                  Peters, C. H. F.
+    (86) Semele                          1866 01 04  Berlin                   Tietjen, F.
+    (87) Sylvia                          1866 05 16  Madras                   Pogson, N. R.
+    (88) Thisbe                          1866 06 15  Clinton                  Peters, C. H. F.
+    (89) Julia                           1866 08 06  Marseilles               Stephan, E.
+    (90) Antiope                         1866 10 01  Dusseldorf               Luther, R.
+    (91) Aegina                          1866 11 04  Marseilles               Stephan, E.
+    (92) Undina                          1867 07 07  Clinton                  Peters, C. H. F.
+    (93) Minerva                         1867 08 24  Ann Arbor                Watson, J. C.
+    (94) Aurora                          1867 09 06  Ann Arbor                Watson, J. C.
+    (95) Arethusa                        1867 11 23  Dusseldorf               Luther, R.
+    (96) Aegle                           1868 02 17  Marseilles               Coggia, J.
+    (97) Klotho                          1868 02 17  Marseilles               Tempel, E. W.
+    (98) Ianthe                          1868 04 18  Clinton                  Peters, C. H. F.
+    (99) Dike                            1868 05 28  Marseilles               Borrelly, A.
+   (100) Hekate                          1868 07 11  Ann Arbor                Watson, J. C.
+   (101) Helena                          1868 08 15  Ann Arbor                Watson, J. C.
+   (102) Miriam                          1868 08 22  Clinton                  Peters, C. H. F.
+   (103) Hera                            1868 09 07  Ann Arbor                Watson, J. C.
+   (104) Klymene                         1868 09 13  Ann Arbor                Watson, J. C.
+   (105) Artemis                         1868 09 16  Ann Arbor                Watson, J. C.
+   (106) Dione                           1868 10 10  Ann Arbor                Watson, J. C.
+   (107) Camilla                         1868 11 17  Madras                   Pogson, N. R.
+   (108) Hecuba                          1869 04 02  Dusseldorf               Luther, R.
+   (109) Felicitas                       1869 10 09  Clinton                  Peters, C. H. F.
+   (110) Lydia                           1870 04 19  Marseilles               Borrelly, A.
+   (111) Ate                             1870 08 14  Clinton                  Peters, C. H. F.
+   (112) Iphigenia                       1870 09 19  Clinton                  Peters, C. H. F.
+   (113) Amalthea                        1871 03 12  Dusseldorf               Luther, R.
+   (114) Kassandra                       1871 07 23  Clinton                  Peters, C. H. F.
+   (115) Thyra                           1871 08 06  Ann Arbor                Watson, J. C.
+   (116) Sirona                          1871 09 08  Clinton                  Peters, C. H. F.
+   (117) Lomia                           1871 09 12  Marseilles               Borrelly, A.
+   (118) Peitho                          1872 03 15  Dusseldorf               Luther, R.
+   (119) Althaea                         1872 04 03  Ann Arbor                Watson, J. C.
+   (120) Lachesis                        1872 04 10  Marseilles               Borrelly, A.
+   (121) Hermione                        1872 05 12  Ann Arbor                Watson, J. C.
+   (122) Gerda                           1872 07 31  Clinton                  Peters, C. H. F.
+   (123) Brunhild                        1872 07 31  Clinton                  Peters, C. H. F.
+   (124) Alkeste                         1872 08 23  Clinton                  Peters, C. H. F.
+   (125) Liberatrix                      1872 09 11  Paris                    Henry, P. M.
+   (126) Velleda                         1872 11 05  Paris                    Henry, P. P.
+   (127) Johanna                         1872 11 05  Paris                    Henry, P. M.
+   (128) Nemesis                         1872 11 25  Ann Arbor                Watson, J. C.
+   (129) Antigone                        1873 02 05  Clinton                  Peters, C. H. F.
+   (130) Elektra                         1873 02 17  Clinton                  Peters, C. H. F.
+   (131) Vala                            1873 05 24  Clinton                  Peters, C. H. F.
+   (132) Aethra                          1873 06 13  Ann Arbor                Watson, J. C.
+   (133) Cyrene                          1873 08 16  Ann Arbor                Watson, J. C.
+   (134) Sophrosyne                      1873 09 27  Dusseldorf               Luther, R.
+   (135) Hertha                          1874 02 18  Clinton                  Peters, C. H. F.
+   (136) Austria                         1874 03 18  Pola                     Palisa, J.
+   (137) Meliboea                        1874 04 21  Pola                     Palisa, J.
+   (138) Tolosa                          1874 05 19  Toulouse                 Perrotin, J.
+   (139) Juewa                           1874 10 10  Peking                   Watson, J. C.
+   (140) Siwa                            1874 10 13  Pola                     Palisa, J.
+   (141) Lumen                           1875 01 13  Paris                    Henry, P. P.
+   (142) Polana                          1875 01 28  Pola                     Palisa, J.
+   (143) Adria                           1875 02 23  Pola                     Palisa, J.
+   (144) Vibilia                         1875 06 03  Clinton                  Peters, C. H. F.
+   (145) Adeona                          1875 06 03  Clinton                  Peters, C. H. F.
+   (146) Lucina                          1875 06 08  Marseilles               Borrelly, A.
+   (147) Protogeneia                     1875 07 10  Vienna                   Schulhof, L.
+   (148) Gallia                          1875 08 07  Paris                    Henry, P. M.
+   (149) Medusa                          1875 09 21  Toulouse                 Perrotin, J.
+   (150) Nuwa                            1875 10 18  Ann Arbor                Watson, J. C.
+   (151) Abundantia                      1875 11 01  Pola                     Palisa, J.
+   (152) Atala                           1875 11 02  Paris                    Henry, P. P.
+   (153) Hilda                           1875 11 02  Pola                     Palisa, J.
+   (154) Bertha                          1875 11 04  Paris                    Henry, P. M.
+   (155) Scylla                          1875 11 08  Pola                     Palisa, J.
+   (156) Xanthippe                       1875 11 22  Pola                     Palisa, J.
+   (157) Dejanira                        1875 12 01  Marseilles               Borrelly, A.
+   (158) Koronis                         1876 01 04  Berlin                   Knorre, V.
+   (159) Aemilia                         1876 01 26  Paris                    Henry, P. P.
+   (160) Una                             1876 02 20  Clinton                  Peters, C. H. F.
+   (161) Athor                           1876 04 19  Ann Arbor                Watson, J. C.
+   (162) Laurentia                       1876 04 21  Paris                    Henry, P. M.
+   (163) Erigone                         1876 04 26  Toulouse                 Perrotin, J.
+   (164) Eva                             1876 07 12  Paris                    Henry, P. P.
+   (165) Loreley                         1876 08 09  Clinton                  Peters, C. H. F.
+   (166) Rhodope                         1876 08 15  Clinton                  Peters, C. H. F.
+   (167) Urda                            1876 08 28  Clinton                  Peters, C. H. F.
+   (168) Sibylla                         1876 09 28  Ann Arbor                Watson, J. C.
+   (169) Zelia                           1876 09 28  Paris                    Henry, P. M.
+   (170) Maria                           1877 01 10  Toulouse                 Perrotin, J.
+   (171) Ophelia                         1877 01 13  Marseilles               Borrelly, A.
+   (172) Baucis                          1877 02 05  Marseilles               Borrelly, A.
+   (173) Ino                             1877 08 01  Marseilles               Borrelly, A.
+   (174) Phaedra                         1877 09 02  Ann Arbor                Watson, J. C.
+   (175) Andromache                      1877 10 01  Ann Arbor                Watson, J. C.
+   (176) Iduna                           1877 10 14  Clinton                  Peters, C. H. F.
+   (177) Irma                            1877 11 05  Paris                    Henry, P. P.
+   (178) Belisana                        1877 11 06  Pola                     Palisa, J.
+   (179) Klytaemnestra                   1877 11 11  Ann Arbor                Watson, J. C.
+   (180) Garumna                         1878 01 29  Toulouse                 Perrotin, J.
+   (181) Eucharis                        1878 02 02  Marseilles               Cottenot, P.
+   (182) Elsa                            1878 02 07  Pola                     Palisa, J.
+   (183) Istria                          1878 02 08  Pola                     Palisa, J.
+   (184) Dejopeja                        1878 02 28  Pola                     Palisa, J.
+   (185) Eunike                          1878 03 01  Clinton                  Peters, C. H. F.
+   (186) Celuta                          1878 04 06  Paris                    Henry, P. M.
+   (187) Lamberta                        1878 04 11  Marseilles               Coggia, J.
+   (188) Menippe                         1878 06 18  Clinton                  Peters, C. H. F.
+   (189) Phthia                          1878 09 09  Clinton                  Peters, C. H. F.
+   (190) Ismene                          1878 09 22  Clinton                  Peters, C. H. F.
+   (191) Kolga                           1878 09 30  Clinton                  Peters, C. H. F.
+   (192) Nausikaa                        1879 02 17  Pola                     Palisa, J.
+   (193) Ambrosia                        1879 02 28  Marseilles               Coggia, J.
+   (194) Prokne                          1879 03 21  Clinton                  Peters, C. H. F.
+   (195) Eurykleia                       1879 04 19  Pola                     Palisa, J.
+   (196) Philomela                       1879 05 14  Clinton                  Peters, C. H. F.
+   (197) Arete                           1879 05 21  Pola                     Palisa, J.
+   (198) Ampella                         1879 06 13  Marseilles               Borrelly, A.
+   (199) Byblis                          1879 07 09  Clinton                  Peters, C. H. F.
+   (200) Dynamene                        1879 07 27  Clinton                  Peters, C. H. F.
+   (201) Penelope                        1879 08 07  Pola                     Palisa, J.
+   (202) Chryseis                        1879 09 11  Clinton                  Peters, C. H. F.
+   (203) Pompeja                         1879 09 25  Clinton                  Peters, C. H. F.
+   (204) Kallisto                        1879 10 08  Pola                     Palisa, J.
+   (205) Martha                          1879 10 13  Pola                     Palisa, J.
+   (206) Hersilia                        1879 10 13  Clinton                  Peters, C. H. F.
+   (207) Hedda                           1879 10 17  Pola                     Palisa, J.
+   (208) Lacrimosa                       1879 10 21  Pola                     Palisa, J.
+   (209) Dido                            1879 10 22  Clinton                  Peters, C. H. F.
+   (210) Isabella                        1879 11 12  Pola                     Palisa, J.
+   (211) Isolda                          1879 12 10  Pola                     Palisa, J.
+   (212) Medea                           1880 02 06  Pola                     Palisa, J.
+   (213) Lilaea                          1880 02 16  Clinton                  Peters, C. H. F.
+   (214) Aschera                         1880 02 29  Pola                     Palisa, J.
+   (215) Oenone                          1880 04 07  Berlin                   Knorre, V.
+   (216) Kleopatra                       1880 04 10  Pola                     Palisa, J.
+   (217) Eudora                          1880 08 30  Marseilles               Coggia, J.
+   (218) Bianca                          1880 09 04  Pola                     Palisa, J.
+   (219) Thusnelda                       1880 09 30  Pola                     Palisa, J.
+   (220) Stephania                       1881 05 19  Vienna                   Palisa, J.
+   (221) Eos                             1882 01 18  Vienna                   Palisa, J.
+   (222) Lucia                           1882 02 09  Vienna                   Palisa, J.
+   (223) Rosa                            1882 03 09  Vienna                   Palisa, J.
+   (224) Oceana                          1882 03 30  Vienna                   Palisa, J.
+   (225) Henrietta                       1882 04 19  Vienna                   Palisa, J.
+   (226) Weringia                        1882 07 19  Vienna                   Palisa, J.
+   (227) Philosophia                     1882 08 12  Paris                    Henry, P. P.
+   (228) Agathe                          1882 08 19  Vienna                   Palisa, J.
+   (229) Adelinda                        1882 08 22  Vienna                   Palisa, J.
+   (230) Athamantis                      1882 09 03  Bothkamp                 de Ball, K.
+   (231) Vindobona                       1882 09 10  Vienna                   Palisa, J.
+   (232) Russia                          1883 01 31  Vienna                   Palisa, J.
+   (233) Asterope                        1883 05 11  Marseilles               Borrelly, A.
+   (234) Barbara                         1883 08 12  Clinton                  Peters, C. H. F.
+   (235) Carolina                        1883 11 28  Vienna                   Palisa, J.
+   (236) Honoria                         1884 04 26  Vienna                   Palisa, J.
+   (237) Coelestina                      1884 06 27  Vienna                   Palisa, J.
+   (238) Hypatia                         1884 07 01  Berlin                   Knorre, V.
+   (239) Adrastea                        1884 08 18  Vienna                   Palisa, J.
+   (240) Vanadis                         1884 08 27  Marseilles               Borrelly, A.
+   (241) Germania                        1884 09 12  Dusseldorf               Luther, R.
+   (242) Kriemhild                       1884 09 22  Vienna                   Palisa, J.
+   (243) Ida                             1884 09 29  Vienna                   Palisa, J.
+   (244) Sita                            1884 10 14  Vienna                   Palisa, J.
+   (245) Vera                            1885 02 06  Madras                   Pogson, N. R.
+   (246) Asporina                        1885 03 06  Marseilles               Borrelly, A.
+   (247) Eukrate                         1885 03 14  Dusseldorf               Luther, R.
+   (248) Lameia                          1885 06 05  Vienna                   Palisa, J.
+   (249) Ilse                            1885 08 16  Clinton                  Peters, C. H. F.
+   (250) Bettina                         1885 09 03  Vienna                   Palisa, J.
+   (251) Sophia                          1885 10 04  Vienna                   Palisa, J.
+   (252) Clementina                      1885 10 11  Nice                     Perrotin, J.
+   (253) Mathilde                        1885 11 12  Vienna                   Palisa, J.
+   (254) Augusta                         1886 03 31  Vienna                   Palisa, J.
+   (255) Oppavia                         1886 03 31  Vienna                   Palisa, J.
+   (256) Walpurga                        1886 04 03  Vienna                   Palisa, J.
+   (257) Silesia                         1886 04 05  Vienna                   Palisa, J.
+   (258) Tyche                           1886 05 04  Dusseldorf               Luther, R.
+   (259) Aletheia                        1886 06 28  Clinton                  Peters, C. H. F.
+   (260) Huberta                         1886 10 03  Vienna                   Palisa, J.
+   (261) Prymno                          1886 10 31  Clinton                  Peters, C. H. F.
+   (262) Valda                           1886 11 03  Vienna                   Palisa, J.
+   (263) Dresda                          1886 11 03  Vienna                   Palisa, J.
+   (264) Libussa                         1886 12 22  Clinton                  Peters, C. H. F.
+   (265) Anna                            1887 02 25  Vienna                   Palisa, J.
+   (266) Aline                           1887 05 17  Vienna                   Palisa, J.
+   (267) Tirza                           1887 05 27  Nice                     Charlois, A.
+   (268) Adorea                          1887 06 08  Marseilles               Borrelly, A.
+   (269) Justitia                        1887 09 21  Vienna                   Palisa, J.
+   (270) Anahita                         1887 10 08  Clinton                  Peters, C. H. F.
+   (271) Penthesilea                     1887 10 13  Berlin                   Knorre, V.
+   (272) Antonia                         1888 02 04  Nice                     Charlois, A.
+   (273) Atropos                         1888 03 08  Vienna                   Palisa, J.
+   (274) Philagoria                      1888 04 03  Vienna                   Palisa, J.
+   (275) Sapientia                       1888 04 15  Vienna                   Palisa, J.
+   (276) Adelheid                        1888 04 17  Vienna                   Palisa, J.
+   (277) Elvira                          1888 05 03  Nice                     Charlois, A.
+   (278) Paulina                         1888 05 16  Vienna                   Palisa, J.
+   (279) Thule                           1888 10 25  Vienna                   Palisa, J.
+   (280) Philia                          1888 10 29  Vienna                   Palisa, J.
+   (281) Lucretia                        1888 10 31  Vienna                   Palisa, J.
+   (282) Clorinde                        1889 01 28  Nice                     Charlois, A.
+   (283) Emma                            1889 02 08  Nice                     Charlois, A.
+   (284) Amalia                          1889 05 29  Nice                     Charlois, A.
+   (285) Regina                          1889 08 03  Nice                     Charlois, A.
+   (286) Iclea                           1889 08 03  Vienna                   Palisa, J.
+   (287) Nephthys                        1889 08 25  Clinton                  Peters, C. H. F.
+   (288) Glauke                          1890 02 20  Dusseldorf               Luther, R.
+   (289) Nenetta                         1890 03 10  Nice                     Charlois, A.
+   (290) Bruna                           1890 03 20  Vienna                   Palisa, J.
+   (291) Alice                           1890 04 25  Vienna                   Palisa, J.
+   (292) Ludovica                        1890 04 25  Vienna                   Palisa, J.
+   (293) Brasilia                        1890 05 20  Nice                     Charlois, A.
+   (294) Felicia                         1890 07 15  Nice                     Charlois, A.
+   (295) Theresia                        1890 08 17  Vienna                   Palisa, J.
+   (296) Phaetusa                        1890 08 19  Nice                     Charlois, A.
+   (297) Caecilia                        1890 09 09  Nice                     Charlois, A.
+   (298) Baptistina                      1890 09 09  Nice                     Charlois, A.
+   (299) Thora                           1890 10 06  Vienna                   Palisa, J.
+   (300) Geraldina                       1890 10 03  Nice                     Charlois, A.
+   (301) Bavaria                         1890 11 16  Vienna                   Palisa, J.
+   (302) Clarissa                        1890 11 14  Nice                     Charlois, A.
+   (303) Josephina                       1891 02 12  Rome                     Millosevich, E.
+   (304) Olga                            1891 02 14  Vienna                   Palisa, J.
+   (305) Gordonia                        1891 02 16  Nice                     Charlois, A.
+   (306) Unitas                          1891 03 01  Rome                     Millosevich, E.
+   (307) Nike                            1891 03 05  Nice                     Charlois, A.
+   (308) Polyxo                          1891 03 31  Marseilles               Borrelly, A.
+   (309) Fraternitas                     1891 04 06  Vienna                   Palisa, J.
+   (310) Margarita                       1891 05 16  Nice                     Charlois, A.
+   (311) Claudia                         1891 06 11  Nice                     Charlois, A.
+   (312) Pierretta                       1891 08 28  Nice                     Charlois, A.
+   (313) Chaldaea                        1891 08 30  Vienna                   Palisa, J.
+   (314) Rosalia                         1891 09 01  Nice                     Charlois, A.
+   (315) Constantia                      1891 09 04  Vienna                   Palisa, J.
+   (316) Goberta                         1891 09 08  Nice                     Charlois, A.
+   (317) Roxane                          1891 09 11  Nice                     Charlois, A.
+   (318) Magdalena                       1891 09 24  Nice                     Charlois, A.
+   (319) Leona                           1891 10 08  Nice                     Charlois, A.
+   (320) Katharina                       1891 10 11  Vienna                   Palisa, J.
+   (321) Florentina                      1891 10 15  Vienna                   Palisa, J.
+   (322) Phaeo                           1891 11 27  Marseilles               Borrelly, A.
+   (323) Brucia                          1891 12 22  Heidelberg               Wolf, M. F.
+   (324) Bamberga                        1892 02 25  Vienna                   Palisa, J.
+   (325) Heidelberga                     1892 03 04  Heidelberg               Wolf, M. F.
+   (326) Tamara                          1892 03 19  Vienna                   Palisa, J.
+   (327) Columbia                        1892 03 22  Nice                     Charlois, A.
+   (328) Gudrun                          1892 03 18  Heidelberg               Wolf, M. F.
+   (329) Svea                            1892 03 21  Heidelberg               Wolf, M. F.
+   (330) Adalberta           A910 CB     1910 02 02  Heidelberg               Wolf, M. F.
+   (331) Etheridgea                      1892 04 01  Nice                     Charlois, A.
+   (332) Siri                            1892 03 19  Heidelberg               Wolf, M. F.
+   (333) Badenia             1892 A      1892 08 22  Heidelberg               Wolf, M. F.
+   (334) Chicago             1892 L      1892 08 23  Heidelberg               Wolf, M. F.
+   (335) Roberta             1892 C      1892 09 01  Heidelberg               Staus, A.
+   (336) Lacadiera           1892 D      1892 09 19  Nice                     Charlois, A.
+   (337) Devosa              1892 E      1892 09 22  Nice                     Charlois, A.
+   (338) Budrosa             1892 F      1892 09 25  Nice                     Charlois, A.
+   (339) Dorothea            1892 G      1892 09 25  Heidelberg               Wolf, M. F.
+   (340) Eduarda             1892 H      1892 09 25  Heidelberg               Wolf, M. F.
+   (341) California          1892 J      1892 09 25  Heidelberg               Wolf, M. F.
+   (342) Endymion            1892 K      1892 10 17  Heidelberg               Wolf, M. F.
+   (343) Ostara              1892 N      1892 11 15  Heidelberg               Wolf, M. F.
+   (344) Desiderata          1892 M      1892 11 15  Nice                     Charlois, A.
+   (345) Tercidina           1892 O      1892 11 23  Nice                     Charlois, A.
+   (346) Hermentaria         1892 P      1892 11 25  Nice                     Charlois, A.
+   (347) Pariana             1892 Q      1892 11 28  Nice                     Charlois, A.
+   (348) May                 1892 R      1892 11 28  Nice                     Charlois, A.
+   (349) Dembowska           1892 T      1892 12 09  Nice                     Charlois, A.
+   (350) Ornamenta           1892 U      1892 12 14  Nice                     Charlois, A.
+   (351) Yrsa                1892 V      1892 12 16  Heidelberg               Wolf, M. F.
+   (352) Gisela              1893 B      1893 01 12  Heidelberg               Wolf, M. F.
+   (353) Ruperto-Carola      1893 F      1893 01 16  Heidelberg               Wolf, M. F.
+   (354) Eleonora            1893 A      1893 01 17  Nice                     Charlois, A.
+   (355) Gabriella           1893 E      1893 01 20  Nice                     Charlois, A.
+   (356) Liguria             1893 G      1893 01 21  Nice                     Charlois, A.
+   (357) Ninina              1893 J      1893 02 11  Nice                     Charlois, A.
+   (358) Apollonia           1893 K      1893 03 08  Nice                     Charlois, A.
+   (359) Georgia             1893 M      1893 03 10  Nice                     Charlois, A.
+   (360) Carlova             1893 N      1893 03 11  Nice                     Charlois, A.
+   (361) Bononia             1893 P      1893 03 11  Nice                     Charlois, A.
+   (362) Havnia              1893 R      1893 03 12  Nice                     Charlois, A.
+   (363) Padua               1893 S      1893 03 17  Nice                     Charlois, A.
+   (364) Isara               1893 T      1893 03 19  Nice                     Charlois, A.
+   (365) Corduba             1893 V      1893 03 21  Nice                     Charlois, A.
+   (366) Vincentina          1893 W      1893 03 21  Nice                     Charlois, A.
+   (367) Amicitia            1893 AA     1893 05 19  Nice                     Charlois, A.
+   (368) Haidea              1893 AB     1893 05 19  Nice                     Charlois, A.
+   (369) Aeria               1893 AE     1893 07 04  Marseilles               Borrelly, A.
+   (370) Modestia            1893 AC     1893 07 14  Nice                     Charlois, A.
+   (371) Bohemia             1893 AD     1893 07 16  Nice                     Charlois, A.
+   (372) Palma               1893 AH     1893 08 19  Nice                     Charlois, A.
+   (373) Melusina            1893 AJ     1893 09 15  Nice                     Charlois, A.
+   (374) Burgundia           1893 AK     1893 09 18  Nice                     Charlois, A.
+   (375) Ursula              1893 AL     1893 09 18  Nice                     Charlois, A.
+   (376) Geometria           1893 AM     1893 09 18  Nice                     Charlois, A.
+   (377) Campania            1893 AN     1893 09 20  Nice                     Charlois, A.
+   (378) Holmia              1893 AP     1893 12 06  Nice                     Charlois, A.
+   (379) Huenna              1894 AQ     1894 01 08  Nice                     Charlois, A.
+   (380) Fiducia             1894 AR     1894 01 08  Nice                     Charlois, A.
+   (381) Myrrha              1894 AS     1894 01 10  Nice                     Charlois, A.
+   (382) Dodona              1894 AT     1894 01 29  Nice                     Charlois, A.
+   (383) Janina              1894 AU     1894 01 29  Nice                     Charlois, A.
+   (384) Burdigala           1894 AV     1894 02 11  Bordeaux                 Courty, F.
+   (385) Ilmatar             1894 AX     1894 03 01  Heidelberg               Wolf, M. F.
+   (386) Siegena             1894 AY     1894 03 01  Heidelberg               Wolf, M. F.
+   (387) Aquitania           1894 AZ     1894 03 05  Bordeaux                 Courty, F.
+   (388) Charybdis           1894 BA     1894 03 07  Nice                     Charlois, A.
+   (389) Industria           1894 BB     1894 03 08  Nice                     Charlois, A.
+   (390) Alma                1894 BC     1894 03 24  Paris                    Bigourdan, G.
+   (391) Ingeborg            1894 BE     1894 11 01  Heidelberg               Wolf, M. F.
+   (392) Wilhelmina          1894 BF     1894 11 04  Heidelberg               Wolf, M. F.
+   (393) Lampetia            1894 BG     1894 11 04  Heidelberg               Wolf, M. F.
+   (394) Arduina             1894 BH     1894 11 19  Marseilles               Borrelly, A.
+   (395) Delia               1894 BK     1894 11 30  Nice                     Charlois, A.
+   (396) Aeolia              1894 BL     1894 12 01  Nice                     Charlois, A.
+   (397) Vienna              1894 BM     1894 12 19  Nice                     Charlois, A.
+   (398) Admete              1894 BN     1894 12 28  Nice                     Charlois, A.
+   (399) Persephone          1895 BP     1895 02 23  Heidelberg               Wolf, M. F.
+   (400) Ducrosa             1895 BU     1895 03 15  Nice                     Charlois, A.
+   (401) Ottilia             1895 BT     1895 03 16  Heidelberg               Wolf, M. F.
+   (402) Chloe               1895 BW     1895 03 21  Nice                     Charlois, A.
+   (403) Cyane               1895 BX     1895 05 18  Nice                     Charlois, A.
+   (404) Arsinoe             1895 BY     1895 06 20  Nice                     Charlois, A.
+   (405) Thia                1895 BZ     1895 07 23  Nice                     Charlois, A.
+   (406) Erna                1895 CB     1895 08 22  Nice                     Charlois, A.
+   (407) Arachne             1895 CC     1895 10 13  Heidelberg               Wolf, M. F.
+   (408) Fama                1895 CD     1895 10 13  Heidelberg               Wolf, M. F.
+   (409) Aspasia             1895 CE     1895 12 09  Nice                     Charlois, A.
+   (410) Chloris             1896 CH     1896 01 07  Nice                     Charlois, A.
+   (411) Xanthe              1896 CJ     1896 01 07  Nice                     Charlois, A.
+   (412) Elisabetha          1896 CK     1896 01 07  Heidelberg               Wolf, M. F.
+   (413) Edburga             1896 CL     1896 01 07  Heidelberg               Wolf, M. F.
+   (414) Liriope             1896 CN     1896 01 16  Nice                     Charlois, A.
+   (415) Palatia             1896 CO     1896 02 07  Heidelberg               Wolf, M. F.
+   (416) Vaticana            1896 CS     1896 05 04  Nice                     Charlois, A.
+   (417) Suevia              1896 CT     1896 05 06  Heidelberg               Wolf, M. F.
+   (418) Alemannia           1896 CV     1896 09 07  Heidelberg               Wolf, M. F.
+   (419) Aurelia             1896 CW     1896 09 07  Heidelberg               Wolf, M. F.
+   (420) Bertholda           1896 CY     1896 09 07  Heidelberg               Wolf, M. F.
+   (421) Zahringia           1896 CZ     1896 09 07  Heidelberg               Wolf, M. F.
+   (422) Berolina            1896 DA     1896 10 08  Berlin                   Witt, G.
+   (423) Diotima             1896 DB     1896 12 07  Nice                     Charlois, A.
+   (424) Gratia              1896 DF     1896 12 31  Nice                     Charlois, A.
+   (425) Cornelia            1896 DC     1896 12 28  Nice                     Charlois, A.
+   (426) Hippo               1897 DH     1897 08 25  Nice                     Charlois, A.
+   (427) Galene              1897 DJ     1897 08 27  Nice                     Charlois, A.
+   (428) Monachia            1897 DK     1897 11 18  Munich                   Villiger, W.
+   (429) Lotis               1897 DL     1897 11 23  Nice                     Charlois, A.
+   (430) Hybris              1897 DM     1897 12 18  Nice                     Charlois, A.
+   (431) Nephele             1897 DN     1897 12 18  Nice                     Charlois, A.
+   (432) Pythia              1897 DO     1897 12 18  Nice                     Charlois, A.
+   (433) Eros                1898 DQ     1898 08 13  Berlin                   Witt, G.
+   (434) Hungaria            1898 DR     1898 09 11  Heidelberg               Wolf, M. F.
+   (435) Ella                1898 DS     1898 09 11  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (436) Patricia            1898 DT     1898 09 13  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (437) Rhodia              1898 DP     1898 07 16  Nice                     Charlois, A.
+   (438) Zeuxo               1898 DU     1898 11 08  Nice                     Charlois, A.
+   (439) Ohio                1898 EB     1898 10 13  Mount Hamilton           Coddington, E. F.
+   (440) Theodora            1898 EC     1898 10 13  Mount Hamilton           Coddington, E. F.
+   (441) Bathilde            1898 ED     1898 12 08  Nice                     Charlois, A.
+   (442) Eichsfeldia         1899 EE     1899 02 15  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (443) Photographica       1899 EF     1899 02 17  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (444) Gyptis              1899 EL     1899 03 31  Marseilles               Coggia, J.
+   (445) Edna                1899 EX     1899 10 02  Mount Hamilton           Coddington, E. F.
+   (446) Aeternitas          1899 ER     1899 10 27  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (447) Valentine           1899 ES     1899 10 27  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (448) Natalie             1899 ET     1899 10 27  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (449) Hamburga            1899 EU     1899 10 31  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (450) Brigitta            1899 EV     1899 10 10  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (451) Patientia           1899 EY     1899 12 04  Nice                     Charlois, A.
+   (452) Hamiltonia          1899 FD     1899 12 06  Mount Hamilton           Keeler, J. E.
+   (453) Tea                 1900 FA     1900 02 22  Nice                     Charlois, A.
+   (454) Mathesis            1900 FC     1900 03 28  Heidelberg               Schwassmann, A.
+   (455) Bruchsalia          1900 FG     1900 05 22  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (456) Abnoba              1900 FH     1900 06 04  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (457) Alleghenia          1900 FJ     1900 09 15  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (458) Hercynia            1900 FK     1900 09 21  Heidelberg               Wolf, M. F., Schwassmann, A.
+   (459) Signe               1900 FM     1900 10 22  Heidelberg               Wolf, M. F.
+   (460) Scania              1900 FN     1900 10 22  Heidelberg               Wolf, M. F.
+   (461) Saskia              1900 FP     1900 10 22  Heidelberg               Wolf, M. F.
+   (462) Eriphyla            1900 FQ     1900 10 22  Heidelberg               Wolf, M. F.
+   (463) Lola                1900 FS     1900 10 31  Heidelberg               Wolf, M. F.
+   (464) Megaira             1901 FV     1901 01 09  Heidelberg               Wolf, M. F.
+   (465) Alekto              1901 FW     1901 01 13  Heidelberg               Wolf, M. F.
+   (466) Tisiphone           1901 FX     1901 01 17  Heidelberg               Wolf, M. F., Carnera, L.
+   (467) Laura               1901 FY     1901 01 09  Heidelberg               Wolf, M. F.
+   (468) Lina                1901 FZ     1901 01 18  Heidelberg               Wolf, M. F.
+   (469) Argentina           1901 GE     1901 02 20  Heidelberg               Carnera, L.
+   (470) Kilia               1901 GJ     1901 04 21  Heidelberg               Carnera, L.
+   (471) Papagena            1901 GN     1901 06 07  Heidelberg               Wolf, M. F.
+   (472) Roma                1901 GP     1901 07 11  Heidelberg               Carnera, L.
+   (473) Nolli               1901 GC     1901 02 13  Heidelberg               Wolf, M. F.
+   (474) Prudentia           1901 GD     1901 02 13  Heidelberg               Wolf, M. F.
+   (475) Ocllo               1901 HN     1901 08 14  Arequipa                 Stewart, D.
+   (476) Hedwig              1901 GQ     1901 08 17  Heidelberg               Carnera, L.
+   (477) Italia              1901 GR     1901 08 23  Heidelberg               Carnera, L.
+   (478) Tergeste            1901 GU     1901 09 21  Heidelberg               Carnera, L.
+   (479) Caprera             1901 HJ     1901 11 12  Heidelberg               Carnera, L.
+   (480) Hansa               1901 GL     1901 05 21  Heidelberg               Wolf, M. F., Carnera, L.
+   (481) Emita               1902 HP     1902 02 12  Heidelberg               Carnera, L.
+   (482) Petrina             1902 HT     1902 03 03  Heidelberg               Wolf, M. F.
+   (483) Seppina             1902 HU     1902 03 04  Heidelberg               Wolf, M. F.
+   (484) Pittsburghia        1902 HX     1902 04 29  Heidelberg               Wolf, M. F.
+   (485) Genua               1902 HZ     1902 05 07  Heidelberg               Carnera, L.
+   (486) Cremona             1902 JB     1902 05 11  Heidelberg               Carnera, L.
+   (487) Venetia             1902 JL     1902 07 09  Heidelberg               Carnera, L.
+   (488) Kreusa              1902 JG     1902 06 26  Heidelberg               Wolf, M. F., Carnera, L.
+   (489) Comacina            1902 JM     1902 09 02  Heidelberg               Carnera, L.
+   (490) Veritas             1902 JP     1902 09 03  Heidelberg               Wolf, M. F.
+   (491) Carina              1902 JQ     1902 09 03  Heidelberg               Wolf, M. F.
+   (492) Gismonda            1902 JR     1902 09 03  Heidelberg               Wolf, M. F.
+   (493) Griseldis           1902 JS     1902 09 07  Heidelberg               Wolf, M. F.
+   (494) Virtus              1902 JV     1902 10 07  Heidelberg               Wolf, M. F.
+   (495) Eulalia             1902 KG     1902 10 25  Heidelberg               Wolf, M. F.
+   (496) Gryphia             1902 KH     1902 10 25  Heidelberg               Wolf, M. F.
+   (497) Iva                 1902 KJ     1902 11 04  Heidelberg               Dugan, R. S.
+   (498) Tokio               1902 KU     1902 12 02  Nice                     Charlois, A.
+   (499) Venusia             1902 KX     1902 12 24  Heidelberg               Wolf, M. F.
+   (500) Selinur             1903 LA     1903 01 16  Heidelberg               Wolf, M. F.
+   (719) Albert              1911 MT     1911 10 03  Vienna                   Palisa, J.
+   (887) Alinda              1918 DB     1918 01 03  Heidelberg               Wolf, M. F.
+   (944) Hidalgo             1920 HZ     1920 10 31  Bergedorf                Baade, W.
+  (1036) Ganymed             1924 TD     1924 10 23  Bergedorf                Baade, W.
+  (1221) Amor                1932 EA1    1932 03 12  Uccle                    Delporte, E.
+  (1566) Icarus              1949 MA     1949 06 27  Palomar              347 Baade, W.
+  (1580) Betulia             1950 KA     1950 05 22  Johannesburg         768 Johnson, E. L.
+  (1620) Geographos          1951 RA     1951 09 14  Palomar             1468 Wilson, A. G., Minkowski, R.
+  (1627) Ivar                1929 SH     1929 09 25  Johannesburg        1860 Hertzsprung, E.
+  (1685) Toro                1948 OA     1948 07 17  Mount Hamilton      2504 Wirtanen, C. A.
+  (1862) Apollo              1932 HA     1932 04 24  Heidelberg          3758 Reinmuth, K.
+  (1863) Antinous            1948 EA     1948 03 07  Mount Hamilton      3935 Wirtanen, C. A.
+  (1864) Daedalus            1971 FA     1971 03 24  Palomar             3758 Gehrels, T.
+  (1865) Cerberus            1971 UA     1971 10 26  Bergedorf           3758 Kohoutek, L.
+  (1866) Sisyphus            1972 XA     1972 12 05  Zimmerwald          3758 Wild, P.
+  (1915) Quetzalcoatl        1953 EA     1953 03 09  Palomar             3827 Wilson, A. G.
+  (1916) Boreas              1953 RA     1953 09 01  Uccle               6833 Arend, S. J.
+  (1917) Cuyo                1968 AA     1968 01 01  El Leoncito         3828 Cesco, C. U., Samuel, A. G.
+  (1943) Anteros             1973 EC     1973 03 13  El Leoncito         4237 Gibson, J.
+  (1980) Tezcatlipoca        1950 LA     1950 06 19  Palomar             4237 Wilson, A. G., Wallenquist, A. A. E.
+  (1981) Midas               1973 EA     1973 03 06  Palomar             4237 Kowal, C. T.
+  (2059) Baboquivari         1963 UA     1963 10 16  Brooklyn            5038 Indiana University
+  (2060) Chiron              1977 UB     1977 10 18  Palomar             4359 Kowal, C. T.
+  (2061) Anza                1960 UA     1960 10 22  Flagstaff           4420 Giclas, H. L.
+  (2062) Aten                1976 AA     1976 01 07  Palomar             4420 Helin, E. F.
+  (2063) Bacchus             1977 HB     1977 04 24  Palomar             4421 Kowal, C. T.
+  (2100) Ra-Shalom           1978 RA     1978 09 10  Palomar             4548 Helin, E. F.
+  (2101) Adonis              1936 CA     1936 02 12  Uccle               4548 Delporte, E.
+  (2102) Tantalus            1975 YA     1975 12 27  Palomar             4645 Kowal, C. T.
+  (2135) Aristaeus           1977 HA     1977 04 17  Palomar             5014 Bus, S. J., Helin, E. F.
+  (2201) Oljato              1947 XC     1947 12 12  Flagstaff           7782 Giclas, H. L.
+  (2202) Pele                1972 RA     1972 09 07  Mount Hamilton      5360 Klemola, A. R.
+  (2212) Hephaistos          1978 SB     1978 09 27  Nauchnyj            5849 Chernykh, L. I.
+  (2329) Orthos              1976 WA     1976 11 19  La Silla            5688 Schuster, H.-E.
+  (2340) Hathor              1976 UA     1976 10 22  Palomar             6060 Kowal, C. T.
+  (2368) Beltrovata          1977 RA     1977 09 04  Zimmerwald          6209 Wild, P.
+  (2608) Seneca              1978 DA     1978 02 17  La Silla            6835 Schuster, H.-E.
+  (3102) Krok                1981 QA     1981 08 21  Klet               24410 Brozek, L.
+  (3103) Eger                1982 BB     1982 01 20  Piszkesteto        23135 Lovas, M.
+  (3122) Florence            1981 ET3    1981 03 02  Siding Spring      21955 Bus, S. J.
+  (3199) Nefertiti           1982 RA     1982 09 13  Palomar            10311 Shoemaker, C. S., Shoemaker, E. M.
+  (3200) Phaethon            1983 TB     1983 10 11  IRAS                9771 IRAS
+  (3271) Ul                  1982 RB     1982 09 14  La Silla           27329 Schuster, H.-E.
+  (3288) Seleucus            1982 DV     1982 02 28  La Silla           10046 Schuster, H.-E.
+  (3352) McAuliffe           1981 CW     1981 02 06  Anderson Mesa      10550 Thomas, N. G.
+  (3360) Syrinx              1981 VA     1981 11 04  Palomar            57949 Helin, E. F., Dunbar, R. S.
+  (3361) Orpheus             1982 HR     1982 04 24  Cerro El Roble     11442 Torres, C.
+  (3362) Khufu               1984 QA     1984 08 30  Palomar            10550 Dunbar, R. S., Barucci, M. A.
+  (3551) Verenia             1983 RD     1983 09 12  Palomar            23540 Dunbar, R. S.
+  (3552) Don Quixote         1983 SA     1983 09 26  Zimmerwald         17466 Wild, P.
+  (3553) Mera                1985 JA     1985 05 14  Palomar            11751 Shoemaker, C. S.
+  (3554) Amun                1986 EB     1986 03 04  Palomar            11751 Shoemaker, C. S., Shoemaker, E. M.
+  (3671) Dionysus            1984 KD     1984 05 27  Palomar            12808 Shoemaker, C. S., Shoemaker, E. M.
+  (3691) Bede                1982 FT     1982 03 29  Cerro El Roble     40700 Gonzalez, L. E.
+  (3752) Camillo             1985 PA     1985 08 15  Caussols           14633 Helin, E. F., Barucci, M. A.
+  (3753) Cruithne            1986 TO     1986 10 10  Siding Spring      31609 Waldron, J. D.
+  (3757) Anagolay            1982 XB     1982 12 14  Palomar            89832 Helin, E. F.
+  (3838) Epona               1986 WA     1986 11 27  Palomar            16443 Maury, A.
+  (3908) Nyx                 1980 PA     1980 08 06  La Silla           34339 Schuster, H.-E.
+  (3988) Huma                1986 LA     1986 06 04  Palomar            89832 Helin, E. F.
+  (4015) Wilson-Harrington   1979 VA     1979 11 15  Palomar            22246 Helin, E. F.
+  (4034) Vishnu              1986 PA     1986 08 02  Palomar            75547 Helin, E. F.
+  (4055) Magellan            1985 DO2    1985 02 24  Palomar            17466 Helin, E. F.
+  (4179) Toutatis            1989 AC     1989 01 04  Caussols           16444 Pollas, C.
+  (4183) Cuno                1959 LM     1959 06 05  Bloemfontein       18307 Hoffmeister, C.
+  (4197) Morpheus            1982 TA     1982 10 11  Palomar            91790 Helin, E. F., Shoemaker, E. M.
+  (4257) Ubasti              1987 QA     1987 08 23  Palomar            19336 Mueller, J. E.
+  (4341) Poseidon            1987 KF     1987 05 29  Palomar            17656 Shoemaker, C. S.
+  (4401) Aditi               1985 TB     1985 10 14  Palomar            17656 Shoemaker, C. S.
+  (4450) Pan                 1987 SY     1987 09 25  Palomar            17657 Shoemaker, C. S., Shoemaker, E. M.
+  (4486) Mithra              1987 SB     1987 09 22  Smolyan            16885 Elst, E. W., Shkodrov, V. G.
+  (4487) Pocahontas          1987 UA     1987 10 17  Palomar            17657 Shoemaker, C. S.
+  (4503) Cleobulus           1989 WM     1989 11 28  Palomar            17467 Shoemaker, C. S.
+  (4544) Xanthus             1989 FB     1989 03 31  Palomar            18459 Holt, H. E., Thomas, N. G.
+  (4581) Asclepius           1989 FC     1989 03 31  Palomar            18459 Holt, H. E., Thomas, N. G.
+  (4596)                     1981 QB     1981 08 28  Palomar                  Kowal, C. T.
+  (4660) Nereus              1982 DB     1982 02 28  Palomar            19338 Helin, E. F.
+  (4688)                     1980 WF     1980 11 29  Palomar                  Kowal, C. T.
+  (4769) Castalia            1989 PB     1989 08 09  Palomar            18464 Helin, E. F.
+  (4947) Ninkasi             1988 TJ1    1988 10 12  Palomar            20522 Shoemaker, C. S.
+  (4953)                     1990 MU     1990 06 23  Siding Spring            McNaught, R. H.
+  (4954) Eric                1990 SQ     1990 09 23  Palomar            19341 Roman, B.
+  (4957) Brucemurray         1990 XJ     1990 12 15  Palomar            22829 Helin, E. F.
+  (5011) Ptah                6743 P-L    1960 09 24  Palomar            20163 van Houten, C. J., van Houten-Groeneveld, I., Gehrels, T.
+  (5131)                     1990 BG     1990 01 21  Palomar                  Helin, E. F., Roman, B.
+  (5143) Heracles            1991 VL     1991 11 07  Palomar            20523 Shoemaker, C. S.
+  (5145) Pholus              1992 AD     1992 01 09  Kitt Peak          20523 Spacewatch
+  (5189)                     1990 UQ     1990 10 20  Siding Spring            McNaught, R. H.
+  (5324) Lyapunov            1987 SL     1987 09 22  Nauchnyj           22508 Karachkina, L. G.
+  (5332) Davidaguilar        1990 DA     1990 02 16  Dynic              64562 Sugie, A.
+  (5335) Damocles            1991 DA     1991 02 18  Siding Spring      22508 McNaught, R. H.
+  (5370) Taranis             1986 RA     1986 09 02  Palomar            22509 Maury, A.
+  (5381) Sekhmet             1991 JY     1991 05 14  Palomar            24917 Shoemaker, C. S.
+  (5496)                     1973 NA     1973 07 04  Palomar                  Helin, E. F.
+  (5587)                     1990 SB     1990 09 16  Palomar                  Holt, H. E., Brown, J. A.
+  (5590)                     1990 VA     1990 11 09  Kitt Peak                Spacewatch
+  (5604)                     1992 FE     1992 03 26  Siding Spring            McNaught, R. H.
+  (5620) Jasonwheeler        1990 OA     1990 07 19  Palomar            56958 Roman, B., Helin, E. F.
+  (5626) Melissabrucker      1991 FE     1991 03 18  Kitt Peak         115893 Spacewatch
+  (5645)                     1990 SP     1990 09 20  Siding Spring            McNaught, R. H.
+  (5646)                     1990 TR     1990 10 11  Kushiro                  Ueda, S., Kaneda, H.
+  (5653) Camarillo           1992 WD5    1992 11 21  Palomar            43189 Helin, E. F., Lawrence, K. J.
+  (5660)                     1974 MA     1974 06 26  Palomar                  Kowal, C. T.
+  (5693)                     1993 EA     1993 03 03  Kitt Peak                Spacewatch
+  (5731) Zeus                1988 VP4    1988 11 04  Palomar            25230 Shoemaker, C. S., Shoemaker, E. M.
+  (5751) Zao                 1992 AC     1992 01 05  Ayashi             25230 Koishikawa, M.
+  (5786) Talos               1991 RC     1991 09 03  Siding Spring      23541 McNaught, R. H.
+  (5797) Bivoj               1980 AA     1980 01 13  Klet               27735 Mrkos, A.
+  (5828)                     1991 AM     1991 01 14  Kitt Peak                Spacewatch
+  (5836)                     1993 MF     1993 06 22  Palomar                  Helin, E. F., Lawrence, K. J.
+  (5863) Tara                1983 RB     1983 09 07  Palomar            25230 Shoemaker, C. S., Shoemaker, E. M.
+  (5869) Tanith              1988 VN4    1988 11 04  Palomar            24918 Shoemaker, C. S.
+  (5879) Almeria             1992 CH1    1992 02 08  Calar Alto         34341 Birkle, K., Hopp, U.
+  (6037)                     1988 EG     1988 03 12  Palomar                  Alu, J.
+  (6047)                     1991 TB1    1991 10 10  Palomar                  Rose, P.
+  (6050) Miwablock           1992 AE     1992 01 10  Kitt Peak          54173 Spacewatch
+  (6053)                     1993 BW3    1993 01 30  Siding Spring            McNaught, R. H.
+  (6063) Jason               1984 KB     1984 05 27  Palomar            25445 Shoemaker, C. S., Shoemaker, E. M.
+  (6178)                     1986 DA     1986 02 16  Shizuoka                 Kizawa, M.
+  (6239) Minos               1989 QF     1989 08 31  Palomar            25445 Shoemaker, C. S., Shoemaker, E. M.
+  (6455)                     1992 HE     1992 04 25  Siding Spring            McNaught, R. H.
+  (6456) Golombek            1992 OM     1992 07 27  Palomar            31024 Helin, E. F., Lawrence, K. J.
+  (6489) Golevka             1991 JX     1991 05 10  Palomar            26425 Helin, E. F.
+  (6491)                     1991 OA     1991 07 16  Palomar                  Holt, H. E.
+  (6569) Ondaatje            1993 MO     1993 06 22  Palomar            56958 Mueller, J. E.
+  (6611)                     1993 VW     1993 11 09  Palomar                  Helin, E. F., Alu, J.
+  (7025)                     1993 QA     1993 08 16  Kitt Peak                Spacewatch
+  (7066) Nessus              1993 HA2    1993 04 26  Kitt Peak          29671 Spacewatch
+  (7088) Ishtar              1992 AA     1992 01 01  Palomar            29671 Shoemaker, C. S., Shoemaker, E. M.
+  (7092) Cadmus              1992 LC     1992 06 04  Palomar            29671 Shoemaker, C. S., Shoemaker, E. M.
+  (7236)                     1987 PA     1987 08 01  Palomar                  Phinney, J.
+  (7335)                     1989 JA     1989 05 01  Palomar                  Helin, E. F.
+  (7336) Saunders            1989 RS1    1989 09 06  Palomar            41028 Helin, E. F.
+  (7341)                     1991 VK     1991 11 01  Palomar                  Helin, E. F., Lawrence, K. J.
+  (7350)                     1993 VA     1993 11 07  Siding Spring            McNaught, R. H.
+  (7358) Oze                 1995 YA3    1995 12 27  Oizumi             47296 Kobayashi, T.
+  (7474)                     1992 TC     1992 10 01  Siding Spring            McNaught, R. H.
+  (7480) Norwan              1994 PC     1994 08 01  Palomar            29673 Shoemaker, C. S., Shoemaker, E. M.
+  (7482)                     1994 PC1    1994 08 09  Siding Spring            McNaught, R. H.
+  (7753)                     1988 XB     1988 12 05  Gekko                    Oshima, Y.
+  (7822)                     1991 CS     1991 02 13  Siding Spring            McNaught, R. H.
+  (7839)                     1994 ND     1994 07 03  Siding Spring            McNaught, R. H.
+  (7888)                     1993 UC     1993 10 20  Siding Spring            McNaught, R. H.
+  (7889)                     1994 LX     1994 06 15  Kitt Peak                Spacewatch
+  (7977)                     1977 QQ5    1977 08 21  Siding Spring            McNaught, R. H.
+  (8013) Gordonmoore         1990 KA     1990 05 18  Palomar            45747 Helin, E. F.
+  (8014)                     1990 MF     1990 06 26  Palomar                  Helin, E. F.
+  (8034) Akka                1992 LR     1992 06 03  Palomar            46101 Shoemaker, C. S., Shoemaker, E. M.
+  (8035)                     1992 TB     1992 10 02  Kitt Peak                Spacewatch
+  (8037)                     1993 HO1    1993 04 20  Siding Spring            McNaught, R. H.
+  (8176)                     1991 WA     1991 11 29  Siding Spring            McNaught, R. H.
+  (8201)                     1994 AH2    1994 01 05  Siding Spring            Garradd, G. J.
+  (8405) Asbolus             1995 GO     1995 04 05  Kitt Peak          36128 Spacewatch
+  (8507)                     1991 CB1    1991 02 15  Kitt Peak                Spacewatch
+  (8566)                     1996 EN     1996 03 15  Haleakala                NEAT
+  (8567)                     1996 HW1    1996 04 23  Kitt Peak                Spacewatch
+  (8709) Kadlu               1994 JF1    1994 05 14  Palomar            32350 Shoemaker, C. S., Shoemaker, E. M.
+  (9058)                     1992 JB     1992 05 01  Palomar                  Alu, J., Lawrence, K. J.
+  (9162) Kwiila              1987 OA     1987 07 29  Palomar            64311 Mueller, J. E.
+  (9172) Abhramu             1989 OB     1989 07 29  Palomar            36947 Shoemaker, C. S., Shoemaker, E. M.
+  (9202)                     1993 PB     1993 08 13  Kitt Peak                Spacewatch
+  (9400)                     1994 TW1    1994 10 09  Palomar                  Helin, E. F., Lawrence, K. J.
+  (9856)                     1991 EE     1991 03 13  Kitt Peak                Spacewatch
+  (9950) ESA                 1990 VB     1990 11 08  Caussols           55720 Pollas, C.
+ (10115)                     1992 SK     1992 09 24  Palomar                  Helin, E. F., Alu, J.
+ (10145)                     1994 CK1    1994 02 10  Kitt Peak                Spacewatch
+ (10150)                     1994 PN     1994 08 07  Siding Spring            Garradd, G. J.
+ (10165)                     1995 BL2    1995 01 31  Kitt Peak                Spacewatch
+ (10199) Chariklo            1997 CU26   1997 02 15  Kitt Peak          36129 Spacewatch
+ (10302)                     1989 ML     1989 06 29  Palomar                  Helin, E. F., Alu, J.
+ (10370) Hylonome            1995 DW2    1995 02 27  Mauna Kea          41030 Jewitt, D. C., Luu, J. X.
+ (10563) Izhdubar            1993 WD     1993 11 19  Palomar            36949 Shoemaker, C. S., Shoemaker, E. M.
+ (10636)                     1998 QK56   1998 08 28  Socorro                  LINEAR
+ (10860)                     1995 LE     1995 06 03  Kitt Peak                Spacewatch
+ (11054)                     1991 FA     1991 03 17  Kitt Peak                Spacewatch
+ (11066) Sigurd              1992 CC1    1992 02 09  Palomar            40706 Shoemaker, C. S., Shoemaker, E. M.
+ (11284) Belenus             1990 BA     1990 01 21  Caussols           38200 Maury, A.
+ (11311) Peleus              1993 XN2    1993 12 10  Palomar            41031 Shoemaker, C. S., Shoemaker, E. M.
+ (11398)                     1998 YP11   1998 12 23  Socorro                  LINEAR
+ (11405)                     1999 CV3    1999 02 10  Socorro                  LINEAR
+ (11500) Tomaiyowit          1989 UR     1989 10 28  Palomar            64311 Mueller, J. E., Mendenhall, J. D.
+ (11885) Summanus            1990 SS     1990 09 25  Kitt Peak          72198 Spacewatch
+ (12538)                     1998 OH     1998 07 19  Haleakala                NEAT
+ (12711) Tukmit              1991 BB     1991 01 19  Palomar            64312 Mueller, J. E.
+ (12923) Zephyr              1999 GK4    1999 04 11  Anderson Mesa      52768 LONEOS
+ (13553) Masaakikoyama       1992 JE     1992 05 02  Geisei             78270 Seki, T.
+ (13651)                     1997 BR     1997 01 20  Xinglong                 Beijing Schmidt CCD Asteroid Program
+ (14402)                     1991 DB     1991 02 18  Palomar                  Helin, E. F.
+ (14827) Hypnos              1986 JK     1986 05 05  Palomar            47301 Shoemaker, C. S., Shoemaker, E. M.
+ (15504)                     1999 RG33   1999 09 04  Catalina                 CSS
+ (15745) Yuliya              1991 PM5    1991 08 03  La Silla           85013 Elst, E. W.
+ (15760) Albion              1992 QB1    1992 08 30  Mauna Kea         108697 Jewitt, D. C., Luu, J. X.
+ (15788)                     1993 SB     1993 09 16  La Palma                 Williams, I. P., Fitzsimmons, A., O'Ceallaigh, D.
+ (15789)                     1993 SC     1993 09 17  La Palma                 Williams, I. P., Fitzsimmons, A., O'Ceallaigh, D.
+ (15807)                     1994 GV9    1994 04 15  Mauna Kea                Jewitt, D. C., Chen, J.
+ (15809)                     1994 JS     1994 05 11  Cerro Tololo             Jewitt, D. C., Luu, J. X.
+ (15810) Arawn               1994 JR1    1994 05 12  La Palma          103024 Irwin, M. J., Zytkow, A.
+ (15817) Lucianotesi         1994 QC     1994 08 28  San Marcello       41388 Boattini, A., Tombelli, M.
+ (15820)                     1994 TB     1994 10 02  Mauna Kea                Jewitt, D. C., Chen, J.
+ (15836)                     1995 DA2    1995 02 24  Mauna Kea                Luu, J. X., Jewitt, D. C.
+ (15874)                     1996 TL66   1996 10 09  Mauna Kea                Trujillo, C. A., Jewitt, D. C., Luu, J. X., Chen, J.
+ (15875)                     1996 TP66   1996 10 11  Mauna Kea                Luu, J. X., Jewitt, D. C., Trujillo, C. A.
+ (15883)                     1997 CR29   1997 02 03  Mauna Kea                Trujillo, C. A., Chen, J., Jewitt, D. C.
+ (16064) Davidharvey         1999 RH27   1999 09 05  Catalina           77502 CSS
+ (16636)                     1993 QP     1993 08 23  Palomar                  Helin, E. F., Lawrence, K. J.
+ (16657)                     1993 UB     1993 10 23  Siding Spring            McNaught, R. H.
+ (16684)                     1994 JQ1    1994 05 11  La Palma                 Irwin, M. J., Zytkow, A.
+ (16816)                     1997 UF9    1997 10 29  Socorro                  LINEAR
+ (16834)                     1997 WU22   1997 11 30  Haleakala                NEAT
+ (16912) Rhiannon            1998 EP8    1998 03 02  Caussols           42364 ODAS
+ (16960)                     1998 QS52   1998 08 25  Socorro                  LINEAR
+ (17181)                     1999 UM3    1999 10 19  Socorro                  LINEAR
+ (17182)                     1999 VU     1999 11 01  Socorro                  LINEAR
+ (17188)                     1999 WC2    1999 11 17  Socorro                  LINEAR
+ (17274)                     2000 LC16   2000 06 07  Socorro                  LINEAR
+ (17511)                     1992 QN     1992 08 29  Palomar                  Helin, E. F., Alu, J.
+ (18106) Blume               2000 NX3    2000 07 04  Anderson Mesa      54566 LONEOS
+ (18109)                     2000 NG11   2000 07 07  Socorro                  LINEAR
+ (18172)                     2000 QL7    2000 08 25  Socorro                  LINEAR
+ (18736)                     1998 NU     1998 07 02  Kitt Peak                Spacewatch
+ (18882)                     1999 YN4    1999 12 28  Socorro                  LINEAR
+ (19255)                     1994 VK8    1994 11 08  La Palma                 Fitzsimmons, A., O'Ceallaigh, D., Williams, I. P.
+ (19299)                     1996 SZ4    1996 09 16  La Palma                 Fitzsimmons, A., Irwin, M. J., Williams, I. P.
+ (19308)                     1996 TO66   1996 10 12  Mauna Kea                Trujillo, C. A., Jewitt, D. C., Luu, J. X.
+ (19356)                     1997 GH3    1997 04 06  Haleakala                NEAT
+ (19521) Chaos               1998 WH24   1998 11 19  Kitt Peak          45235 Deep Ecliptic Survey
+ (19764)                     2000 NF5    2000 07 07  Socorro                  LINEAR
+ (20000) Varuna              2000 WR106  2000 11 28  Kitt Peak          42368 Spacewatch
+ (20086)                     1994 LW     1994 06 12  Siding Spring            McNaught, R. H.
+ (20108)                     1995 QZ9    1995 08 29  Mauna Kea                Jewitt, D. C., Chen, J.
+ (20161)                     1996 TR66   1996 10 08  Mauna Kea                Jewitt, D. C., Trujillo, C. A., Luu, J. X., Chen, J.
+ (20236)                     1998 BZ7    1998 01 24  Haleakala                NEAT
+ (20255)                     1998 FX2    1998 03 22  Socorro                  LINEAR
+ (20425)                     1998 VD35   1998 11 15  Kitt Peak                Spacewatch
+ (20429)                     1998 YN1    1998 12 16  Socorro                  LINEAR
+ (20460) Robwhiteley         1999 LO28   1999 06 13  Catalina           47301 CSS
+ (20461) Dioretsa            1999 LD31   1999 06 08  Socorro            48396 LINEAR
+ (20790)                     2000 SE45   2000 09 26  Socorro                  LINEAR
+ (20826)                     2000 UV13   2000 10 21  Bisei SG Center          BATTeRS
+ (21088) Chelyabinsk         1992 BL2    1992 01 30  La Silla           84674 Elst, E. W.
+ (21277)                     1996 TO5    1996 10 09  Haleakala                NEAT
+ (21374)                     1997 WS22   1997 11 24  Siding Spring            Hartley, M.
+ (22099)                     2000 EX106  2000 03 14  Catalina                 CSS
+ (22753)                     1998 WT     1998 11 16  Socorro                  LINEAR
+ (22771)                     1999 CU3    1999 02 10  Socorro                  LINEAR
+ (23183)                     2000 OY21   2000 07 28  Siding Spring            McNaught, R. H.
+ (23187)                     2000 PN9    2000 08 08  Socorro                  LINEAR
+ (23548)                     1994 EF2    1994 03 11  Palomar                  Lawrence, K. J.
+ (23606)                     1996 AS1    1996 01 13  Kitt Peak                Spacewatch
+ (23714)                     1998 EC3    1998 03 01  Oizumi                   Kobayashi, T.
+ (24443)                     2000 OG     2000 07 21  Socorro                  LINEAR
+ (24445)                     2000 PM8    2000 08 02  Mauna Kea                Veillet, C.
+ (24475)                     2000 VN2    2000 11 01  Socorro                  LINEAR
+ (24761) Ahau                1993 BW2    1993 01 28  Palomar            47301 Shoemaker, C. S., Shoemaker, E. M.
+ (24835)                     1995 SM55   1995 09 19  Kitt Peak                Danzl, N.
+ (24952)                     1997 QJ4    1997 08 28  Mauna Kea                Luu, J. X., Trujillo, C. A., Jewitt, D. C., Berney, K.
+ (24978)                     1998 HJ151  1998 04 28  Mauna Kea                Luu, J. X., Trujillo, C. A., Tholen, D. J., Jewitt, D. C.
+ (25143) Itokawa             1998 SF36   1998 09 26  Socorro            49281 LINEAR
+ (25330)                     1999 KV4    1999 05 17  Catalina                 CSS
+ (25916)                     2001 CP44   2001 02 15  Socorro                  LINEAR
+ (26166)                     1995 QN3    1995 08 31  Kitt Peak                Spacewatch
+ (26181)                     1996 GQ21   1996 04 12  Kitt Peak                Danzl, N.
+ (26308)                     1998 SM165  1998 09 16  Kitt Peak                Danzl, N.
+ (26310)                     1998 TX6    1998 10 14  Kitt Peak                Spacewatch
+ (26375)                     1999 DE9    1999 02 20  Kitt Peak                Trujillo, C. A., Luu, J. X.
+ (26379)                     1999 HZ1    1999 04 20  Socorro                  LINEAR
+ (26663)                     2000 XK47   2000 12 15  Socorro                  LINEAR
+ (26760)                     2001 KP41   2001 05 23  Socorro                  LINEAR
+ (26817)                     1987 QB     1987 08 25  Palomar                  Singer-Brewster, S.
+ (27002)                     1998 DV9    1998 02 23  Mauna Kea                Tholen, D. J., Whiteley, R. J.
+ (27031)                     1998 RO4    1998 09 14  Socorro                  LINEAR
+ (27346)                     2000 DN8    2000 02 27  Socorro                  LINEAR
+ (28978) Ixion               2001 KX76   2001 05 22  Cerro Tololo       45236 Deep Ecliptic Survey
+ (29075)                     1950 DA     1950 02 22  Mount Hamilton           Wirtanen, C. A.
+ (29981)                     1999 TD10   1999 10 03  Kitt Peak                Spacewatch
+ (30825)                     1990 TG1    1990 10 14  Kitt Peak                Spacewatch
+ (30997)                     1995 UO5    1995 10 26  Kitt Peak                Spacewatch
+ (31210)                     1998 BX7    1998 01 24  Haleakala                NEAT
+ (31221)                     1998 BP26   1998 01 28  Haleakala                NEAT
+ (31345)                     1998 PG     1998 08 03  Anderson Mesa            LONEOS
+ (31346)                     1998 PB1    1998 08 15  Socorro                  LINEAR
+ (31662)                     1999 HP11   1999 04 19  Kitt Peak                Spacewatch
+ (31669)                     1999 JT6    1999 05 12  Socorro                  LINEAR
+ (31824) Elatus              1999 UG5    1999 10 29  Catalina           49102 CSS
+ (32532) Thereus             2001 PT13   2001 08 09  Palomar            49102 NEAT
+ (32906)                     1994 RH     1994 09 02  Palomar                  Helin, E. F., Lawrence, K. J.
+ (32929)                     1995 QY9    1995 08 31  Mauna Kea                Jewitt, D. C., Chen, J.
+ (33001)                     1997 CU29   1997 02 06  Mauna Kea                Jewitt, D. C., Luu, J. X., Trujillo, C. A., Chen, J.
+ (33128)                     1998 BU48   1998 01 22  Kitt Peak                Danzl, N.
+ (33340)                     1998 VG44   1998 11 14  Kitt Peak                Larsen, J. A., Danzl, N., Gleason, A.
+ (33342)                     1998 WT24   1998 11 25  Socorro                  LINEAR
+ (34613)                     2000 UR13   2000 10 27  Kitt Peak                Spacewatch
+ (35107)                     1991 VH     1991 11 09  Siding Spring            McNaught, R. H.
+ (35396)                     1997 XF11   1997 12 06  Kitt Peak                Spacewatch
+ (35432)                     1998 BG9    1998 01 24  Haleakala                NEAT
+ (35670)                     1998 SU27   1998 09 24  Socorro                  LINEAR
+ (35671)                     1998 SN165  1998 09 23  Kitt Peak                Gleason, A.
+ (36017)                     1999 ND43   1999 07 14  Socorro                  LINEAR
+ (36183)                     1999 TX16   1999 10 13  Socorro                  LINEAR
+ (36236)                     1999 VV     1999 11 01  Socorro                  LINEAR
+ (36284)                     2000 DM8    2000 02 27  Socorro                  LINEAR
+ (37117) Narcissus           2000 VU2    2000 11 01  Desert Beaver      65712 Yeung, W. K. Y.
+ (37336)                     2001 RM     2001 09 06  Socorro                  LINEAR
+ (37638)                     1993 VB     1993 11 06  Siding Spring            McNaught, R. H.
+ (37655) Illapa              1994 PM     1994 08 01  Palomar            47302 Shoemaker, C. S., Shoemaker, E. M.
+ (38071)                     1999 GU3    1999 04 10  Socorro                  LINEAR
+ (38083) Rhadamanthus        1999 HX11   1999 04 17  Kitt Peak          46112 Deep Ecliptic Survey
+ (38084)                     1999 HB12   1999 04 18  Kitt Peak                Buie, M. W., Millis, R.
+ (38086) Beowulf             1999 JB     1999 05 05  Anderson Mesa      59387 LONEOS
+ (38239)                     1999 OR3    1999 07 27  Socorro                  LINEAR
+ (38628) Huya                2000 EB173  2000 03 10  Merida             48397 Ferrin, I. R.
+ (39557) Gielgud             1992 JG     1992 05 02  Kitt Peak          57951 Spacewatch
+ (39565)                     1992 SL     1992 09 24  Palomar                  Helin, E. F., Lawrence, K. J.
+ (39572)                     1993 DQ1    1993 02 26  Kitt Peak                Spacewatch
+ (39796)                     1997 TD     1997 10 01  Haleakala                NEAT
+ (40263)                     1999 FQ5    1999 03 18  Kitt Peak                Spacewatch
+ (40267)                     1999 GJ4    1999 04 10  Socorro                  LINEAR
+ (40314)                     1999 KR16   1999 05 16  La Silla                 Dalsanti, A., Hainaut, O. R.
+ (40329)                     1999 ML     1999 06 20  Catalina                 CSS
+ (41429)                     2000 GE2    2000 04 03  Socorro                  LINEAR
+ (41440)                     2000 HZ23   2000 04 27  Anderson Mesa            LONEOS
+ (42286)                     2001 TN41   2001 10 14  Socorro                  LINEAR
+ (42301)                     2001 UR163  2001 10 21  Kitt Peak                Deep Ecliptic Survey
+ (42355) Typhon              2002 CR46   2002 02 05  Palomar            57951 NEAT
+ (44594)                     1999 OX3    1999 07 21  Mauna Kea                Kavelaars, J. J., Gladman, B., Holman, M. J., Petit, J.-M.
+ (45802)                     2000 PV29   2000 08 05  Mauna Kea                Holman, M. J.
+ (47171) Lempo               1999 TC36   1999 10 01  Kitt Peak         106502 Rubenstein, E. P., Strolger, L.-G.
+ (47932)                     2000 GN171  2000 04 01  Kitt Peak                Gleason, A.
+ (48603)                     1995 BC2    1995 01 30  Oizumi                   Kobayashi, T.
+ (48639)                     1995 TL8    1995 10 15  Kitt Peak                Gleason, A.
+ (49036) Pelion              1998 QM107  1998 08 21  Mauna Kea          48398 Whiteley, R. J., Tholen, D. J.
+ (49673)                     1999 RA215  1999 09 13  Kitt Peak                Davis, D., Gladman, B., Meese, C.
+ (50000) Quaoar              2002 LM60   2002 06 04  Palomar            47170 Trujillo, C. A., Brown, M. E.
+ (52340)                     1992 SY     1992 09 27  Kitt Peak                Spacewatch
+ (52381)                     1993 HA     1993 04 17  Kitt Peak                Spacewatch
+ (52387) Huitzilopochtli     1993 OM7    1993 07 20  La Silla          103981 Elst, E. W.
+ (52689)                     1998 FF2    1998 03 20  Socorro                  LINEAR
+ (52747)                     1998 HM151  1998 04 29  Mauna Kea                Mauna Kea
+ (52750)                     1998 KK17   1998 05 29  Socorro                  LINEAR
+ (52760)                     1998 ML14   1998 06 24  Socorro                  LINEAR
+ (52761)                     1998 MN14   1998 06 25  Socorro                  LINEAR
+ (52762)                     1998 MT24   1998 06 29  Socorro                  LINEAR
+ (52768)                     1998 OR2    1998 07 24  Haleakala                NEAT
+ (52872) Okyrhoe             1998 SG35   1998 09 19  Kitt Peak          49102 Spacewatch
+ (52975) Cyllarus            1998 TF35   1998 10 12  Kitt Peak          49102 Danzl, N.
+ (53110)                     1999 AR7    1999 01 11  Socorro                  LINEAR
+ (53311) Deucalion           1999 HU11   1999 04 18  Kitt Peak          49102 Deep Ecliptic Survey
+ (53319)                     1999 JM8    1999 05 13  Socorro                  LINEAR
+ (53409)                     1999 LU7    1999 06 10  Catalina                 CSS
+ (53426)                     1999 SL5    1999 09 28  Socorro                  LINEAR
+ (53429)                     1999 TF5    1999 10 03  Socorro                  LINEAR
+ (53430)                     1999 TY16   1999 10 13  Socorro                  LINEAR
+ (53435) Leonard             1999 VM40   1999 11 09  Catalina                 CSS
+ (53550)                     2000 BF19   2000 01 28  Kitt Peak                Spacewatch
+ (53789)                     2000 ED104  2000 03 10  Socorro                  LINEAR
+ (54071)                     2000 GQ146  2000 04 10  Socorro                  LINEAR
+ (54401)                     2000 LM     2000 06 01  Socorro                  LINEAR
+ (54509) YORP                2000 PH5    2000 08 03  Socorro            59387 LINEAR
+ (54520)                     2000 PJ30   2000 08 05  Mauna Kea                Holman, M. J.
+ (54598) Bienor              2000 QC243  2000 08 27  Cerro Tololo       50465 Deep Ecliptic Survey
+ (54660)                     2000 UJ1    2000 10 19  Socorro                  LINEAR
+ (54686)                     2001 DU8    2001 02 17  Socorro                  LINEAR
+ (54690)                     2001 EB     2001 03 01  Socorro                  LINEAR
+ (54789)                     2001 MZ7    2001 06 21  Socorro                  LINEAR
+ (55565) Aya                 2002 AW197  2002 01 10  Palomar                  Palomar
+ (55576) Amycus              2002 GB10   2002 04 08  Palomar            55723 NEAT
+ (55636)                     2002 TX300  2002 10 15  Palomar                  NEAT
+ (55637) Uni                 2002 UX25   2002 10 30  Kitt Peak                Spacewatch
+ (55638)                     2002 VE95   2002 11 14  Palomar                  NEAT
+ (58534) Logos               1997 CQ29   1997 02 04  Mauna Kea          56962 Mauna Kea
+ (59358)                     1999 CL158  1999 02 11  Mauna Kea                Luu, J. X., Trujillo, C. A., Jewitt, D. C.
+ (60454)                     2000 CH105  2000 02 05  Kitt Peak                Buie, M. W.
+ (60458)                     2000 CM114  2000 02 05  Kitt Peak                Buie, M. W.
+ (60558) Echeclus            2000 EC98   2000 03 03  Kitt Peak          55988 Spacewatch
+ (60608)                     2000 EE173  2000 03 03  Kitt Peak                Luu, J. X., Trujillo, C. A., Evans, W.
+ (60620)                     2000 FD8    2000 03 27  Mauna Kea                Kavelaars, J. J., Gladman, B., Petit, J.-M., Holman, M. J.
+ (60621)                     2000 FE8    2000 03 27  Mauna Kea                Kavelaars, J. J., Gladman, B., Petit, J.-M., Holman, M. J.
+ (63252)                     2001 BL41   2001 01 19  Kitt Peak                Spacewatch
+ (65407)                     2002 RP120  2002 09 04  Anderson Mesa            LONEOS
+ (65489) Ceto                2003 FX128  2003 03 22  Palomar            57952 Trujillo, C. A., Brown, M. E.
+ (65679)                     1989 UQ     1989 10 26  Caussols                 Pollas, C.
+ (65690)                     1991 DG     1991 02 20  Siding Spring            McNaught, R. H.
+ (65717)                     1993 BX3    1993 01 31  Siding Spring            McNaught, R. H.
+ (65803) Didymos             1996 GT     1996 04 11  Kitt Peak          52326 Spacewatch
+ (65909)                     1998 FH12   1998 03 25  Socorro                  LINEAR
+ (66391) Moshup              1999 KW4    1999 05 20  Socorro           115894 LINEAR
+ (66452)                     1999 OF4    1999 07 21  Mauna Kea                Mauna Kea
+ (66652) Borasisi            1999 RZ253  1999 09 08  Mauna Kea          60731 Trujillo, C. A., Luu, J. X., Jewitt, D. C.
+ (67367)                     2000 LY27   2000 06 07  Socorro                  LINEAR
+ (67381)                     2000 OL8    2000 07 30  Socorro                  LINEAR
+ (68216)                     2001 CV26   2001 02 01  Socorro                  LINEAR
+ (68346)                     2001 KZ66   2001 05 29  Haleakala                NEAT
+ (68347)                     2001 KB67   2001 05 30  Socorro                  LINEAR
+ (68372)                     2001 PM9    2001 08 11  Palomar                  NEAT
+ (68548)                     2001 XR31   2001 12 13  Socorro                  LINEAR
+ (68950)                     2002 QF15   2002 08 27  Socorro                  LINEAR
+ (69230) Hermes              1937 UB     1937 10 28  Heidelberg         50255 Reinmuth, K.
+ (69986)                     1998 WW24   1998 11 18  Kitt Peak                Buie, M. W.
+ (69987)                     1998 WA25   1998 11 19  Kitt Peak                Buie, M. W.
+ (69988)                     1998 WA31   1998 11 18  Kitt Peak                Buie, M. W.
+ (69990)                     1998 WU31   1998 11 18  Kitt Peak                Buie, M. W.
+ (73480)                     2002 PN34   2002 08 06  Palomar                  NEAT
+ (76803)                     2000 PK30   2000 08 05  Mauna Kea                Holman, M. J.
+ (78799) Xewioso             2002 XW93   2002 12 10  Palomar                  Palomar
+ (79360) Sila-Nunam          1997 CS29   1997 02 03  Mauna Kea          77871 Luu, J. X., Jewitt, D. C., Trujillo, C. A., Chen, J.
+ (79969)                     1999 CP133  1999 02 11  Mauna Kea                Trujillo, C. A., Luu, J. X., Jewitt, D. C.
+ (79978)                     1999 CC158  1999 02 15  Mauna Kea                Jewitt, D. C., Trujillo, C. A., Luu, J. X., Sheppard, S. S.
+ (79983)                     1999 DF9    1999 02 20  Kitt Peak                Luu, J. X., Trujillo, C. A., Jewitt, D. C.
+ (80806)                     2000 CM105  2000 02 06  Kitt Peak                Buie, M. W.
+ (82075)                     2000 YW134  2000 12 26  Kitt Peak                Spacewatch
+ (82155)                     2001 FZ173  2001 03 24  Kitt Peak                Spacewatch
+ (82157)                     2001 FM185  2001 03 26  Kitt Peak                Buie, M. W.
+ (82158)                     2001 FP185  2001 03 26  Kitt Peak                Buie, M. W.
+ (83982) Crantor             2002 GO9    2002 04 12  Palomar            55724 NEAT
+ (84522)                     2002 TC302  2002 10 09  Palomar                  Palomar
+ (84719)                     2002 VR128  2002 11 03  Palomar                  Trujillo, C. A., Brown, M. E.
+ (84922)                     2003 VS2    2003 11 14  Palomar                  NEAT
+ (85182)                     1991 AQ     1991 01 14  Palomar                  Helin, E. F.
+ (85236)                     1993 KH     1993 05 24  Siding Spring            McNaught, R. H.
+ (85585) Mjolnir             1998 FG2    1998 03 21  Goodricke-Pigott   54177 Tucker, R. A.
+ (85627)                     1998 HP151  1998 04 28  Mauna Kea                Mauna Kea
+ (85633)                     1998 KR65   1998 05 29  Cerro Tololo             Bernstein, G.
+ (85640)                     1998 OX4    1998 07 26  Kitt Peak                Spacewatch
+ (85713)                     1998 SS49   1998 09 29  Socorro                  LINEAR
+ (85774)                     1998 UT18   1998 10 27  Catalina                 CSS
+ (85938)                     1999 DJ4    1999 02 24  Socorro                  LINEAR
+ (85989)                     1999 JD6    1999 05 12  Anderson Mesa            LONEOS
+ (85990)                     1999 JV6    1999 05 13  Socorro                  LINEAR
+ (86039)                     1999 NC43   1999 07 14  Socorro                  LINEAR
+ (86047)                     1999 OY3    1999 07 18  Mauna Kea                Mauna Kea
+ (86177)                     1999 RY215  1999 09 08  Mauna Kea                Mauna Kea
+ (86819)                     2000 GK137  2000 04 13  Socorro                  LINEAR
+ (87269)                     2000 OO67   2000 07 29  Cerro Tololo             Deep Ecliptic Survey
+ (87555)                     2000 QB243  2000 08 25  Cerro Tololo             Deep Ecliptic Survey
+ (87684)                     2000 SY2    2000 09 20  Socorro                  LINEAR
+ (88254)                     2001 FM129  2001 03 31  Socorro                  LINEAR
+ (88267)                     2001 KE76   2001 05 22  Cerro Tololo             Buie, M. W.
+ (88268)                     2001 KK76   2001 05 24  Cerro Tololo             Buie, M. W.
+ (88269)                     2001 KF77   2001 05 22  Cerro Tololo             Buie, M. W.
+ (88611) Teharonhiawako      2001 QT297  2001 08 20  Cerro Tololo       59388 Deep Ecliptic Survey
+ (89136)                     2001 US16   2001 10 23  Kitt Peak                Spacewatch
+ (89830)                     2002 CE     2002 02 01  Socorro                  LINEAR
+ (89958)                     2002 LY45   2002 06 14  Socorro                  LINEAR
+ (89959)                     2002 NT7    2002 07 09  Socorro                  LINEAR
+ (90075)                     2002 VU94   2002 11 13  Palomar                  NEAT
+ (90377) Sedna               2003 VB12   2003 11 14  Palomar            52771 Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+ (90403)                     2003 YE45   2003 12 21  Catalina                 CSS
+ (90416)                     2003 YK118  2003 12 28  Socorro                  LINEAR
+ (90482) Orcus               2004 DW     2004 02 17  Palomar            53177 Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+ (90568) Goibniu             2004 GV9    2004 04 13  Palomar                  NEAT
+ (91133)                     1998 HK151  1998 04 28  Mauna Kea                Mauna Kea
+ (91205)                     1998 US43   1998 10 22  Kitt Peak                Buie, M. W.
+ (91554)                     1999 RZ215  1999 09 08  Mauna Kea                Luu, J. X., Trujillo, C. A., Jewitt, D. C.
+ (95625)                     2002 GX32   2002 04 08  Cerro Tololo             Buie, M. W., Jordan, A. B., Elliot, J. L.
+ (95626)                     2002 GZ32   2002 04 13  Mauna Kea                Mauna Kea
+ (99248)                     2001 KY66   2001 05 29  Palomar                  NEAT
+ (99942) Apophis             2004 MN4    2004 06 19  Kitt Peak          54567 Tucker, R. A., Tholen, D. J., Bernardi, F.
+(100085)                     1992 UY4    1992 10 25  Palomar                  Shoemaker, C. S.
+(101869)                     1999 MM     1999 06 20  Anderson Mesa            LONEOS
+(101955) Bennu               1999 RQ36   1999 09 11  Socorro            83583 LINEAR
+(103067)                     1999 XA143  1999 12 14  Socorro                  LINEAR
+(111253)                     2001 XU10   2001 12 09  Socorro                  LINEAR
+(118228)                     1996 TQ66   1996 10 08  Mauna Kea                Chen, J., Jewitt, D. C., Trujillo, C. A., Luu, J. X.
+(118378)                     1999 HT11   1999 04 17  Kitt Peak                Kitt Peak
+(118379)                     1999 HC12   1999 04 18  Kitt Peak                Kitt Peak
+(118698)                     2000 OY51   2000 07 28  Cerro Paranal            Gladman, B.
+(118702)                     2000 OM67   2000 07 31  Cerro Tololo             Buie, M. W., Kern, S. D.
+(119066)                     2001 KJ76   2001 05 23  Cerro Tololo             Buie, M. W.
+(119067)                     2001 KP76   2001 05 23  Cerro Tololo             Buie, M. W.
+(119068)                     2001 KC77   2001 05 23  Cerro Tololo             Buie, M. W.
+(119069)                     2001 KN77   2001 05 23  Cerro Tololo             Buie, M. W.
+(119070)                     2001 KP77   2001 05 23  Cerro Tololo             Buie, M. W.
+(119315)                     2001 SQ73   2001 09 19  Kitt Peak                Spacewatch
+(119473)                     2001 UO18   2001 10 19  Kitt Peak                Buie, M. W.
+(119878)                     2002 CY224  2002 02 07  Kitt Peak                Buie, M. W.
+(119951)                     2002 KX14   2002 05 17  Palomar                  Trujillo, C. A., Brown, M. E.
+(119956)                     2002 PA149  2002 08 10  Cerro Tololo             Buie, M. W.
+(119976)                     2002 VR130  2002 11 07  Kitt Peak                Buie, M. W.
+(119979)                     2002 WC19   2002 11 16  Palomar                  Palomar
+(120061)                     2003 CO1    2003 02 01  Palomar                  NEAT
+(120132)                     2003 FY128  2003 03 26  Palomar                  NEAT
+(120178)                     2003 OP32   2003 07 26  Palomar                  Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+(120181)                     2003 UR292  2003 10 24  Kitt Peak                Buie, M. W.
+(120216)                     2004 EW95   2004 03 14  Kitt Peak                Spacewatch
+(120347) Salacia             2004 SB60   2004 09 22  Palomar            73984 Roe, H. G., Brown, M. E., Barkume, K. M.
+(120348)                     2004 TY364  2004 10 03  Palomar                  Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+(121725) Aphidas             1999 XX143  1999 12 13  Mount Hopkins     106503 Hergenrother, C. W.
+(123509)                     2000 WK183  2000 11 26  La Silla                 Hainaut, O. R., Delahodde, C. E., Delsanti, A. C.
+(126154)                     2001 YH140  2001 12 18  Palomar                  Trujillo, C. A., Brown, M. E.
+(126155)                     2001 YJ140  2001 12 20  Palomar                  Trujillo, C. A., Brown, M. E.
+(126619)                     2002 CX154  2002 02 06  Kitt Peak                Buie, M. W.
+(126719)                     2002 CC249  2002 02 08  Kitt Peak                Buie, M. W.
+(127546)                     2002 XU93   2002 12 04  Kitt Peak                Buie, M. W.
+(127871)                     2003 FC128  2003 03 31  Kitt Peak                Buie, M. W.
+(128347)                     2004 GB23   2004 04 12  Kitt Peak                Spacewatch
+(128349)                     2004 GP30   2004 04 12  Anderson Mesa            LONEOS
+(128350)                     2004 GE31   2004 04 13  Palomar                  NEAT
+(128351)                     2004 GD35   2004 04 13  Kitt Peak                Spacewatch
+(128352)                     2004 GY37   2004 04 14  Palomar                  NEAT
+(128354)                     2004 GL42   2004 04 14  Kitt Peak                Spacewatch
+(128355)                     2004 GE66   2004 04 13  Kitt Peak                Spacewatch
+(128356)                     2004 GD76   2004 04 15  Kitt Peak                Spacewatch
+(128357)                     2004 HV2    2004 04 16  Anderson Mesa            LONEOS
+(128358)                     2004 HS4    2004 04 16  Socorro                  LINEAR
+(128359)                     2004 HV4    2004 04 16  Socorro                  LINEAR
+(128360)                     2004 HK18   2004 04 17  Socorro                  LINEAR
+(128361)                     2004 HP18   2004 04 17  Palomar                  NEAT
+(128362)                     2004 HW19   2004 04 20  Kitt Peak                Spacewatch
+(128363)                     2004 HL28   2004 04 20  Socorro                  LINEAR
+(128364)                     2004 HM29   2004 04 21  Kitt Peak                Spacewatch
+(128365)                     2004 HJ44   2004 04 21  Socorro                  LINEAR
+(128366)                     2004 HX44   2004 04 21  Socorro                  LINEAR
+(128367)                     2004 HM53   2004 04 25  Kitt Peak                Spacewatch
+(128368)                     2004 HH59   2004 04 25  Socorro                  LINEAR
+(128369)                     2004 HT62   2004 04 30  Kitt Peak                Spacewatch
+(128370)                     2004 HB72   2004 04 25  Kitt Peak                Spacewatch
+(128371)                     2004 HO74   2004 04 30  Kitt Peak                Spacewatch
+(128374)                     2004 JW26   2004 05 15  Socorro                  LINEAR
+(128375)                     2004 JO27   2004 05 15  Socorro                  LINEAR
+(128376)                     2004 JS27   2004 05 15  Socorro                  LINEAR
+(128377)                     2004 JB28   2004 05 12  Siding Spring            Siding Spring Survey
+(128378)                     2004 JB29   2004 05 15  Socorro                  LINEAR
+(128379)                     2004 JQ33   2004 05 15  Socorro                  LINEAR
+(128380)                     2004 JF34   2004 05 15  Socorro                  LINEAR
+(128381)                     2004 JB35   2004 05 15  Socorro                  LINEAR
+(128382)                     2004 JH35   2004 05 15  Socorro                  LINEAR
+(128384)                     2004 KV3    2004 05 16  Socorro                  LINEAR
+(128385)                     2004 KD4    2004 05 16  Socorro                  LINEAR
+(128386)                     2004 KL5    2004 05 16  Socorro                  LINEAR
+(128387)                     2004 KH8    2004 05 16  Socorro                  LINEAR
+(128390)                     2004 KQ14   2004 05 23  Kitt Peak                Spacewatch
+(128391)                     2004 LQ     2004 06 08  Palomar                  NEAT
+(128392)                     2004 LY     2004 06 09  Anderson Mesa            LONEOS
+(128393)                     2004 LE3    2004 06 06  Palomar                  NEAT
+(128394)                     2004 LG3    2004 06 06  Palomar                  NEAT
+(128395)                     2004 LE5    2004 06 12  Socorro                  LINEAR
+(128396)                     2004 LK5    2004 06 12  Palomar                  NEAT
+(128397)                     2004 LL5    2004 06 06  Palomar                  NEAT
+(128398)                     2004 LU6    2004 06 11  Socorro                  LINEAR
+(128399)                     2004 LO7    2004 06 11  Palomar                  NEAT
+(128400)                     2004 LD8    2004 06 11  Socorro                  LINEAR
+(128401)                     2004 LO9    2004 06 13  Palomar                  NEAT
+(128402)                     2004 LS9    2004 06 13  Palomar                  NEAT
+(128403)                     2004 LT10   2004 06 08  Kitt Peak                Spacewatch
+(128404)                     2004 LU13   2004 06 11  Socorro                  LINEAR
+(128405)                     2004 LE15   2004 06 11  Socorro                  LINEAR
+(128406)                     2004 LF15   2004 06 11  Socorro                  LINEAR
+(128407)                     2004 LP15   2004 06 12  Socorro                  LINEAR
+(128409)                     2004 LL16   2004 06 12  Palomar                  NEAT
+(128410)                     2004 LM16   2004 06 12  Palomar                  NEAT
+(128411)                     2004 LO16   2004 06 12  Siding Spring            Siding Spring Survey
+(128412)                     2004 LZ16   2004 06 14  Socorro                  LINEAR
+(128413)                     2004 LR17   2004 06 14  Socorro                  LINEAR
+(128414)                     2004 LO18   2004 06 12  Socorro                  LINEAR
+(128415)                     2004 LZ21   2004 06 13  Socorro                  LINEAR
+(128416)                     2004 LC22   2004 06 13  Socorro                  LINEAR
+(128418)                     2004 LN24   2004 06 12  Anderson Mesa            LONEOS
+(128419)                     2004 LK29   2004 06 14  Kitt Peak                Spacewatch
+(128421)                     2004 MB1    2004 06 16  Socorro                  LINEAR
+(128422)                     2004 MC1    2004 06 16  Socorro                  LINEAR
+(128423)                     2004 MD1    2004 06 16  Socorro                  LINEAR
+(128425)                     2004 MT5    2004 06 20  Kitt Peak                Spacewatch
+(128427)                     2004 MQ7    2004 06 28  Reedy Creek              Broughton, J.
+(128428)                     2004 NJ     2004 07 08  Reedy Creek              Broughton, J.
+(128429)                     2004 NK     2004 07 08  Reedy Creek              Broughton, J.
+(128430)                     2004 NC1    2004 07 07  Campo Imperatore         CINEOS
+(128431)                     2004 NO1    2004 07 09  Socorro                  LINEAR
+(128432)                     2004 NX1    2004 07 09  Palomar                  NEAT
+(128433)                     2004 NY1    2004 07 09  Palomar                  NEAT
+(128434)                     2004 NJ2    2004 07 09  Siding Spring            Siding Spring Survey
+(128435)                     2004 NF4    2004 07 13  Palomar                  NEAT
+(128436)                     2004 NA7    2004 07 11  Palomar                  NEAT
+(128438)                     2004 NY9    2004 07 09  Socorro                  LINEAR
+(128440)                     2004 NG13   2004 07 11  Socorro                  LINEAR
+(128441)                     2004 NR14   2004 07 11  Socorro                  LINEAR
+(128443)                     2004 NN16   2004 07 11  Socorro                  LINEAR
+(128444)                     2004 NQ16   2004 07 11  Socorro                  LINEAR
+(128445)                     2004 ND20   2004 07 14  Socorro                  LINEAR
+(128446)                     2004 NJ21   2004 07 15  Socorro                  LINEAR
+(128447)                     2004 NZ21   2004 07 15  Socorro                  LINEAR
+(128449)                     2004 NX23   2004 07 14  Socorro                  LINEAR
+(128450)                     2004 NX24   2004 07 15  Socorro                  LINEAR
+(128452)                     2004 NJ25   2004 07 15  Socorro                  LINEAR
+(128453)                     2004 NR26   2004 07 11  Socorro                  LINEAR
+(128454)                     2004 NX26   2004 07 11  Socorro                  LINEAR
+(128455)                     2004 NZ27   2004 07 11  Socorro                  LINEAR
+(128456)                     2004 NL28   2004 07 11  Socorro                  LINEAR
+(128457)                     2004 NW28   2004 07 14  Socorro                  LINEAR
+(128458)                     2004 NE29   2004 07 14  Socorro                  LINEAR
+(128459)                     2004 NS29   2004 07 14  Socorro                  LINEAR
+(128460)                     2004 NZ31   2004 07 15  Siding Spring            Siding Spring Survey
+(128461)                     2004 OA     2004 07 16  Pla D'Arguines           Ferrando, R.
+(128462)                     2004 OU4    2004 07 16  Socorro                  LINEAR
+(128463)                     2004 OD5    2004 07 16  Socorro                  LINEAR
+(128464)                     2004 OZ7    2004 07 16  Socorro                  LINEAR
+(128465)                     2004 OJ9    2004 07 20  Great Shefford           Birtwhistle, P.
+(128466)                     2004 OH10   2004 07 21  Reedy Creek              Broughton, J.
+(128467)                     2004 OH11   2004 07 25  Anderson Mesa            LONEOS
+(128468)                     2004 OK11   2004 07 25  Anderson Mesa            LONEOS
+(128469)                     2004 OH12   2004 07 28  Bergisch Gladbach        Bickel, W.
+(128470)                     2004 OX12   2004 07 28  Reedy Creek              Broughton, J.
+(128471)                     2004 OG13   2004 07 16  Campo Imperatore         CINEOS
+(128473)                     2004 PV     2004 08 06  Palomar                  NEAT
+(128475)                     2004 PW1    2004 08 06  Reedy Creek              Broughton, J.
+(128476)                     2004 PE3    2004 08 03  Siding Spring            Siding Spring Survey
+(128477)                     2004 PH3    2004 08 03  Siding Spring            Siding Spring Survey
+(128478)                     2004 PU3    2004 08 03  Siding Spring            Siding Spring Survey
+(128479)                     2004 PE4    2004 08 04  Palomar                  NEAT
+(128480)                     2004 PK4    2004 08 05  Palomar                  NEAT
+(128481)                     2004 PE6    2004 08 06  Palomar                  NEAT
+(128482)                     2004 PH7    2004 08 06  Palomar                  NEAT
+(128483)                     2004 PV8    2004 08 06  Palomar                  NEAT
+(128484)                     2004 PZ9    2004 08 06  Campo Imperatore         CINEOS
+(128485)                     2004 PD10   2004 08 06  Campo Imperatore         CINEOS
+(128486)                     2004 PB11   2004 08 07  Palomar                  NEAT
+(128487)                     2004 PN11   2004 08 07  Palomar                  NEAT
+(128488)                     2004 PX12   2004 08 07  Palomar                  NEAT
+(128489)                     2004 PU13   2004 08 07  Palomar                  NEAT
+(128490)                     2004 PW13   2004 08 07  Palomar                  NEAT
+(128491)                     2004 PF15   2004 08 07  Palomar                  NEAT
+(128492)                     2004 PH15   2004 08 07  Palomar                  NEAT
+(128493)                     2004 PQ15   2004 08 07  Palomar                  NEAT
+(128494)                     2004 PE16   2004 08 07  Palomar                  NEAT
+(128495)                     2004 PP16   2004 08 07  Palomar                  NEAT
+(128496)                     2004 PV16   2004 08 07  Campo Imperatore         CINEOS
+(128497)                     2004 PA17   2004 08 07  Campo Imperatore         CINEOS
+(128498)                     2004 PB17   2004 08 08  Campo Imperatore         CINEOS
+(128499)                     2004 PH17   2004 08 08  Campo Imperatore         CINEOS
+(128500)                     2004 PJ17   2004 08 08  Campo Imperatore         CINEOS
+(128501)                     2004 PO17   2004 08 08  Socorro                  LINEAR
+(128502)                     2004 PD18   2004 08 08  Anderson Mesa            LONEOS
+(128504)                     2004 PP18   2004 08 08  Anderson Mesa            LONEOS
+(128505)                     2004 PK19   2004 08 08  Anderson Mesa            LONEOS
+(128506)                     2004 PF30   2004 08 08  Campo Imperatore         CINEOS
+(128507)                     2004 PO31   2004 08 08  Socorro                  LINEAR
+(128508)                     2004 PJ33   2004 08 08  Socorro                  LINEAR
+(128509)                     2004 PS34   2004 08 08  Anderson Mesa            LONEOS
+(128510)                     2004 PA35   2004 08 08  Palomar                  NEAT
+(128511)                     2004 PO37   2004 08 09  Anderson Mesa            LONEOS
+(128512)                     2004 PS37   2004 08 09  Socorro                  LINEAR
+(128513)                     2004 PU37   2004 08 09  Socorro                  LINEAR
+(128514)                     2004 PC38   2004 08 09  Socorro                  LINEAR
+(128515)                     2004 PR38   2004 08 09  Socorro                  LINEAR
+(128516)                     2004 PS38   2004 08 09  Socorro                  LINEAR
+(128517)                     2004 PX38   2004 08 09  Anderson Mesa            LONEOS
+(128518)                     2004 PE39   2004 08 09  Anderson Mesa            LONEOS
+(128519)                     2004 PV40   2004 08 09  Socorro                  LINEAR
+(128520)                     2004 PZ40   2004 08 09  Socorro                  LINEAR
+(128521)                     2004 PA41   2004 08 09  Socorro                  LINEAR
+(128522)                     2004 PD42   2004 08 09  Socorro                  LINEAR
+(128524)                     2004 PR43   2004 08 06  Palomar                  NEAT
+(128525)                     2004 PD48   2004 08 08  Socorro                  LINEAR
+(128526)                     2004 PX48   2004 08 08  Socorro                  LINEAR
+(128527)                     2004 PV49   2004 08 08  Socorro                  LINEAR
+(128528)                     2004 PY49   2004 08 08  Socorro                  LINEAR
+(128529)                     2004 PT52   2004 08 08  Socorro                  LINEAR
+(128530)                     2004 PW52   2004 08 08  Socorro                  LINEAR
+(128531)                     2004 PY52   2004 08 08  Socorro                  LINEAR
+(128532)                     2004 PG56   2004 08 09  Campo Imperatore         CINEOS
+(128533)                     2004 PS56   2004 08 09  Socorro                  LINEAR
+(128534)                     2004 PV57   2004 08 09  Socorro                  LINEAR
+(128535)                     2004 PY58   2004 08 09  Socorro                  LINEAR
+(128536)                     2004 PG59   2004 08 09  Socorro                  LINEAR
+(128537)                     2004 PS59   2004 08 09  Anderson Mesa            LONEOS
+(128538)                     2004 PU60   2004 08 09  Socorro                  LINEAR
+(128539)                     2004 PD65   2004 08 10  Socorro                  LINEAR
+(128540)                     2004 PV65   2004 08 10  Anderson Mesa            LONEOS
+(128541)                     2004 PC66   2004 08 08  Socorro                  LINEAR
+(128542)                     2004 PT66   2004 08 09  Socorro                  LINEAR
+(128544)                     2004 PV67   2004 08 06  Palomar                  NEAT
+(128545)                     2004 PJ68   2004 08 06  Palomar                  NEAT
+(128546)                     2004 PF72   2004 08 08  Socorro                  LINEAR
+(128547)                     2004 PN72   2004 08 08  Socorro                  LINEAR
+(128548)                     2004 PY72   2004 08 08  Socorro                  LINEAR
+(128549)                     2004 PZ72   2004 08 08  Socorro                  LINEAR
+(128550)                     2004 PL73   2004 08 08  Socorro                  LINEAR
+(128551)                     2004 PW75   2004 08 09  Campo Imperatore         CINEOS
+(128553)                     2004 PF77   2004 08 09  Socorro                  LINEAR
+(128554)                     2004 PL79   2004 08 09  Socorro                  LINEAR
+(128555)                     2004 PO79   2004 08 09  Socorro                  LINEAR
+(128556)                     2004 PG83   2004 08 10  Socorro                  LINEAR
+(128557)                     2004 PX83   2004 08 10  Socorro                  LINEAR
+(128558)                     2004 PT85   2004 08 10  Socorro                  LINEAR
+(128559)                     2004 PJ88   2004 08 11  Socorro                  LINEAR
+(128560)                     2004 PL88   2004 08 11  Socorro                  LINEAR
+(128561)                     2004 PK90   2004 08 10  Anderson Mesa            LONEOS
+(128563)                     2004 PS90   2004 08 10  Socorro                  LINEAR
+(128564)                     2004 PX90   2004 08 10  Socorro                  LINEAR
+(128565)                     2004 PY92   2004 08 11  Reedy Creek              Broughton, J.
+(128566)                     2004 PZ92   2004 08 11  Reedy Creek              Broughton, J.
+(128567)                     2004 PJ93   2004 08 11  Socorro                  LINEAR
+(128568)                     2004 PK94   2004 08 10  Socorro                  LINEAR
+(128569)                     2004 PM97   2004 08 12  Socorro                  LINEAR
+(128570)                     2004 PV99   2004 08 11  Socorro                  LINEAR
+(128571)                     2004 PB100  2004 08 11  Siding Spring            Siding Spring Survey
+(128572)                     2004 PN101  2004 08 11  Socorro                  LINEAR
+(128573)                     2004 PO101  2004 08 11  Socorro                  LINEAR
+(128574)                     2004 PX101  2004 08 11  Socorro                  LINEAR
+(128575)                     2004 PL102  2004 08 12  Socorro                  LINEAR
+(128577)                     2004 PO104  2004 08 15  Siding Spring            Siding Spring Survey
+(128578)                     2004 PW104  2004 08 15  Reedy Creek              Broughton, J.
+(128579)                     2004 PH105  2004 08 09  Siding Spring            Siding Spring Survey
+(128580)                     2004 PT105  2004 08 14  Palomar                  NEAT
+(128581)                     2004 PX105  2004 08 15  Siding Spring            Siding Spring Survey
+(128582)                     2004 PC106  2004 08 15  Siding Spring            Siding Spring Survey
+(128583)                     2004 PU108  2004 08 10  Socorro                  LINEAR
+(128584)                     2004 PR112  2004 08 08  Socorro                  LINEAR
+(128587)                     2004 QU1    2004 08 19  Socorro                  LINEAR
+(128588)                     2004 QW1    2004 08 19  Socorro                  LINEAR
+(128590)                     2004 QO3    2004 08 19  Socorro                  LINEAR
+(128591)                     2004 QD4    2004 08 19  Siding Spring            Siding Spring Survey
+(128592)                     2004 QM5    2004 08 21  Reedy Creek              Broughton, J.
+(128594)                     2004 QJ8    2004 08 16  Siding Spring            Siding Spring Survey
+(128595)                     2004 QK10   2004 08 21  Siding Spring            Siding Spring Survey
+(128596)                     2004 QS10   2004 08 21  Siding Spring            Siding Spring Survey
+(128597)                     2004 QA11   2004 08 21  Siding Spring            Siding Spring Survey
+(128598)                     2004 QO11   2004 08 21  Siding Spring            Siding Spring Survey
+(128599)                     2004 QP11   2004 08 21  Siding Spring            Siding Spring Survey
+(128600)                     2004 QT11   2004 08 21  Siding Spring            Siding Spring Survey
+(128601)                     2004 QS12   2004 08 21  Siding Spring            Siding Spring Survey
+(128603)                     2004 QP13   2004 08 22  Kvistaberg               Uppsala-DLR Asteroid Survey
+(128605)                     2004 QF15   2004 08 22  Kitt Peak                Spacewatch
+(128606)                     2004 QY17   2004 08 19  Socorro                  LINEAR
+(128609)                     2004 QB19   2004 08 22  Kvistaberg               Uppsala-DLR Asteroid Survey
+(128612)                     2004 QW21   2004 08 25  Kitt Peak                Spacewatch
+(128613)                     2004 QB22   2004 08 24  Socorro                  LINEAR
+(128616)                     2004 QA25   2004 08 24  Siding Spring            Siding Spring Survey
+(128618)                     2004 QH25   2004 08 19  Socorro                  LINEAR
+(128619)                     2004 QN25   2004 08 25  Anderson Mesa            LONEOS
+(128620)                     2004 QC26   2004 08 25  Socorro                  LINEAR
+(128621)                     2004 RD     2004 09 02  Wrightwood               Young, J. W.
+(128623)                     2004 RP2    2004 09 05  Bergisch Gladbach        Bickel, W.
+(128624)                     2004 RU3    2004 09 04  Palomar                  NEAT
+(128625)                     2004 RO4    2004 09 04  Palomar                  NEAT
+(128626)                     2004 RF7    2004 09 05  Palomar                  NEAT
+(128628)                     2004 RX8    2004 09 06  Tucson                   R. A. Tucker
+(128629)                     2004 RS10   2004 09 07  Vicques                  Ory, M.
+(128630)                     2004 RM11   2004 09 06  Siding Spring            Siding Spring Survey
+(128631)                     2004 RN11   2004 09 06  Siding Spring            Siding Spring Survey
+(128634)                     2004 RF13   2004 09 04  Palomar                  NEAT
+(128635)                     2004 RE19   2004 09 07  Socorro                  LINEAR
+(128636)                     2004 RJ22   2004 09 07  Kitt Peak                Spacewatch
+(128637)                     2004 RK22   2004 09 07  Kitt Peak                Spacewatch
+(128638)                     2004 RT22   2004 09 07  Kitt Peak                Spacewatch
+(128639)                     2004 RU22   2004 09 07  Kitt Peak                Spacewatch
+(128640)                     2004 RZ22   2004 09 07  Kitt Peak                Spacewatch
+(128641)                     2004 RE25   2004 09 06  Siding Spring            Siding Spring Survey
+(128642)                     2004 RK27   2004 09 06  Palomar                  NEAT
+(128643)                     2004 RM30   2004 09 07  Socorro                  LINEAR
+(128644)                     2004 RW32   2004 09 07  Socorro                  LINEAR
+(128645)                     2004 RA35   2004 09 07  Socorro                  LINEAR
+(128646)                     2004 RT36   2004 09 07  Socorro                  LINEAR
+(128647)                     2004 RC39   2004 09 07  Kitt Peak                Spacewatch
+(128648)                     2004 RT42   2004 09 08  Socorro                  LINEAR
+(128649)                     2004 RC44   2004 09 08  Socorro                  LINEAR
+(128650)                     2004 RN44   2004 09 08  Palomar                  NEAT
+(128651)                     2004 RP44   2004 09 08  Socorro                  LINEAR
+(128652)                     2004 RJ45   2004 09 08  Socorro                  LINEAR
+(128653)                     2004 RT45   2004 09 08  Socorro                  LINEAR
+(128654)                     2004 RU47   2004 09 08  Socorro                  LINEAR
+(128655)                     2004 RD49   2004 09 08  Socorro                  LINEAR
+(128656)                     2004 RG49   2004 09 08  Socorro                  LINEAR
+(128657)                     2004 RN50   2004 09 08  Socorro                  LINEAR
+(128658)                     2004 RJ51   2004 09 08  Socorro                  LINEAR
+(128659)                     2004 RC52   2004 09 08  Socorro                  LINEAR
+(128660)                     2004 RH55   2004 09 08  Socorro                  LINEAR
+(128661)                     2004 RT55   2004 09 08  Socorro                  LINEAR
+(128662)                     2004 RW55   2004 09 08  Socorro                  LINEAR
+(128663)                     2004 RY55   2004 09 08  Socorro                  LINEAR
+(128664)                     2004 RJ56   2004 09 08  Socorro                  LINEAR
+(128665)                     2004 RK57   2004 09 08  Socorro                  LINEAR
+(128666)                     2004 RE59   2004 09 08  Socorro                  LINEAR
+(128667)                     2004 RL59   2004 09 08  Socorro                  LINEAR
+(128668)                     2004 RP60   2004 09 08  Socorro                  LINEAR
+(128669)                     2004 RA61   2004 09 08  Socorro                  LINEAR
+(128670)                     2004 RB61   2004 09 08  Socorro                  LINEAR
+(128671)                     2004 RG61   2004 09 08  Socorro                  LINEAR
+(128672)                     2004 RK61   2004 09 08  Socorro                  LINEAR
+(128673)                     2004 RM61   2004 09 08  Socorro                  LINEAR
+(128674)                     2004 RJ62   2004 09 08  Socorro                  LINEAR
+(128675)                     2004 RU62   2004 09 08  Socorro                  LINEAR
+(128676)                     2004 RC63   2004 09 08  Socorro                  LINEAR
+(128677)                     2004 RD63   2004 09 08  Socorro                  LINEAR
+(128678)                     2004 RW64   2004 09 08  Socorro                  LINEAR
+(128679)                     2004 RB65   2004 09 08  Socorro                  LINEAR
+(128680)                     2004 RF69   2004 09 08  Socorro                  LINEAR
+(128681)                     2004 RS75   2004 09 08  Socorro                  LINEAR
+(128682)                     2004 RT75   2004 09 08  Socorro                  LINEAR
+(128683)                     2004 RJ77   2004 09 08  Socorro                  LINEAR
+(128684)                     2004 RN77   2004 09 08  Socorro                  LINEAR
+(128685)                     2004 RT79   2004 09 07  Socorro                  LINEAR
+(128686)                     2004 RE80   2004 09 07  Socorro                  LINEAR
+(128687)                     2004 RV81   2004 09 08  Palomar                  NEAT
+(128688)                     2004 RT82   2004 09 09  Socorro                  LINEAR
+(129746)                     1999 CE119  1999 02 10  Mauna Kea                Luu, J. X., Trujillo, C. A., Jewitt, D. C.
+(129772)                     1999 HR11   1999 04 17  Kitt Peak                Kitt Peak
+(130391)                     2000 JG81   2000 05 06  La Silla                 La Silla
+(131318)                     2001 FL194  2001 03 22  Kitt Peak                D. Davis, B. Gladman, C. Neese, G. Esquardo
+(131695)                     2001 XS254  2001 12 09  Mauna Kea                Sheppard, S. S., Kleyna, J., Jewitt, D. C.
+(131696)                     2001 XT254  2001 12 09  Mauna Kea                Sheppard, S. S., Kleyna, J., Jewitt, D. C.
+(131697)                     2001 XH255  2001 12 11  Mauna Kea                Kleyna, J., Sheppard, S. S., Jewitt, D. C.
+(133067)                     2003 FB128  2003 03 30  Kitt Peak                Buie, M. W.
+(134210)                     2005 PQ21   2005 08 09  Cerro Tololo             Cerro Tololo
+(134340) Pluto                           1930 01 23  Flagstaff                Tombaugh, C. W.
+(134568)                     1999 RH215  1999 09 07  Mauna Kea                Trujillo, C. A., Jewitt, D. C., Luu, J. X.
+(134860)                     2000 OJ67   2000 07 29  Cerro Tololo             Buie, M. W., Kern, S. D.
+(135024)                     2001 KO76   2001 05 23  Cerro Tololo             Buie, M. W.
+(135182)                     2001 QT322  2001 08 21  Cerro Tololo             Buie, M. W.
+(135571)                     2002 GG32   2002 04 08  Cerro Tololo             Buie, M. W.
+(135742)                     2002 PB171  2002 08 05  Mauna Kea                Mauna Kea
+(136108) Haumea              2003 EL61   2003 03 07  Sierra Nevada      63878 Sierra Nevada
+(136120)                     2003 LG7    2003 06 01  Cerro Tololo             Buie, M. W.
+(136199) Eris                2003 UB313  2003 10 21  Palomar            57800 Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+(136204)                     2003 WL7    2003 11 16  Kitt Peak                Spacewatch
+(136472) Makemake            2005 FY9    2005 03 31  Palomar            63395 Brown, M. E., Trujillo, C. A., Rabinowitz, D. L.
+(136617)                     1994 CC     1994 02 03  Kitt Peak                Spacewatch
+(136618)                     1994 CN2    1994 02 15  Kitt Peak                Spacewatch
+(136795) Tatsunokingo        1997 BQ     1997 01 16  Kiso                     Hasegawa, T.
+(136849)                     1998 CS1    1998 02 09  Xinglong                 Beijing Schmidt CCD Asteroid Program
+(137108)                     1999 AN10   1999 01 13  Socorro                  LINEAR
+(137120)                     1999 BJ8    1999 01 20  Catalina                 CSS
+(137126)                     1999 CF9    1999 02 12  Socorro                  LINEAR
+(137294)                     1999 RE215  1999 09 07  Mauna Kea                Trujillo, C. A., Luu, J. X., Jewitt, D. C.
+(137295)                     1999 RB216  1999 09 08  Mauna Kea                Trujillo, C. A., Jewitt, D. C., Luu, J. X.
+(137427)                     1999 TF211  1999 10 15  Socorro                  LINEAR
+(138095)                     2000 DK79   2000 02 26  Socorro                  LINEAR
+(138127)                     2000 EE14   2000 03 04  Socorro                  LINEAR
+(138175)                     2000 EE104  2000 03 11  Catalina                 CSS
+(138404)                     2000 HA24   2000 04 28  Socorro                  LINEAR
+(138524)                     2000 OJ8    2000 07 30  Socorro                  LINEAR
+(138537)                     2000 OK67   2000 07 29  Cerro Tololo             Buie, M. W., Kern, S. D.
+(138628)                     2000 QM251  2000 08 25  Cerro Tololo             Buie, M. W.
+(138727)                     2000 SU180  2000 09 27  Socorro                  LINEAR
+(138971)                     2001 CB21   2001 02 02  Socorro                  LINEAR
+(139211)                     2001 GN2    2001 04 12  Socorro                  LINEAR
+(139359)                     2001 ME1    2001 06 16  Socorro                  LINEAR
+(139622)                     2001 QQ142  2001 08 25  Haleakala                NEAT
+(139775)                     2001 QG298  2001 08 19  Cerro Tololo             Buie, M. W.
+(140039)                     2001 SO73   2001 09 19  Kitt Peak                Spacewatch
+(140158)                     2001 SX169  2001 09 19  Socorro                  LINEAR
+(140288)                     2001 SN289  2001 09 29  Palomar                  NEAT
+(141053)                     2001 XT1    2001 12 09  Socorro                  LINEAR
+(141432)                     2002 CQ11   2002 02 06  Socorro                  LINEAR
+(141495)                     2002 EZ11   2002 03 15  Palomar                  NEAT
+(141525)                     2002 FV5    2002 03 21  Socorro                  LINEAR
+(141527)                     2002 FG7    2002 03 28  Haleakala                NEAT
+(141593)                     2002 HK12   2002 04 30  Palomar                  NEAT
+(141614)                     2002 JV15   2002 05 08  Socorro                  LINEAR
+(141851)                     2002 PM6    2002 08 06  Socorro                  LINEAR
+(143404)                     2003 BD44   2003 01 30  Anderson Mesa            LONEOS
+(143487)                     2003 CR20   2003 02 11  Haleakala                NEAT
+(143649)                     2003 QQ47   2003 08 24  Socorro                  LINEAR
+(143651)                     2003 QO104  2003 08 31  Haleakala                NEAT
+(143685)                     2003 SS317  2003 09 25  Mauna Kea                Mauna Kea
+(143707)                     2003 UY117  2003 10 22  Kitt Peak                Spacewatch
+(143751)                     2003 US292  2003 10 24  Kitt Peak                Buie, M. W.
+(143991)                     2003 YO179  2003 12 17  Mauna Kea                Mauna Kea
+(143992)                     2004 AF     2004 01 05  Socorro                  LINEAR
+(144332)                     2004 DV24   2004 02 21  Haleakala                NEAT
+(144897)                     2004 UX10   2004 10 20  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(144898)                     2004 VD17   2004 11 07  Socorro                  LINEAR
+(144900)                     2004 VG64   2004 11 13  Catalina                 CSS
+(144908)                     2004 YH32   2004 12 18  Siding Spring            Siding Spring Survey
+(145451) Rumina              2005 RM43   2005 09 09  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(145452) Ritona              2005 RN43   2005 09 10  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(145453)                     2005 RR43   2005 09 09  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(145474)                     2005 SA278  2005 09 27  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(145480)                     2005 TB190  2005 10 11  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(145486)                     2005 UJ438  2005 10 28  Kitt Peak                Spacewatch
+(145627)                     2006 RY102  2006 09 14  Palomar                  NEAT
+(148112)                     1999 RA216  1999 09 08  Mauna Kea                Trujillo, C. A., Jewitt, D. C., Luu, J. X.
+(148209)                     2000 CR105  2000 02 06  Kitt Peak                Buie, M. W.
+(148780) Altjira             2001 UQ18   2001 10 20  Kitt Peak          63642 Deep Ecliptic Survey
+(148975)                     2001 XA255  2001 12 09  Mauna Kea                Jewitt, D. C., Sheppard, S. S., Kleyna, J.
+(149348)                     2002 VS130  2002 11 07  Kitt Peak                Buie, M. W.
+(149349)                     2002 VA131  2002 11 09  Kitt Peak                Buie, M. W.
+(149560)                     2003 QZ91   2003 08 24  Cerro Tololo             Buie, M. W.
+(150642)                     2001 CZ31   2001 02 03  Mauna Kea                Veillet, C.
+(152560)                     1991 BN     1991 01 19  Kitt Peak                Spacewatch
+(152561)                     1991 RB     1991 09 04  Siding Spring            McNaught, R. H.
+(152637)                     1997 NC1    1997 07 05  Haleakala                NEAT
+(152664)                     1998 FW4    1998 03 20  Socorro                  LINEAR
+(152671)                     1998 HL3    1998 04 21  Socorro                  LINEAR
+(152680)                     1998 KJ9    1998 05 27  Socorro                  LINEAR
+(152685)                     1998 MZ     1998 06 18  Kitt Peak                Spacewatch
+(152754)                     1999 GS6    1999 04 15  Socorro                  LINEAR
+(152770)                     1999 RR28   1999 09 07  Socorro                  LINEAR
+(152828)                     1999 VT25   1999 11 12  Socorro                  LINEAR
+(152978)                     2000 GJ147  2000 04 13  Anderson Mesa            LONEOS
+(153002)                     2000 JG5    2000 05 02  Socorro                  LINEAR
+(153201)                     2000 WO107  2000 11 29  Socorro                  LINEAR
+(153220)                     2000 YN29   2000 12 28  Kitt Peak                Spacewatch
+(153311)                     2001 MG1    2001 06 18  Palomar                  NEAT
+(153591)                     2001 SN263  2001 09 20  Socorro                  LINEAR
+(153814)                     2001 WN5    2001 11 20  Anderson Mesa            LONEOS
+(153958)                     2002 AM31   2002 01 14  Socorro                  LINEAR
+(154019)                     2002 CZ9    2002 02 06  Palomar                  NEAT
+(154269)                     2002 SM     2002 09 16  Palomar                  NEAT
+(154275)                     2002 SR41   2002 09 30  Socorro                  LINEAR
+(154276)                     2002 SY50   2002 09 30  Socorro                  LINEAR
+(154302)                     2002 UQ3    2002 10 29  Fountain Hills           Juels, C. W., Holvorcem, P. R.
+(154330)                     2002 VX94   2002 11 14  Palomar                  NEAT
+(154590)                     2003 MA3    2003 06 26  Haleakala                NEAT
+(154783)                     2004 PA44   2004 08 07  Palomar                  NEAT
+(155338)                     2006 MZ1    2006 06 20  Catalina                 CSS
+(159504)                     2000 WO67   2000 11 27  Socorro                  LINEAR
+(159857)                     2004 LJ1    2004 06 10  Socorro                  LINEAR
+(160091)                     2000 OL67   2000 07 29  Cerro Tololo             Buie, M. W., Kern, S. D.
+(160147)                     2001 KN76   2001 05 22  Cerro Tololo             Buie, M. W.
+(160148)                     2001 KV76   2001 05 24  Cerro Tololo             Buie, M. W.
+(160256)                     2002 PD149  2002 08 10  Cerro Tololo             Buie, M. W.
+(160427)                     2005 RL43   2005 09 03  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(161989) Cacus               1978 CA     1978 02 08  La Silla           61270 Schuster, H.-E.
+(162000)                     1990 OS     1990 07 21  Palomar                  Helin, E. F.
+(162039)                     1996 JG     1996 05 08  Siding Spring            McNaught, R. H.
+(162082)                     1998 HL1    1998 04 18  Socorro                  LINEAR
+(162116)                     1998 SA15   1998 09 21  Socorro                  LINEAR
+(162120)                     1998 SH36   1998 09 27  Socorro                  LINEAR
+(162162)                     1999 DB7    1999 02 26  Socorro                  LINEAR
+(162173) Ryugu               1999 JU3    1999 05 10  Socorro            95804 LINEAR
+(162183)                     1999 NB5    1999 07 13  Socorro                  LINEAR
+(162361)                     2000 AF6    2000 01 04  Socorro                  LINEAR
+(162416)                     2000 EH26   2000 03 04  Socorro                  LINEAR
+(162421)                     2000 ET70   2000 03 08  Socorro                  LINEAR
+(162422)                     2000 EV70   2000 03 08  Socorro                  LINEAR
+(162474)                     2000 LB16   2000 06 07  Socorro                  LINEAR
+(162510)                     2000 QW69   2000 08 28  Socorro                  LINEAR
+(162567)                     2000 RW37   2000 09 03  Socorro                  LINEAR
+(162687)                     2000 UH1    2000 10 18  Socorro                  LINEAR
+(162695)                     2000 UL11   2000 10 25  Socorro                  LINEAR
+(162783)                     2000 YJ11   2000 12 19  Socorro                  LINEAR
+(162825)                     2001 BO61   2001 01 26  Socorro                  LINEAR
+(162882)                     2001 FD58   2001 03 24  Socorro                  LINEAR
+(168700)                     2000 GE147  2000 04 02  Mauna Kea                Jewitt, D. C., Trujillo, C. A., Sheppard, S. S.
+(168703)                     2000 GP183  2000 04 02  Mauna Kea                Mauna Kea
+(169071)                     2001 FR185  2001 03 26  Kitt Peak                Buie, M. W.
+(174567) Varda               2003 MW12   2003 06 21  Kitt Peak          86715 Larsen, J. A.
+(175113)                     2004 PF115  2004 08 07  Palomar                  Brown, M. E., Trujillo, C. W., Rabinowitz, D. L.
+(181708)                     1993 FW     1993 03 28  Mauna Kea                Jewitt, D. C., Luu, J. X.
+(181855)                     1998 WT31   1998 11 18  Kitt Peak                Buie, M. W.
+(181867)                     1999 CV118  1999 02 10  Mauna Kea                Jewitt, D. C., Trujillo, C. A., Luu, J. X.
+(181868)                     1999 CG119  1999 02 11  Mauna Kea                Luu, J. X., Trujillo, C. A., Jewitt, D. C.
+(181871)                     1999 CO153  1999 02 12  Mauna Kea                Trujillo, C. A., Luu, J. X., Jewitt, D. C.
+(181874)                     1999 HW11   1999 04 18  Kitt Peak                Kitt Peak
+(181902)                     1999 RD215  1999 09 06  Mauna Kea                Trujillo, C. A., Luu, J. X., Jewitt, D. C.
+(182222)                     2000 YU1    2000 12 16  Kitt Peak                Holman, M. J., Gladman, B., Grav, T.
+(182223)                     2000 YC2    2000 12 17  Kitt Peak                Holman, M. J., Gladman, B., Grav, T.
+(182294)                     2001 KU76   2001 05 24  Cerro Tololo             Buie, M. W.
+(182397)                     2001 QW297  2001 08 20  Cerro Tololo             Buie, M. W.
+(182926)                     2002 FU6    2002 03 20  Mauna Kea                Gladman, B., Kavelaars, J. J., Doressoundiram, A.
+(182933)                     2002 GZ31   2002 04 06  Cerro Tololo             Buie, M. W.
+(182934)                     2002 GJ32   2002 04 08  Cerro Tololo             Buie, M. W.
+(183595)                     2003 TG58   2003 10 03  Mauna Kea                Mauna Kea
+(183963)                     2004 DJ64   2004 02 26  Kitt Peak                Buie, M. W.
+(183964)                     2004 DJ71   2004 02 26  Kitt Peak                Buie, M. W.
+(184212)                     2004 PB112  2004 08 13  Cerro Tololo             Buie, M. W.
+(184314) Mbabamwanawaresa    2005 EO302  2005 03 11  Kitt Peak         123452 Buie, M. W.
+(187661)                     2007 JG43   2007 05 10  Palomar                  Schwamb, M. E., Brown, M. E., Rabinowitz, D.
+(202421)                     2005 UQ513  2005 10 21  Palomar                  Palomar
+(208996) Achlys              2003 AZ84   2003 01 13  Palomar                  Trujillo, C. A., Brown, M. E.
+(225088) Gonggong            2007 OR10   2007 07 17  Palomar           121135 Schwamb, M. E., Brown, M. E., Rabinowitz, D.
+(229762) G!kun||'homdima     2007 UK126  2007 10 19  Palomar           112434 Schwamb, M. E., Brown, M. E., Rabinowitz, D.
+(248835)                     2006 SX368  2006 09 16  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(250112)                     2002 KY14   2002 05 19  Palomar                  Trujillo, C. A., Brown, M. E.
+(281371)                     2008 FC76   2008 03 31  Mount Lemmon             Mt. Lemmon Survey
+(306173)                     2010 NK83   2010 07 01* WISE                     WISE
+(308607)                     2005 WY3    2005 11 21  Kitt Peak                Spacewatch
+(309139)                     2006 XQ51   2006 12 14  Mount Lemmon             Mt. Lemmon Survey
+(309737)                     2008 SJ236  2008 09 29  Kitt Peak                Spacewatch
+(309741)                     2008 UZ6    2008 10 22  Kitt Peak                Spacewatch
+(310071)                     2010 KR59   2010 05 18  WISE                     WISE
+(315898)                     2008 QD4    2008 08 25  La Sagra                 OAM
+(318875)                     2005 TS100  2005 10 07  Kitt Peak                Spacewatch
+(328884)                     2010 LJ109  2010 02 17* Mount Lemmon             Mt. Lemmon Survey
+(330759)                     2008 SO218  2008 09 30  Mount Lemmon             Mt. Lemmon Survey
+(330836) Orius               2009 HW77   2009 04 25  Baldone            82404 Cernis, K., Eglitis, I.
+(332685)                     2009 HH36   2009 04 19  Kitt Peak                Spacewatch
+(341275)                     2007 RG283  2007 09 15  Palomar Mountain         M. E. Schwamb, M. E. Brown, D. Rabinowitz
+(342842)                     2008 YB3    2008 12 18  Siding Spring            Siding Spring Survey
+(346889) Rhiphonos           2009 QV38   2009 08 28  Zelenchukskaya Stn 84384 Kryachko, T. V.
+(347449)                     2012 TW236  1998 04 23* Socorro                  LINEAR
+(349933)                     2009 YF7    2009 12 19* La Silla                 Rabinowitz, D. L.
+(365756) ISON                2010 WZ71   2010 11 04* Mayhill-ISON       92391 Elenin, L.
+(380282)                     2002 AO148  2002 01 11  Socorro                  LINEAR
+(382004)                     2010 RM64   2010 09 09* La Silla                 D. L. Rabinowitz, M. E. Schwamb, S. Tourtellotte
+(386968)                     2012 BR61   2008 12 30* Kitt Peak                Spacewatch
+(389820)                     2011 WU92   2010 10 12* Mount Lemmon             Mt. Lemmon Survey
+(395699)                     2012 GN12   2008 01 01* Kitt Peak                Spacewatch
+(427507)                     2002 DH5    2002 02 20  Kitt Peak                Spacewatch
+(433873)                     2015 BQ311  2004 04 14* Kitt Peak                Spacewatch
+(434620)                     2005 VD     2005 11 01  Mount Lemmon             Mt. Lemmon Survey
+(437313)                     2013 EK73   2012 02 24* Mount Lemmon             Mt. Lemmon Survey
+(447178)                     2005 RO43   2005 09 03  Apache Point             Becker, A. C., Puckett, A. W., Kubica, J.
+(449097)                     2012 UT68   2011 10 22* Mount Lemmon             Mt. Lemmon Survey
+(459865)                     2013 XZ8    2008 10 31* Kitt Peak                Spacewatch
+(459870)                     2014 AT28   2013 11 26* Haleakala                Pan-STARRS 1
+(459971)                     2014 ON6    2010 03 18* Kitt Peak                Spacewatch
+(461363)                     2000 GQ148  2000 04 05* Socorro                  LINEAR
+(463368) Eurytus             2012 VU85   2012 11 14* Mount Graham             Cernis, K., Boyle, R. P.
+(463663)                     2014 HY123  2013 12 13* Mount Lemmon             Mt. Lemmon Survey
+(471136)                     2010 EO65   2010 03 09* La Silla                 Rabinowitz, D. L., Tourtellotte, S.
+(471149)                     2010 FB49   2010 03 17* La Silla                 Rabinowitz, D. L., Tourtellotte, S.
+(471237)                     2011 AC72   2011 01 03* Mount Lemmon             Mt. Lemmon Survey
+(471335)                     2011 OD16   2011 07 25* Haleakala                Pan-STARRS 1
+(471339)                     2011 ON45   2011 07 27* Haleakala                Pan-STARRS 1
+(471512)                     2012 CG     2012 02 01* Mount Lemmon             Mt. Lemmon Survey
+(471513)                     2012 CE17   2012 02 03* Haleakala                Pan-STARRS 1
+(471931)                     2013 PH44   2013 08 12* Haleakala                Pan-STARRS 1
+(472265)                     2014 SR303  2014 09 19* Haleakala                Pan-STARRS 1
+(472651)                     2015 DB216  2015 02 27* Mount Lemmon             Mt. Lemmon Survey
+(472760)                     2015 FZ117  2015 03 23* Haleakala                Pan-STARRS 1
+(492338)                     2014 FW     2014 03 12* Mount Lemmon             Mt. Lemmon Survey
+(494158)                     2016 EX     2013 01 16* Haleakala                Pan-STARRS 1
+(494219)                     2016 LN8    2012 09 23* Mount Lemmon             Mt. Lemmon Survey
+(499522)                     2010 PL66   2010 08 14* La Silla                 Rabinowitz, D. L., Schwamb, M., Tourtellotte, S.
+(501214)                     2013 TC146  2013 10 05* Kitt Peak                Research and Education Collaborative Occultation Network
+(501585)                     2014 QA43   2014 05 10* Haleakala                Pan-STARRS 1
+(503273)                     2015 PN291  2014 07 25* Haleakala                Pan-STARRS 1
+(506028)                     2015 HO171  2014 05 30* Mount Lemmon             Mt. Lemmon Survey
+(511130)                     2013 WV107  2013 11 25* Haleakala                Pan-STARRS 1
+(518151)                     2016 FH13   2016 03 29* Haleakala                Pan-STARRS 1
+(523597)                     2002 QX47   2002 08 26  Palomar                  Trujillo, C. A., Brown, M. E.
+(523620)                     2007 RH283  2007 09 15  Palomar Mountain         M. E. Schwamb, M. E. Brown, D. Rabinowitz
+(523649)                     2010 XZ78   2010 11 13* Kitt Peak                Spacewatch
+(523673)                     2013 MZ11   2013 06 30* Haleakala                Pan-STARRS 1
+(523676)                     2013 UL10   2013 10 03* Kitt Peak                Spacewatch
+(523682)                     2014 CN23   2014 02 10* Haleakala                Pan-STARRS 1

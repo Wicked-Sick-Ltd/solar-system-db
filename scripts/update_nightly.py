@@ -15,6 +15,7 @@ empty, it bootstraps with a full populate.
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import sys
 import time
@@ -140,6 +141,14 @@ def refresh_stale_elements(conn, *, days_stale: int = 90,
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Retired 2026-09-15: nightly builds now run on the build host via
+    # scripts/build_full.py and publish to object storage (see
+    # docs/superpowers/specs/2026-09-15-full-catalogue-design.md). This shim
+    # keeps the legacy GitHub Action harmless (no DB change → no PR) until
+    # the workflow itself is removed.
+    if os.environ.get("SSDB_LEGACY_NIGHTLY") != "1":
+        print("update_nightly.py is retired — builds run via scripts/build_full.py on the build host.")
+        return 0
     p = argparse.ArgumentParser(description=__doc__ or "")
     p.add_argument("--bootstrap", action="store_true",
                    help="Run a full populate if the DB is empty (default).")
