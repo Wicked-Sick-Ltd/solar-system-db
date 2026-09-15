@@ -10,7 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from publish_artifact import LocalDest, build_manifest, prune, publish, sha256_of  # noqa: E402
+from publish_artifact import LocalDest, build_manifest, can_compress, prune, publish, sha256_of  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
 
@@ -24,6 +24,7 @@ def test_manifest_reports_counts_schema_and_licence():
     assert m["row_counts"]["close_approaches"] > 0 and m["counts_by_type"]["planet"] == 8
 
 
+@pytest.mark.skipif(not can_compress(), reason="no zstandard module and no zstd CLI")
 def test_publish_to_local_dir_and_prune(tmp_path):
     dest = LocalDest(tmp_path / "out", public_base="file://" + str(tmp_path / "out"))
     m = publish(_db(), dest, enrichment_store=None, keep_days=30, level=3, stamp="20260915")
@@ -38,7 +39,7 @@ def test_publish_to_local_dir_and_prune(tmp_path):
     assert removed == ["solar_system-20200101.sqlite.zst"] and (tmp_path / "out" / "latest.json").exists()
 
 
-@pytest.mark.skipif(shutil.which("zstd") is None, reason="zstd CLI not installed")
+@pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
 def test_pull_latest_installs_verified_artefact(tmp_path):
     out = tmp_path / "out"
     dest = LocalDest(out, public_base="file://" + str(out))

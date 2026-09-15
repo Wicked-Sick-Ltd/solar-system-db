@@ -32,11 +32,30 @@ SCHEMA_DOC = "https://github.com/Wicked-Sick-Ltd/solar-system-db/blob/main/schem
 
 
 def compress(src: Path, dst: Path, level: int = 9) -> int:
-    import zstandard  # optional extra [publish]
-    cctx = zstandard.ZstdCompressor(level=level, threads=-1)
-    with src.open("rb") as fin, dst.open("wb") as fout:
-        cctx.copy_stream(fin, fout, size=src.stat().st_size)
+    """zstd-compress src → dst using the zstandard module, or the zstd CLI if the
+    module is not installed (CI, ad-hoc boxes)."""
+    try:
+        import zstandard  # optional extra [publish]
+    except ImportError:
+        zstandard = None
+    if zstandard is not None:
+        cctx = zstandard.ZstdCompressor(level=level, threads=-1)
+        with src.open("rb") as fin, dst.open("wb") as fout:
+            cctx.copy_stream(fin, fout, size=src.stat().st_size)
+    elif shutil.which("zstd"):
+        import subprocess
+        subprocess.run(["zstd", "-q", "-f", f"-{level}", "-T0", "-o", str(dst), str(src)], check=True)
+    else:
+        raise RuntimeError("Neither the zstandard module nor the zstd CLI is available.")
     return dst.stat().st_size
+
+
+def can_compress() -> bool:
+    try:
+        import zstandard  # noqa: F401
+        return True
+    except ImportError:
+        return shutil.which("zstd") is not None
 
 
 def sha256_of(path: Path) -> str:
