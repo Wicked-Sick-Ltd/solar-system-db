@@ -301,11 +301,12 @@ class SolarDB:
             return [dict(r) for r in conn.execute(
                 """
                 SELECT o.id, o.name, o.designation, o.discoverer, o.discovery_date,
-                       p.radius_km, p.mass_kg,
+                       p.radius_km, p.mass_kg, p.density_g_cm3, v.geometric_albedo,
                        oe.semi_major_axis_au, oe.orbital_period_days,
                        oe.eccentricity, oe.inclination_deg
                 FROM objects o
                 LEFT JOIN physical_properties p ON p.object_id = o.id
+                LEFT JOIN visual_properties v ON v.object_id = o.id
                 LEFT JOIN orbital_elements oe   ON oe.object_id = o.id
                 WHERE o.object_type='moon' AND o.parent_id = ?
                 ORDER BY oe.semi_major_axis_au IS NULL,
