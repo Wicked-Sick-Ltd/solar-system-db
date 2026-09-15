@@ -73,12 +73,14 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
     counts = {r["object_type"]: r["n"] for r in conn.execute("SELECT * FROM v_object_counts")}
     meta = conn.execute("SELECT * FROM build_meta ORDER BY id DESC LIMIT 1").fetchone()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
-    tables = {}
-    for t in ("objects", "orbital_elements", "close_approaches", "discoveries", "designations", "atmospheres", "rings"):
-        try:
-            tables[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-        except sqlite3.OperationalError:
-            pass
+    # Row counts per table. A v1 file lacks the v2 tables; report those as absent
+    # rather than failing the publish, but let any other SQLite error surface.
+    present = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    tables = {
+        t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        for t in ("objects", "orbital_elements", "close_approaches", "discoveries", "designations", "atmospheres", "rings")
+        if t in present
+    }
     coverage: dict[str, Any] | None = None
     if enrichment_store and Path(enrichment_store).exists():
         from enrich_crawler import coverage as _cov, open_store
