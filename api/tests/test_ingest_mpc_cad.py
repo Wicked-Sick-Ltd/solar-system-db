@@ -2,7 +2,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from ingest_cad import cd_to_iso, load_fixture as load_cad, write_close_approaches  # noqa: E402

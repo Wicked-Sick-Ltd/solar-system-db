@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-SCHEMA = Path(__file__).resolve().parents[1] / "schema" / "schema.sql"
+SCHEMA = Path(__file__).resolve().parents[2] / "schema" / "schema.sql"
 
 V2_COLUMNS = {
     "orbital_elements": ["moid_au", "tisserand_jupiter", "condition_code", "data_arc_days", "orbit_class_code",

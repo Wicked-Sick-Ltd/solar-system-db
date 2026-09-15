@@ -2,7 +2,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from ingest_sbdb import ORBIT_CLASS_CODES, load_fixture, map_all, map_row, sbdb_number, write_mapped  # noqa: E402
