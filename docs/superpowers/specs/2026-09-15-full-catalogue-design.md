@@ -114,7 +114,7 @@ Selection: `enrichment_state.tier` is set by the nightly build from the same rul
 8. Retire the git-committed DB and the Actions nightly job; README rewrite (hosting requirements, sources table, MPC attribution).
 
 ## 11. Decisions taken by default (Craig to override if wrong)
-- Compilation licence for our artefact: **MIT**, matching the code (CC0 is the data-friendlier alternative; a one-line change in the manifest and landing page).
+- Compilation licence for our artefact: **MIT** — confirmed by Craig 2026-09-15.
 - RGW account for the `solar-system-db` bucket: the existing **`wizmedia`** account, as the web app's OG cache already uses.
 - Crawler rate: **1 request/second**, single-threaded, exponential back-off on 429/503.
 - Git LFS: not used for the nightly artefact (≈12 GB/month of churn against GitHub quotas). Optional later: a monthly LFS-tracked snapshot for provenance.
