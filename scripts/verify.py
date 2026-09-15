@@ -99,7 +99,15 @@ def main() -> int:
         """
         SELECT o.name FROM objects o
         LEFT JOIN orbital_elements oe ON oe.object_id = o.id
-        WHERE o.object_type='dwarf_planet' AND oe.semi_major_axis_au IS NULL
+        WHERE o.object_type='dwarf_planet' AND (
+            oe.semi_major_axis_au IS NULL
+            OR oe.eccentricity IS NULL
+            OR oe.inclination_deg IS NULL
+            OR oe.longitude_ascending_node_deg IS NULL
+            OR oe.argument_periapsis_deg IS NULL
+            OR oe.mean_anomaly_deg IS NULL
+            OR oe.epoch_jd IS NULL
+        )
         ORDER BY o.name
         """
     ).fetchall()]
