@@ -84,6 +84,16 @@ def test_positions_earth(client):
     assert 0.95 < body["distance_from_sun_au"] < 1.05
 
 
+def test_positions_pluto(client):
+    # Dwarf planets get orbital elements from SBDB (Stage 1b); Pluto's spkid
+    # must be the small-body id 2134340, not NAIF 999 (asteroid Zachia).
+    r = client.get("/api/v1/positions/dwarf-pluto", params={"date": "2026-09-15"})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["name"] == "Pluto"
+    assert 29 < d["distance_from_sun_au"] < 50
+
+
 def test_next_perihelion_halley(client):
     r = client.get("/api/v1/perihelion/1P%2FHalley")
     assert r.status_code == 200

@@ -433,6 +433,61 @@ def populate_comets(conn) -> int:
     return n
 
 
+def sbdb_orbital_elements(data: dict) -> dict[str, Any]:
+    """Map an SBDB single-object lookup payload onto our orbital_elements columns."""
+    orbit = data.get("orbit") or {}
+    elem = {item["name"]: item.get("value") for item in (orbit.get("elements") or [])}
+    a = safe_float(elem.get("a"))
+    e = safe_float(elem.get("e"))
+    return {
+        "epoch": str(orbit.get("epoch")) if orbit.get("epoch") else None,
+        "epoch_jd": safe_float(orbit.get("epoch")),
+        "frame": "J2000", "centre": "Sun",
+        "semi_major_axis_au": a, "eccentricity": e,
+        "inclination_deg": safe_float(elem.get("i")),
+        "longitude_ascending_node_deg": safe_float(elem.get("om")),
+        "argument_periapsis_deg": safe_float(elem.get("w")),
+        "mean_anomaly_deg": safe_float(elem.get("ma")),
+        "orbital_period_days": safe_float(elem.get("per")),
+        "perihelion_au": safe_float(elem.get("q")) or ((a * (1 - e)) if a and e is not None else None),
+        "aphelion_au": safe_float(elem.get("ad")) or ((a * (1 + e)) if a and e is not None else None),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Stage 1b: dwarf planets — orbital elements from SBDB
+#
+# The curated seed carries physical + visual blocks for the dwarf planets but
+# no orbital elements, so without this stage /positions/{id} 404s for Pluto,
+# Ceres, Eris … and the orrery silently omits them. Only orbital_elements is
+# written here; the curated NASA fact-sheet physical/visual values stay
+# authoritative.
+# ---------------------------------------------------------------------------
+def enrich_dwarf_planets(conn) -> int:
+    n = 0
+    for body in DWARF_PLANETS:
+        spkid = body.get("spkid")
+        if not spkid:
+            continue
+        try:
+            data = fetch_json(SBDB_LOOKUP_URL, params={"sstr": str(spkid), "full-prec": "true"}, timeout=30)
+        except Exception as e:
+            print(f"    ! SBDB lookup failed for {body['name']}: {e}")
+            continue
+        oe = sbdb_orbital_elements(data)
+        if oe.get("semi_major_axis_au") is None:
+            print(f"    ! SBDB returned no orbit for {body['name']} (spkid {spkid})")
+            continue
+        upsert_row(conn, "orbital_elements", body["id"], oe)
+        add_source(conn, object_id=body["id"], table_name="orbital_elements",
+                   source_name="JPL SBDB (lookup)",
+                   source_url=f"https://ssd-api.jpl.nasa.gov/sbdb.api?sstr={spkid}")
+        n += 1
+        time.sleep(0.3)
+    conn.commit()
+    return n
+
+
 # ---------------------------------------------------------------------------
 # Stage 4: notable TNOs (per-object lookups so we get full data)
 # ---------------------------------------------------------------------------
@@ -454,24 +509,7 @@ def populate_notable_tnos(conn) -> int:
         except Exception as e:
             print(f"    ! SBDB lookup failed for {body['name']}: {e}")
             continue
-        orbit = data.get("orbit") or {}
-        elem = {item["name"]: item.get("value") for item in (orbit.get("elements") or [])}
-        a = safe_float(elem.get("a"))
-        e = safe_float(elem.get("e"))
-        oe = {
-            "epoch": str(orbit.get("epoch")) if orbit.get("epoch") else None,
-            "epoch_jd": safe_float(orbit.get("epoch")),
-            "frame": "J2000", "centre": "Sun",
-            "semi_major_axis_au": a, "eccentricity": e,
-            "inclination_deg": safe_float(elem.get("i")),
-            "longitude_ascending_node_deg": safe_float(elem.get("om")),
-            "argument_periapsis_deg": safe_float(elem.get("w")),
-            "mean_anomaly_deg": safe_float(elem.get("ma")),
-            "orbital_period_days": safe_float(elem.get("per")),
-            "perihelion_au": safe_float(elem.get("q")) or ((a * (1 - e)) if a and e is not None else None),
-            "aphelion_au": safe_float(elem.get("ad")) or ((a * (1 + e)) if a and e is not None else None),
-        }
-        upsert_row(conn, "orbital_elements", body["id"], oe)
+        upsert_row(conn, "orbital_elements", body["id"], sbdb_orbital_elements(data))
         phys = data.get("phys_par") or []
         phys_map = {item["name"]: item.get("value") for item in phys}
         upsert_row(conn, "physical_properties", body["id"], {
@@ -538,6 +576,9 @@ def main(argv: list[str] | None = None) -> int:
     conn.commit()
 
     if not args.skip_net:
+        print("Stage 1b: dwarf-planet orbital elements (SBDB lookups)")
+        total["dwarf_planet_orbits"] = enrich_dwarf_planets(conn)
+
         print("Stage 2: small bodies (SBDB asteroids / NEOs / PHAs / Trojans …)")
         if not args.skip_asteroids:
             total.update(populate_asteroids(conn, full=args.full))
