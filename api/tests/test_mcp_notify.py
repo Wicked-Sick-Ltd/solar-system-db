@@ -1,6 +1,5 @@
 """Fleet-board notification for the nightly builder (build/mcp_notify.py)."""
 import json
-import subprocess
 import sys
 from pathlib import Path
 

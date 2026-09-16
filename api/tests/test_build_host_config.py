@@ -23,9 +23,15 @@ def test_timer_is_0300_utc_and_persistent():
     assert "OnCalendar=*-*-* 03:00:00 UTC" in t and "Persistent=true" in t
 
 
+R2_ENDPOINT = "https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com"
+R2_PUBLIC_BASE = "https://download.sol.wickedsick.com"
+
+
 def test_compose_builder_defaults_to_r2_not_ceph_rgw():
     text = (ROOT / "docker-compose.yml").read_text()
-    assert "s3.wickedsick.com" not in text
-    assert "https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com" in text
-    assert "https://download.sol.wickedsick.com" in text
+    # Anchored whole-line matches on the compose defaults (not URL substring checks).
+    assert re.search(rf"^\s*-\s*S3_ENDPOINT=\$\{{S3_ENDPOINT:-{re.escape(R2_ENDPOINT)}\}}$", text, re.M)
+    assert re.search(rf"^\s*-\s*S3_PUBLIC_BASE=\$\{{S3_PUBLIC_BASE:-{re.escape(R2_PUBLIC_BASE)}\}}$", text, re.M)
+    assert re.search(r"^\s*-\s*S3_NO_ACL=\$\{S3_NO_ACL:-1\}$", text, re.M)
+    assert not re.search(r"s3\.wickedsick\.com", text), "Ceph RGW host must not appear anywhere in compose"
     assert "$$CRAWLER_RPS" in text
