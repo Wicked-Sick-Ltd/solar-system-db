@@ -1,0 +1,13 @@
+[Unit]
+Description=solar-system-db enrichment crawler (Forth Road Bridge)
+After=docker.service
+[Service]
+WorkingDirectory=/opt/solar-system-db
+Environment=SOLAR_DATA_DIR=/data/solar
+EnvironmentFile=%h/.config/op/op-service-account.env
+ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build up crawler
+ExecStop=/usr/bin/docker compose --profile build stop crawler
+Restart=always
+RestartSec=30
+[Install]
+WantedBy=default.target

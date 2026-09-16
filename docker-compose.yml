@@ -79,9 +79,11 @@ services:
       - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-https://s3.wickedsick.com/solar-system-db}
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
-      - AWS_DEFAULT_REGION=default
+      - AWS_DEFAULT_REGION=${S3_REGION:-auto}
+      - S3_REGION
+      - S3_NO_ACL
     volumes:
-      - ./data:/data
+      - ${SOLAR_DATA_DIR:-./data}:/data
       - build_scratch:/build
 
   crawler:
@@ -94,7 +96,7 @@ services:
     environment:
       - CRAWLER_RPS=${CRAWLER_RPS:-1.0}
     volumes:
-      - ./data:/data
+      - ${SOLAR_DATA_DIR:-./data}:/data
     command: ["bash", "-lc", "while true; do python scripts/enrich_crawler.py --store /data/enrichment.sqlite --db /data/solar_system.sqlite --rps \"$CRAWLER_RPS\" || sleep 60; sleep 5; done"]
 
 volumes:

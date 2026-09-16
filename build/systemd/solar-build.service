@@ -1,0 +1,10 @@
+[Unit]
+Description=solar-system-db nightly full build and publish
+After=docker.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/solar-system-db
+Environment=SOLAR_DATA_DIR=/data/solar
+EnvironmentFile=%h/.config/op/op-service-account.env
+ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
+ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
