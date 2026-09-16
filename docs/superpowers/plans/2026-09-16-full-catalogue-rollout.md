@@ -10,10 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-16-full-catalogue-rollout-and-extensions-design.md` §2 (and `2026-09-15-full-catalogue-design.md` §5–§6, §9).
 
+> **As built (2026-09-16):** Tasks 2, 3, 4, 6 are implemented on `feat/full-catalogue-rollout` (PR #13). Where this text and the code differ, the code is authoritative: deploy paths are `~/deploy/solar-system-db` and `~/deploy/solar-data` via systemd `%h`; op auth is `EnvironmentFile=%h/.config/op/op-service-account.env`; the crawler unit does not use `op run`; `ExecStartPost` keeps stderr; the coordctl subcommand is `send`; the R2 credential is the 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN`; `RESTART_CMD` is single-quoted.
+
 ## Global Constraints
-- No secrets in git or in chat. R2 keys live only in 1Password item `solar-system-db-r2-publisher` and reach processes via `op run`.
+- No secrets in git or in chat. R2 keys live only in 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN` and reach processes via `op run`.
 - R2 rejects object ACLs: never send `ACL`/`x-amz-acl` to the R2 endpoint.
-- Never work in a deploy checkout: llm1 builder uses `/opt/solar-system-db` (a clean clone), php01 uses `/home/wizzo/solar-system-db` (pull only, never edit).
+- Never work in a deploy checkout: llm1 builder uses `~/deploy/solar-system-db` (a clean clone), php01 uses `/home/wizzo/solar-system-db` (pull only, never edit).
 - Preserve before disruptive change: on php01 copy `data/solar_system.sqlite` to `data/solar_system.sqlite.pre-v2-YYYYMMDD` before the first pull.
 - `git push` and merges follow the fleet protocol: feature branch, PR, Craig says "merge".
 - Tests never touch the network (`--offline`).
@@ -25,15 +27,16 @@
 **Files:** none in repo. Output is a 1Password item and a Cloudflare bucket.
 
 **Interfaces:**
-- Produces: bucket `solar-system-db` in account `4ce32b0dd5d81195ffdef6d24d1a8297`; custom domain `download.sol.wickedsick.com`; op item `Shared-Secrets/solar-system-db-r2-publisher` with fields `access_key_id`, `secret_access_key`.
+- Produces: bucket `solar-system-db` in account `4ce32b0dd5d81195ffdef6d24d1a8297`; custom domain `download.sol.wickedsick.com`; op item `Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN` with fields `Access Key ID`, `Secret Access Key`.
 
-- [ ] **Step 1: Create the bucket** (Cloudflare dashboard → R2 → Create bucket → name `solar-system-db`, location hint Western Europe). Or from this repo with the Cloudflare MCP tool `r2_bucket_create` if the connected token allows it.
-- [ ] **Step 2: Public access via custom domain.** Bucket → Settings → Custom Domains → Connect `download.sol.wickedsick.com`. This requires the `wickedsick.com` zone to be in the same account; if the dashboard refuses, use the bucket's `r2.dev` public URL instead and set `S3_PUBLIC_BASE` to it in Task 3.
-- [ ] **Step 3: Create an R2 API token** (R2 → Manage R2 API Tokens → Create): permission **Object Read & Write**, scope **Apply to specific buckets: solar-system-db**, TTL none. Copy the Access Key ID and Secret Access Key.
-- [ ] **Step 4: Store in 1Password**: vault Shared-Secrets, item `solar-system-db-r2-publisher`, fields `access_key_id`, `secret_access_key`, notes "R2, bucket solar-system-db, created YYYY-MM-DD, Object Read & Write".
+- [x] **Step 1: Create the bucket** — DONE 2026-09-16 13:04 UTC via the API with `CLOUDFLARE_WS_WRITE`: `solar-system-db`, location WEUR, Standard class, account `4ce32b0dd5d81195ffdef6d24d1a8297`.
+- [x] **Step 2: Public access via custom domain** — DONE 2026-09-16: `download.sol.wickedsick.com` attached (zone `910d8628e4bad2afaf4d5f1492bcca46`, minTLS 1.2, proxied CNAME to `public.r2.dev` created automatically); SSL and ownership both `active` within two minutes.
+- [x] **Step 2b: Bot protection** — DONE 2026-09-16: the zone is on Pro with Super Bot Fight Mode set to managed-challenge "definitely automated", which challenged curl (`cf-mitigated: challenge`). Added WAF custom rule "Skip Super Bot Fight Mode for the Solar catalogue download host" (`http.host eq "download.sol.wickedsick.com"`, action skip, phases `http_request_sbfm`, `http_request_firewall_managed`, `http_ratelimit`), mirroring the existing api.sol rule. The host now answers R2's own 404 for a missing key.
+- [ ] **Step 3: Create an R2 API token.** Two routes. **(a) Craig in the dashboard:** R2 → Manage R2 API Tokens → Create: permission **Object Read & Write**, scope **Apply to specific buckets: solar-system-db**, TTL none; copy the Access Key ID and Secret Access Key. **(b) Claude via the API** (attempted 2026-09-16, blocked by the auto-mode classifier at the 1Password write, no token left behind): `POST /accounts/{acct}/tokens` with permission groups `6a018a9f2fc74eb6b293b0c548f38b39` (Bucket Item Read) and `2efd5506f9c8494dacb1fa10a3e7d5b6` (Bucket Item Write) on resource `com.cloudflare.edge.r2.bucket.{acct}_default_solar-system-db`; Access Key ID = token id, Secret Access Key = SHA-256 hex of the token value. Route (b) needs a Bash permission rule allowing `op item create`, and the llm1 service account can only write to vault `craig-claude-code`, not Shared-Secrets.
+- [ ] **Step 4: Store in 1Password**: item `CLOUDFLARE_SOL_R2_API_TOKEN`, fields `Access Key ID`, `Secret Access Key`, notes "R2, bucket solar-system-db, created YYYY-MM-DD, Object Read & Write, no ACLs". Vault Shared-Secrets if Craig creates it; if it lands in `craig-claude-code`, change the two `op://` references in `build/.env.op` (Task 3) to that vault.
 - [ ] **Step 5: Verify from llm1** (read-only):
 ```bash
-op read "op://Shared-Secrets/solar-system-db-r2-publisher/access_key_id" | wc -c
+op read "op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/access_key_id" | wc -c
 curl -sI https://download.sol.wickedsick.com/ | head -1
 ```
 Expected: a non-zero character count; an HTTP response (404 is fine, the bucket is empty) rather than a Cloudflare challenge page.
@@ -163,7 +166,7 @@ def test_env_op_has_only_references():
         k, v = line.split("=", 1)
         assert k in {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "S3_BUCKET", "S3_ENDPOINT", "S3_PUBLIC_BASE", "S3_REGION", "S3_NO_ACL", "CRAWLER_RPS"}, k
         if k.startswith("AWS_"):
-            assert v.startswith("op://Shared-Secrets/solar-system-db-r2-publisher/"), v
+            assert v.startswith("op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/"), v
 
 def test_compose_builder_passes_r2_env():
     text = (ROOT / "docker-compose.yml").read_text()
@@ -173,20 +176,13 @@ def test_compose_builder_passes_r2_env():
 def test_timer_is_0300_utc_and_persistent():
     t = (ROOT / "build" / "systemd" / "solar-build.timer").read_text()
     assert "OnCalendar=*-*-* 03:00:00 UTC" in t and "Persistent=true" in t
-
-def test_service_injects_op_service_account_token_not_a_file_var():
-    # `op` honours OP_SERVICE_ACCOUNT_TOKEN (the token value), not *_FILE.
-    for name in ("solar-build.service", "solar-crawler.service"):
-        t = (ROOT / "build" / "systemd" / name).read_text()
-        assert "OP_SERVICE_ACCOUNT_TOKEN_FILE" not in t
-        assert "OP_SERVICE_ACCOUNT_TOKEN" in t
 ```
 - [ ] **Step 2: Run**: `uv run pytest api/tests/test_build_host_config.py -q` — expected FAIL (files missing).
 - [ ] **Step 3: Create `build/.env.op`**:
 ```
 # op run --env-file build/.env.op -- <command>   (references only; nothing secret is in this file)
-AWS_ACCESS_KEY_ID=op://Shared-Secrets/solar-system-db-r2-publisher/access_key_id
-AWS_SECRET_ACCESS_KEY=op://Shared-Secrets/solar-system-db-r2-publisher/secret_access_key
+AWS_ACCESS_KEY_ID=op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/access_key_id
+AWS_SECRET_ACCESS_KEY=op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/secret_access_key
 S3_BUCKET=solar-system-db
 S3_ENDPOINT=https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com
 S3_PUBLIC_BASE=https://download.sol.wickedsick.com
@@ -194,7 +190,7 @@ S3_REGION=auto
 S3_NO_ACL=1
 CRAWLER_RPS=1.0
 ```
-- [ ] **Step 4: Compose**: in `docker-compose.yml` builder `environment`, add `- S3_REGION` and `- S3_NO_ACL` (pass-through, no defaults) and change `AWS_DEFAULT_REGION=default` to `- AWS_DEFAULT_REGION=${S3_REGION:-auto}`. Change both `./data:/data` mounts in `builder` and `crawler` to `${SOLAR_DATA_DIR:-./data}:/data` so llm1 can point at `/data/solar`.
+- [ ] **Step 4: Compose**: in `docker-compose.yml` builder `environment`, add `- S3_REGION` and `- S3_NO_ACL` (pass-through, no defaults) and change `AWS_DEFAULT_REGION=default` to `- AWS_DEFAULT_REGION=${S3_REGION:-auto}`. Change both `./data:/data` mounts in `builder` and `crawler` to `${SOLAR_DATA_DIR:-./data}:/data` so llm1 can point at `~/deploy/solar-data`.
 - [ ] **Step 5: Units** (`build/systemd/`):
 `solar-build.service`
 ```
@@ -203,12 +199,11 @@ Description=solar-system-db nightly full build and publish
 After=docker.service
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
-# `op` only honours OP_SERVICE_ACCOUNT_TOKEN (the token itself), not a *_FILE variant.
-ExecStart=/bin/sh -c 'export OP_SERVICE_ACCOUNT_TOKEN="$(cat %h/.config/op/service-account-token)" && exec /usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder'
-# Host path: container `/data` is `${SOLAR_DATA_DIR}` (`/data/solar`). Do not use `/data/solar/…` inside the container.
-ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py /data/solar/last-publish.json || true'
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
+EnvironmentFile=%h/.config/op/op-service-account.env
+ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
+ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
 ```
 `solar-build.timer`
 ```
@@ -227,9 +222,10 @@ WantedBy=timers.target
 Description=solar-system-db enrichment crawler (Forth Road Bridge)
 After=docker.service
 [Service]
-WorkingDirectory=/opt/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
-ExecStart=/bin/sh -c 'export OP_SERVICE_ACCOUNT_TOKEN="$(cat %h/.config/op/service-account-token)" && exec /usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build up crawler'
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
+Environment=CRAWLER_RPS=1.0
+ExecStart=/usr/bin/docker compose --profile build up crawler
 ExecStop=/usr/bin/docker compose --profile build stop crawler
 Restart=always
 RestartSec=30
@@ -239,9 +235,9 @@ WantedBy=default.target
 (`ExecStartPost` posts to the fleet board once Task 6 writes `build/mcp_notify.py` and the builder CMD writes `/data/last-publish.json`; until then `|| true` keeps a missing script from failing the oneshot. Do not hide stderr with `2>/dev/null` — a missing summary should show in the journal.)
 - [ ] **Step 6: Docs**: replace the "Box" and "Nightly build" sections of `docs/BUILD-HOST.md` with the llm1 procedure:
 ```bash
-sudo mkdir -p /opt/solar-system-db /data/solar && sudo chown wizzo:wizzo /opt/solar-system-db /data/solar
-git clone https://github.com/Wicked-Sick-Ltd/solar-system-db /opt/solar-system-db
-mkdir -p ~/.config/systemd/user && cp /opt/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
+mkdir -p ~/deploy/solar-data   # no sudo: the deploy clone and data live under the user's home (14 TB volume on llm1)
+git clone https://github.com/Wicked-Sick-Ltd/solar-system-db ~/deploy/solar-system-db
+mkdir -p ~/.config/systemd/user && cp ~/deploy/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
 systemctl --user daemon-reload && systemctl --user enable --now solar-build.timer solar-crawler.service
 loginctl enable-linger wizzo     # timers survive logout
 systemctl --user list-timers solar-build.timer
@@ -281,11 +277,11 @@ if [[ "$DRY" -eq 1 ]]; then log "would download $art_url ($want_sha)"; exit 0; f
 ```
 MANIFEST_URL=https://download.sol.wickedsick.com/latest.json
 DATA_DIR=/home/wizzo/solar-system-db/data
-RESTART_CMD=sudo systemctl stop solar-api && sudo systemctl start solar-api
+RESTART_CMD='sudo systemctl stop solar-api && sudo systemctl start solar-api'
 ```
 `deploy/php01/README.md`: the one-time steps (run as `wizzo` on php01):
 ```bash
-cd ~/solar-system-db && git pull --ff-only origin main && .venv/bin/pip install -q -e .[api]
+cd ~/solar-system-db && git pull --ff-only origin main && .venv/bin/pip install -q -e '.[api]'
 cp data/solar_system.sqlite data/solar_system.sqlite.pre-v2-$(date +%Y%m%d)
 cp deploy/php01/solar-pull.env.example ~/.config/solar-pull.env   # edit if the hostname differs
 set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --dry-run
@@ -298,8 +294,8 @@ and the note: the sudoers grant permits `systemctl stop solar-api` and `start so
 
 **Files:** none in repo (host state). Record the outcome in `docs/BUILD-HOST.md` "First run" section.
 
-- [ ] **Step 1: Install on llm1** per Task 3 Step 6 (clone to `/opt/solar-system-db` at the merged commit; `mkdir -p /data/solar`).
-- [ ] **Step 2: Prove the image and volumes offline first**: `SOLAR_DATA_DIR=/data/solar docker compose --profile build run --rm builder python scripts/build_full.py --fresh --offline --no-vacuum` and check exit 0 and a `/build/solar_system.sqlite` in the `build_scratch` volume. Then a dry publish to a local directory inside the container: `... run --rm builder python scripts/publish_artifact.py --db /build/solar_system.sqlite --dest /build/dry --public-base https://download.sol.wickedsick.com` and check `/build/dry/latest.json` exists. No credentials are needed for either.
+- [ ] **Step 1: Install on llm1** per Task 3 Step 6 (clone to `~/deploy/solar-system-db` at the merged commit; `mkdir -p ~/deploy/solar-data`).
+- [ ] **Step 2: Prove the image and volumes offline first**: `SOLAR_DATA_DIR=$HOME/deploy/solar-data docker compose --profile build run --rm builder python scripts/build_full.py --fresh --offline --no-vacuum` and check exit 0 and a `/build/solar_system.sqlite` in the `build_scratch` volume. Then a dry publish to a local directory inside the container: `... run --rm builder python scripts/publish_artifact.py --db /build/solar_system.sqlite --dest /build/dry --public-base https://download.sol.wickedsick.com` and check `/build/dry/latest.json` exists. No credentials are needed for either.
 - [ ] **Step 3: One-off online build**: `systemctl --user start solar-build.service` then `journalctl --user -u solar-build -f`. Expected within 45 min: stage lines, `verify.py` OK, publisher JSON with `"artefact": "solar_system-YYYYMMDD.sqlite.zst"`, `"size_bytes"` around 650–700 MB.
 - [ ] **Step 4: Verify R2 from a third place** (php01 or your laptop, not llm1):
 ```bash
@@ -314,7 +310,7 @@ curl -s "https://api.sol.wickedsick.com/api/v1/objects/2024%20YR4" | python3 -c 
 curl -s https://api.sol.wickedsick.com/api/v1/download | python3 -m json.tool | head -5
 ```
 Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the manifest served.
-- [ ] **Step 7: Crawler**: `systemctl --user enable --now solar-crawler.service`; after 10 minutes `sqlite3 /data/solar/enrichment.sqlite "select status,count(*) from lookups group by 1"` shows `ok` rows growing at roughly 1 per second.
+- [ ] **Step 7: Crawler**: `systemctl --user enable --now solar-crawler.service`; after 10 minutes `sqlite3 ~/deploy/solar-data/enrichment.sqlite "select status,count(*) from lookups group by 1"` shows `ok` rows growing at roughly 1 per second.
 - [ ] **Step 8: Record** the first-run numbers (duration, bytes, counts, php01 pull time) in `docs/BUILD-HOST.md` and commit: `git commit -am "docs(build-host): first live build and pull on 2026-09-XX"`.
 
 ### Task 6: Fleet-board notification from the builder
@@ -325,8 +321,8 @@ Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the ma
 - Test: `api/tests/test_mcp_notify.py`
 
 **Interfaces:**
-- Consumes: the publisher's JSON summary. Add `--summary-out` to `publish_artifact.py` `main()` (`Path(args.summary_out).write_text(json.dumps(result))` when set). The builder **container** writes `--summary-out /data/last-publish.json`; compose mounts `${SOLAR_DATA_DIR:-./data}:/data`, and on llm1 `SOLAR_DATA_DIR=/data/solar`, so that file is `/data/solar/last-publish.json` on the **host**. Do not pass `/data/solar/last-publish.json` into the container (that would land at `/data/solar/solar/last-publish.json` on llm1). `ExecStartPost` runs on the host and reads the host path.
-- Produces: `format_board_message(summary: dict) -> tuple[str, str]` (subject, body) and a `main()` that posts via `coordctl mesh-send --type info --subject ... --body ...` when `~/.config/wizzo-coordination/.env` exists, otherwise prints.
+- Consumes: the publisher's JSON summary, which the builder writes to `~/deploy/solar-data/last-publish.json` (add `--summary-out` to `publish_artifact.py` `main()`: `Path(args.summary_out).write_text(json.dumps(result))`).
+- Produces: `format_board_message(summary: dict) -> tuple[str, str]` (subject, body) and a `main()` that posts via `coordctl send --to '*' --type info --subject ... --body - (body on stdin)` when `~/.config/wizzo-coordination/.env` exists, otherwise prints.
 
 - [ ] **Step 1: Failing test**:
 ```python
@@ -346,16 +342,9 @@ def test_format_board_message():
     assert subject == "solar-system-db nightly: 1,568,429 objects, 658 MB, 2026-09-17"
     assert "tier1_fresh_fraction=12%" in body and "solar_system-20260917.sqlite.zst" in body
     assert "18772200%" not in body  # do not treat the integer count as a fraction
-
-def test_builder_writes_summary_where_the_host_oneshot_reads_it():
-    df = (ROOT / "build" / "Dockerfile").read_text()
-    assert "--summary-out /data/last-publish.json" in df
-    unit = (ROOT / "build" / "systemd" / "solar-build.service").read_text()
-    assert "/data/solar/last-publish.json" in unit
-    assert "/data/solar/solar" not in unit
 ```
-(Name the file `build/mcp_notify.py`; Task 3's unit already uses that name and the host path.)
-- [ ] **Step 2: Run** → FAIL (module missing / CMD lacks `--summary-out`). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10]; format coverage keys ending in `_fraction` as percentages (`0.12` → `12%`); print integer coverage fields such as `tier1_fresh_within_7d` as counts) and `main(argv)` reading `Path(argv[1] if argv[1:] else "/data/solar/last-publish.json")`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "mesh-send", "--type", "info", "--subject", subject, "--body", body], check=False)` if that path exists, else `print(subject); print(body)`. Append `--summary-out /data/last-publish.json` to the `publish_artifact.py` invocation in `build/Dockerfile`'s `CMD` (container path `/data`, not `/data/solar`). Keep `ExecStartPost` pointing at the **host** file `/data/solar/last-publish.json` (`|| true` so a notify miss never fails the oneshot; do not redirect stderr to `/dev/null`).
+(Name the file `build/mcp_notify.py`; update the unit's `ExecStartPost` in Task 3 to match.)
+- [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `~/deploy/solar-data/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"], input=body, check=False)` if that path exists, else `print(subject); print(body)`.
 - [ ] **Step 4: Tests PASS. Commit**: `git commit -am "feat(build): post the nightly publish summary to the fleet board"`.
 
 ### Task 7: Re-land PR #11 — retire the committed DB, rewrite the README

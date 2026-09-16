@@ -1,7 +1,8 @@
 """Publish a built catalogue: compress, checksum, manifest, upload, prune.
 
     python scripts/publish_artifact.py --db /data/solar_system.sqlite --bucket solar-system-db \
-        --endpoint https://s3.wickedsick.com --public-base https://s3.wickedsick.com/solar-system-db \
+        --endpoint https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com \
+        --public-base https://download.sol.wickedsick.com --region auto --no-acl \
         [--enrichment-store /data/enrichment.sqlite] [--keep-days 30]
     python scripts/publish_artifact.py --db build.sqlite --dest ./out     # local directory (tests, dry runs)
 
@@ -128,18 +129,27 @@ class LocalDest:
 
 
 class S3Dest:
-    def __init__(self, bucket: str, endpoint: str, public_base: str) -> None:
+    def __init__(self, bucket: str, endpoint: str, public_base: str, *,
+                 acl: str | None = "public-read", region: str | None = None) -> None:
         import boto3  # optional extra [publish]
-        self.bucket, self.public_base = bucket, public_base.rstrip("/")
-        self.s3 = boto3.client("s3", endpoint_url=endpoint)
+        self.bucket, self.public_base, self.acl = bucket, public_base.rstrip("/"), acl
+        kw = {"endpoint_url": endpoint}
+        if region:
+            kw["region_name"] = region
+        self.s3 = boto3.client("s3", **kw)
+
+    def _extra(self, **base) -> dict:
+        if self.acl:
+            base["ACL"] = self.acl
+        return base
 
     def put(self, path: Path, key: str, content_type: str) -> str:
-        self.s3.upload_file(str(path), self.bucket, key, ExtraArgs={"ContentType": content_type, "ACL": "public-read"})
+        self.s3.upload_file(str(path), self.bucket, key, ExtraArgs=self._extra(ContentType=content_type))
         return f"{self.public_base}/{key}"
 
     def put_text(self, text: str, key: str) -> str:
-        self.s3.put_object(Bucket=self.bucket, Key=key, Body=text.encode(), ContentType="application/json", ACL="public-read",
-                           CacheControl="max-age=300")
+        self.s3.put_object(Bucket=self.bucket, Key=key, Body=text.encode(), ContentType="application/json",
+                           CacheControl="max-age=300", **self._extra())
         return f"{self.public_base}/{key}"
 
     def list_keys(self) -> list[str]:
@@ -197,19 +207,26 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--bucket")
     p.add_argument("--endpoint", default=os.environ.get("S3_ENDPOINT"))
     p.add_argument("--public-base", default=os.environ.get("S3_PUBLIC_BASE"))
+    p.add_argument("--no-acl", action="store_true", default=os.environ.get("S3_NO_ACL") == "1",
+                   help="do not send object ACLs (required for Cloudflare R2)")
+    p.add_argument("--region", default=os.environ.get("S3_REGION"), help="S3 region name ('auto' for R2)")
     p.add_argument("--keep-days", type=int, default=30)
     p.add_argument("--level", type=int, default=9)
     p.add_argument("--stamp", default=None, help="override YYYYMMDD (tests)")
+    p.add_argument("--summary-out", default=None, help="write the publish summary JSON to this path")
     args = p.parse_args(argv)
     if args.dest:
         dest = LocalDest(Path(args.dest), args.public_base)
     elif args.bucket and args.endpoint and args.public_base:
-        dest = S3Dest(args.bucket, args.endpoint, args.public_base)
+        dest = S3Dest(args.bucket, args.endpoint, args.public_base,
+                      acl=None if args.no_acl else "public-read", region=args.region)
     else:
         p.error("give --dest DIR, or --bucket + --endpoint + --public-base")
-    m = publish(Path(args.db), dest, enrichment_store=Path(args.enrichment_store) if args.enrichment_store else None,
-                keep_days=args.keep_days, level=args.level, stamp=args.stamp)
-    print(json.dumps({k: m[k] for k in ("artefact", "url", "size_bytes", "uncompressed_bytes", "sha256", "total_objects", "pruned")}, indent=1))
+    result = publish(Path(args.db), dest, enrichment_store=Path(args.enrichment_store) if args.enrichment_store else None,
+                     keep_days=args.keep_days, level=args.level, stamp=args.stamp)
+    if args.summary_out:
+        Path(args.summary_out).write_text(json.dumps(result, indent=2))
+    print(json.dumps({k: result[k] for k in ("artefact", "url", "size_bytes", "uncompressed_bytes", "sha256", "total_objects", "pruned")}, indent=1))
     return 0
 
 
