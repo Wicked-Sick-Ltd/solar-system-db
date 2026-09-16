@@ -137,7 +137,7 @@ class S3Dest:
             kw["region_name"] = region
         self.s3 = boto3.client("s3", **kw)
 
-    def _extra(self, **base):
+    def _extra(self, **base) -> dict:
         if self.acl:
             base["ACL"] = self.acl
         return base
