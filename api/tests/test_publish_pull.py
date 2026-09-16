@@ -110,3 +110,17 @@ def test_s3dest_no_acl_omits_acl_from_extra_args(monkeypatch):
     dest.put_text("{}", "latest.json")
     assert "ACL" not in calls["upload"] and "ACL" not in calls["put"]
     assert calls["client_kw"]["region_name"] == "auto"
+
+
+def test_php01_env_example_restart_cmd_is_quoted_not_executed(tmp_path):
+    # The env file is sourced with `set -a; . file; set +a` on php01. If
+    # RESTART_CMD's value is unquoted, sourcing it EXECUTES the shell command
+    # instead of assigning it, leaving RESTART_CMD unset. Run from a throwaway
+    # cwd so nothing in the file can act on a real service.
+    env_file = ROOT / "deploy" / "php01" / "solar-pull.env.example"
+    r = subprocess.run(
+        ["bash", "-c", f'set -a; . {env_file}; set +a; printf "%s" "$RESTART_CMD"'],
+        cwd=tmp_path, capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.stdout == "sudo systemctl stop solar-api && sudo systemctl start solar-api"

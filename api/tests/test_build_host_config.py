@@ -21,3 +21,11 @@ def test_compose_builder_passes_r2_env():
 def test_timer_is_0300_utc_and_persistent():
     t = (ROOT / "build" / "systemd" / "solar-build.timer").read_text()
     assert "OnCalendar=*-*-* 03:00:00 UTC" in t and "Persistent=true" in t
+
+
+def test_compose_builder_defaults_to_r2_not_ceph_rgw():
+    text = (ROOT / "docker-compose.yml").read_text()
+    assert "s3.wickedsick.com" not in text
+    assert "https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com" in text
+    assert "https://download.sol.wickedsick.com" in text
+    assert "$$CRAWLER_RPS" in text

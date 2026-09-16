@@ -2,11 +2,12 @@
 # scripts/pull_latest.sh — on the public API host, fetch the latest published
 # catalogue from object storage and swap it in atomically.
 #
-#   MANIFEST_URL=https://s3.wickedsick.com/solar-system-db/latest.json \
-#   DATA_DIR=/opt/solar-system-db/data ./scripts/pull_latest.sh
+#   MANIFEST_URL=https://download.sol.wickedsick.com/latest.json \
+#   DATA_DIR=/home/wizzo/solar-system-db/data ./scripts/pull_latest.sh
 #
 # Options:   --version YYYYMMDD   pin/roll back to a dated artefact
 #            --force              re-download even if the sha matches
+#            --dry-run   print what would be downloaded and exit 0
 # Env:       RESTART_CMD          default "docker compose restart rest-api mcp-server"
 # Cron (every 15 min; the build publishes around 03:40 UTC):
 #   */15 * * * * cd /opt/solar-system-db && MANIFEST_URL=… ./scripts/pull_latest.sh >> /var/log/solar-pull.log 2>&1
@@ -27,6 +28,7 @@ done
 
 log() { echo "[$(date -u +%FT%TZ)] $*"; }
 need() { command -v "$1" >/dev/null || { echo "missing: $1" >&2; exit 1; }; }
+log "restart command: $RESTART_CMD"
 need curl; need zstd; need sha256sum || true
 sha() { if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
 json() { python3 -c "import json,sys; print(json.load(sys.stdin)$1)"; }

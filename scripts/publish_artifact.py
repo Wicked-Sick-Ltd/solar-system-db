@@ -1,7 +1,8 @@
 """Publish a built catalogue: compress, checksum, manifest, upload, prune.
 
     python scripts/publish_artifact.py --db /data/solar_system.sqlite --bucket solar-system-db \
-        --endpoint https://s3.wickedsick.com --public-base https://s3.wickedsick.com/solar-system-db \
+        --endpoint https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com \
+        --public-base https://download.sol.wickedsick.com --region auto --no-acl \
         [--enrichment-store /data/enrichment.sqlite] [--keep-days 30]
     python scripts/publish_artifact.py --db build.sqlite --dest ./out     # local directory (tests, dry runs)
 

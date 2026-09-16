@@ -8,10 +8,11 @@ without anyone having to tail the builder container's logs.
 Run by build/systemd/solar-build.service as an ExecStartPost step on the
 host (llm1), after the builder container has exited:
 
-    ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
+    ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py || true'
 
 Env overrides (mainly for tests):
-    SOLAR_SUMMARY_PATH  path to the summary JSON (default /data/solar/last-publish.json)
+    SOLAR_SUMMARY_PATH  path to the summary JSON (default $SOLAR_DATA_DIR/last-publish.json,
+                        where SOLAR_DATA_DIR defaults to /data/solar)
     COORDCTL_PATH       path to coordctl.py (default /home/wizzo/wizzo-digital-twin/mcp/coordctl.py)
 """
 from __future__ import annotations
@@ -23,7 +24,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-DEFAULT_SUMMARY_PATH = "/data/solar/last-publish.json"
+DEFAULT_DATA_DIR = "/data/solar"
 DEFAULT_COORDCTL_PATH = "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py"
 
 
@@ -58,7 +59,10 @@ def format_board_message(summary: dict[str, Any]) -> tuple[str, str]:
 
 
 def main() -> int:
-    summary_path = Path(os.environ.get("SOLAR_SUMMARY_PATH", DEFAULT_SUMMARY_PATH))
+    summary_path = Path(
+        os.environ.get("SOLAR_SUMMARY_PATH")
+        or os.path.join(os.environ.get("SOLAR_DATA_DIR", DEFAULT_DATA_DIR), "last-publish.json")
+    )
     coordctl_path = os.environ.get("COORDCTL_PATH", DEFAULT_COORDCTL_PATH)
 
     if not summary_path.exists():
@@ -74,10 +78,16 @@ def main() -> int:
     subject, body = format_board_message(summary)
 
     if Path(coordctl_path).exists():
-        subprocess.run(
-            ["python3", coordctl_path, "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"],
-            input=body, text=True, check=False, timeout=30,
-        )
+        try:
+            result = subprocess.run(
+                ["python3", coordctl_path, "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"],
+                input=body, text=True, check=False, timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            print("mcp_notify: coordctl send timed out", file=sys.stderr)
+        else:
+            if result.returncode != 0:
+                print(f"mcp_notify: coordctl send exited {result.returncode}", file=sys.stderr)
     else:
         print(subject)
         print(body)

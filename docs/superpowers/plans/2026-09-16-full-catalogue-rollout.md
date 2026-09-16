@@ -250,11 +250,11 @@ if [[ "$DRY" -eq 1 ]]; then log "would download $art_url ($want_sha)"; exit 0; f
 ```
 MANIFEST_URL=https://download.sol.wickedsick.com/latest.json
 DATA_DIR=/home/wizzo/solar-system-db/data
-RESTART_CMD=sudo systemctl stop solar-api && sudo systemctl start solar-api
+RESTART_CMD='sudo systemctl stop solar-api && sudo systemctl start solar-api'
 ```
 `deploy/php01/README.md`: the one-time steps (run as `wizzo` on php01):
 ```bash
-cd ~/solar-system-db && git pull --ff-only origin main && .venv/bin/pip install -q -e .[api]
+cd ~/solar-system-db && git pull --ff-only origin main && .venv/bin/pip install -q -e '.[api]'
 cp data/solar_system.sqlite data/solar_system.sqlite.pre-v2-$(date +%Y%m%d)
 cp deploy/php01/solar-pull.env.example ~/.config/solar-pull.env   # edit if the hostname differs
 set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --dry-run

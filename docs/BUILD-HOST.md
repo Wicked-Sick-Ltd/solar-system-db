@@ -12,8 +12,8 @@ services). Install:
 sudo mkdir -p /opt/solar-system-db /data/solar && sudo chown wizzo:wizzo /opt/solar-system-db /data/solar
 git clone https://github.com/Wicked-Sick-Ltd/solar-system-db /opt/solar-system-db
 mkdir -p ~/.config/systemd/user && cp /opt/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
+loginctl enable-linger wizzo     # timers survive logout; may need sudo if polkit refuses
 systemctl --user daemon-reload && systemctl --user enable --now solar-build.timer solar-crawler.service
-loginctl enable-linger wizzo     # timers survive logout
 systemctl --user list-timers solar-build.timer
 ```
 
@@ -36,9 +36,11 @@ default `/data/solar` on llm1 vs. `./data` in dev).
   always points at the newest.
 
 ## Secrets
-`op` on llm1 authenticates as a service account: `wizzo`'s systemd user units load
-`OP_SERVICE_ACCOUNT_TOKEN` from `%h/.config/op/op-service-account.env`
-(`EnvironmentFile=` in both `solar-build.service` and `solar-crawler.service`).
+`op` on llm1 authenticates as a service account: `wizzo`'s `solar-build.service`
+systemd user unit loads `OP_SERVICE_ACCOUNT_TOKEN` from
+`%h/.config/op/op-service-account.env` (`EnvironmentFile=`). `solar-crawler.service`
+needs no R2 credentials — it only sets `CRAWLER_RPS` — so it does not run under
+`op run` and carries no `EnvironmentFile=`.
 The R2 credentials themselves never touch disk as plaintext — `build/.env.op`
 holds only `op://` references and is injected at run time:
 
@@ -56,7 +58,7 @@ WorkingDirectory=/opt/solar-system-db
 Environment=SOLAR_DATA_DIR=/data/solar
 EnvironmentFile=%h/.config/op/op-service-account.env
 ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
+ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py || true'
 ```
 Timer: `OnCalendar=*-*-* 03:00:00 UTC`, `Persistent=true` (catches up after a missed
 run), `RandomizedDelaySec=300`. Budget: ~40 min bulk + ~10 min compress/upload. The
@@ -70,15 +72,19 @@ above), not started by hand:
 systemctl --user status solar-crawler.service
 ```
 Single-threaded at `CRAWLER_RPS` (default 1.0). Raise it only after agreeing a rate
-with JPL for our static IP range. The store `data/enrichment.sqlite` is merged into
+with JPL for our static IP range. The store `/data/solar/enrichment.sqlite` (the
+host path on llm1; `/data/enrichment.sqlite` inside the container) is merged into
 every nightly build (`--enrichment-store`), so coverage never regresses.
 
 ## API host
-`.env` needs `MANIFEST_URL`. Cron every 15 minutes:
-```
-*/15 * * * * cd /opt/solar-system-db && set -a && . ./.env && set +a && ./scripts/pull_latest.sh >> /var/log/solar-pull.log 2>&1
-```
-Rollback: `./scripts/pull_latest.sh --version 20260914`.
+The API host is `php01`, running `solar-api` as a systemd unit from
+`/home/wizzo/solar-system-db`. The full one-time procedure and the cron line
+live in `deploy/php01/README.md`. The pull logs to `/home/wizzo/solar-pull.log`
+(rather than `/var/log`) because cron runs there as the unprivileged `wizzo`
+user — a deliberate deviation from the spec's `/var/log` path.
+
+Rollback: `./scripts/pull_latest.sh --version YYYYMMDD` with the env file
+sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --version 20260914`.
 
 ## Monitoring
 - The publisher prints a JSON summary; `solar-build.service`'s `ExecStartPost` runs

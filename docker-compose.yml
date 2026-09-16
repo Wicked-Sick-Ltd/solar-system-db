@@ -75,13 +75,13 @@ services:
     container_name: solar-builder
     environment:
       - S3_BUCKET=${S3_BUCKET:-solar-system-db}
-      - S3_ENDPOINT=${S3_ENDPOINT:-https://s3.wickedsick.com}
-      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-https://s3.wickedsick.com/solar-system-db}
+      - S3_ENDPOINT=${S3_ENDPOINT:-https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com}
+      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-https://download.sol.wickedsick.com}
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_DEFAULT_REGION=${S3_REGION:-auto}
       - S3_REGION
-      - S3_NO_ACL
+      - S3_NO_ACL=${S3_NO_ACL:-1}
     volumes:
       - ${SOLAR_DATA_DIR:-./data}:/data
       - build_scratch:/build
@@ -97,7 +97,7 @@ services:
       - CRAWLER_RPS=${CRAWLER_RPS:-1.0}
     volumes:
       - ${SOLAR_DATA_DIR:-./data}:/data
-    command: ["bash", "-lc", "while true; do python scripts/enrich_crawler.py --store /data/enrichment.sqlite --db /data/solar_system.sqlite --rps \"$CRAWLER_RPS\" || sleep 60; sleep 5; done"]
+    command: ["bash", "-lc", "while true; do python scripts/enrich_crawler.py --store /data/enrichment.sqlite --db /data/solar_system.sqlite --rps \"$$CRAWLER_RPS\" || sleep 60; sleep 5; done"]
 
 volumes:
   caddy_data:
