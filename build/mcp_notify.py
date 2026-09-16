@@ -43,7 +43,13 @@ def format_board_message(summary: dict[str, Any]) -> tuple[str, str]:
         lines.append("")
         lines.append("Enrichment coverage:")
         for k, v in coverage.items():
-            lines.append(f"  {k}={round(v * 100)}%")
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                if k.endswith("_fraction"):
+                    lines.append(f"  {k}={round(v * 100)}%")
+                else:
+                    lines.append(f"  {k}={int(v):,}")
+            else:
+                lines.append(f"  {k}={v}")
     if summary.get("url"):
         lines.append("")
         lines.append(f"URL: {summary['url']}")
@@ -59,7 +65,12 @@ def main() -> int:
         print(f"mcp_notify: no summary at {summary_path}, nothing to report", file=sys.stderr)
         return 0
 
-    summary = json.loads(summary_path.read_text())
+    try:
+        summary = json.loads(summary_path.read_text())
+    except (OSError, json.JSONDecodeError, ValueError) as e:
+        print(f"mcp_notify: unreadable summary {summary_path}: {e.__class__.__name__}", file=sys.stderr)
+        return 0
+
     subject, body = format_board_message(summary)
 
     if Path(coordctl_path).exists():
