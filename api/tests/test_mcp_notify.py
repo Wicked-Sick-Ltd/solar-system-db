@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "build"))
 
-import mcp_notify  # noqa: E402
+import mcp_notify
 
 
 def test_format_board_message():
