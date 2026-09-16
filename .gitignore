@@ -28,3 +28,6 @@ solar_system_db.egg-info/
 solar-system-db.egg-info/
 .pytest_cache/
 pytest-cache-files-*/
+
+# superpowers SDD scratch (ledgers, briefs, review packages)
+.superpowers/
