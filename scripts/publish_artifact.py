@@ -212,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--keep-days", type=int, default=30)
     p.add_argument("--level", type=int, default=9)
     p.add_argument("--stamp", default=None, help="override YYYYMMDD (tests)")
+    p.add_argument("--summary-out", default=None, help="write the publish summary JSON to this path")
     args = p.parse_args(argv)
     if args.dest:
         dest = LocalDest(Path(args.dest), args.public_base)
@@ -220,9 +221,11 @@ def main(argv: list[str] | None = None) -> int:
                       acl=None if args.no_acl else "public-read", region=args.region)
     else:
         p.error("give --dest DIR, or --bucket + --endpoint + --public-base")
-    m = publish(Path(args.db), dest, enrichment_store=Path(args.enrichment_store) if args.enrichment_store else None,
-                keep_days=args.keep_days, level=args.level, stamp=args.stamp)
-    print(json.dumps({k: m[k] for k in ("artefact", "url", "size_bytes", "uncompressed_bytes", "sha256", "total_objects", "pruned")}, indent=1))
+    result = publish(Path(args.db), dest, enrichment_store=Path(args.enrichment_store) if args.enrichment_store else None,
+                     keep_days=args.keep_days, level=args.level, stamp=args.stamp)
+    if args.summary_out:
+        Path(args.summary_out).write_text(json.dumps(result, indent=2))
+    print(json.dumps({k: result[k] for k in ("artefact", "url", "size_bytes", "uncompressed_bytes", "sha256", "total_objects", "pruned")}, indent=1))
     return 0
 
 
