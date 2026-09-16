@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-16-full-catalogue-rollout-and-extensions-design.md` §2 (and `2026-09-15-full-catalogue-design.md` §5–§6, §9).
 
+> **As built (2026-09-16):** Tasks 2, 3, 4, 6 are implemented on `feat/full-catalogue-rollout` (PR #13). Where this text and the code differ, the code is authoritative: deploy paths are `~/deploy/solar-system-db` and `~/deploy/solar-data` via systemd `%h`; op auth is `EnvironmentFile=%h/.config/op/op-service-account.env`; the crawler unit does not use `op run`; `ExecStartPost` keeps stderr; the coordctl subcommand is `send`; the R2 credential is the 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN`; `RESTART_CMD` is single-quoted.
+
 ## Global Constraints
 - No secrets in git or in chat. R2 keys live only in 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN` and reach processes via `op run`.
 - R2 rejects object ACLs: never send `ACL`/`x-amz-acl` to the R2 endpoint.
@@ -174,13 +176,6 @@ def test_compose_builder_passes_r2_env():
 def test_timer_is_0300_utc_and_persistent():
     t = (ROOT / "build" / "systemd" / "solar-build.timer").read_text()
     assert "OnCalendar=*-*-* 03:00:00 UTC" in t and "Persistent=true" in t
-
-def test_service_injects_op_service_account_token_not_a_file_var():
-    # `op` honours OP_SERVICE_ACCOUNT_TOKEN (the token value), not *_FILE.
-    for name in ("solar-build.service", "solar-crawler.service"):
-        t = (ROOT / "build" / "systemd" / name).read_text()
-        assert "OP_SERVICE_ACCOUNT_TOKEN_FILE" not in t
-        assert "OP_SERVICE_ACCOUNT_TOKEN" in t
 ```
 - [ ] **Step 2: Run**: `uv run pytest api/tests/test_build_host_config.py -q` — expected FAIL (files missing).
 - [ ] **Step 3: Create `build/.env.op`**:
@@ -206,9 +201,9 @@ After=docker.service
 Type=oneshot
 WorkingDirectory=%h/deploy/solar-system-db
 Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
-Environment=OP_SERVICE_ACCOUNT_TOKEN_FILE=%h/.config/op/service-account-token
+EnvironmentFile=%h/.config/op/op-service-account.env
 ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
+ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
 ```
 `solar-build.timer`
 ```
@@ -229,7 +224,8 @@ After=docker.service
 [Service]
 WorkingDirectory=%h/deploy/solar-system-db
 Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
-ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build up crawler
+Environment=CRAWLER_RPS=1.0
+ExecStart=/usr/bin/docker compose --profile build up crawler
 ExecStop=/usr/bin/docker compose --profile build stop crawler
 Restart=always
 RestartSec=30
@@ -298,8 +294,8 @@ and the note: the sudoers grant permits `systemctl stop solar-api` and `start so
 
 **Files:** none in repo (host state). Record the outcome in `docs/BUILD-HOST.md` "First run" section.
 
-- [ ] **Step 1: Install on llm1** per Task 3 Step 6 (clone to `/opt/solar-system-db` at the merged commit; `mkdir -p /data/solar`).
-- [ ] **Step 2: Prove the image and volumes offline first**: `SOLAR_DATA_DIR=/data/solar docker compose --profile build run --rm builder python scripts/build_full.py --fresh --offline --no-vacuum` and check exit 0 and a `/build/solar_system.sqlite` in the `build_scratch` volume. Then a dry publish to a local directory inside the container: `... run --rm builder python scripts/publish_artifact.py --db /build/solar_system.sqlite --dest /build/dry --public-base https://download.sol.wickedsick.com` and check `/build/dry/latest.json` exists. No credentials are needed for either.
+- [ ] **Step 1: Install on llm1** per Task 3 Step 6 (clone to `~/deploy/solar-system-db` at the merged commit; `mkdir -p ~/deploy/solar-data`).
+- [ ] **Step 2: Prove the image and volumes offline first**: `SOLAR_DATA_DIR=$HOME/deploy/solar-data docker compose --profile build run --rm builder python scripts/build_full.py --fresh --offline --no-vacuum` and check exit 0 and a `/build/solar_system.sqlite` in the `build_scratch` volume. Then a dry publish to a local directory inside the container: `... run --rm builder python scripts/publish_artifact.py --db /build/solar_system.sqlite --dest /build/dry --public-base https://download.sol.wickedsick.com` and check `/build/dry/latest.json` exists. No credentials are needed for either.
 - [ ] **Step 3: One-off online build**: `systemctl --user start solar-build.service` then `journalctl --user -u solar-build -f`. Expected within 45 min: stage lines, `verify.py` OK, publisher JSON with `"artefact": "solar_system-YYYYMMDD.sqlite.zst"`, `"size_bytes"` around 650–700 MB.
 - [ ] **Step 4: Verify R2 from a third place** (php01 or your laptop, not llm1):
 ```bash
@@ -326,7 +322,7 @@ Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the ma
 
 **Interfaces:**
 - Consumes: the publisher's JSON summary, which the builder writes to `~/deploy/solar-data/last-publish.json` (add `--summary-out` to `publish_artifact.py` `main()`: `Path(args.summary_out).write_text(json.dumps(result))`).
-- Produces: `format_board_message(summary: dict) -> tuple[str, str]` (subject, body) and a `main()` that posts via `coordctl mesh-send --type info --subject ... --body ...` when `~/.config/wizzo-coordination/.env` exists, otherwise prints.
+- Produces: `format_board_message(summary: dict) -> tuple[str, str]` (subject, body) and a `main()` that posts via `coordctl send --to '*' --type info --subject ... --body - (body on stdin)` when `~/.config/wizzo-coordination/.env` exists, otherwise prints.
 
 - [ ] **Step 1: Failing test**:
 ```python
@@ -346,16 +342,9 @@ def test_format_board_message():
     assert subject == "solar-system-db nightly: 1,568,429 objects, 658 MB, 2026-09-17"
     assert "tier1_fresh_fraction=12%" in body and "solar_system-20260917.sqlite.zst" in body
     assert "18772200%" not in body  # do not treat the integer count as a fraction
-
-def test_builder_writes_summary_where_the_host_oneshot_reads_it():
-    df = (ROOT / "build" / "Dockerfile").read_text()
-    assert "--summary-out /data/last-publish.json" in df
-    unit = (ROOT / "build" / "systemd" / "solar-build.service").read_text()
-    assert "/data/solar/last-publish.json" in unit
-    assert "/data/solar/solar" not in unit
 ```
 (Name the file `build/mcp_notify.py`; update the unit's `ExecStartPost` in Task 3 to match.)
-- [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `~/deploy/solar-data/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "mesh-send", "--type", "info", "--subject", subject, "--body", body], check=False)` if that path exists, else `print(subject); print(body)`.
+- [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `~/deploy/solar-data/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"], input=body, check=False)` if that path exists, else `print(subject); print(body)`.
 - [ ] **Step 4: Tests PASS. Commit**: `git commit -am "feat(build): post the nightly publish summary to the fleet board"`.
 
 ### Task 7: Re-land PR #11 — retire the committed DB, rewrite the README
