@@ -8,7 +8,7 @@ without anyone having to tail the builder container's logs.
 Run by build/systemd/solar-build.service as an ExecStartPost step on the
 host (llm1), after the builder container has exited:
 
-    ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py || true'
+    ExecStartPost=/bin/sh -c 'python3 /data/solar-system-db/build/mcp_notify.py || true'
 
 Env overrides (mainly for tests):
     SOLAR_SUMMARY_PATH  path to the summary JSON (default $SOLAR_DATA_DIR/last-publish.json,
