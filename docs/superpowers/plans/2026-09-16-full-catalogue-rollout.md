@@ -11,7 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-09-16-full-catalogue-rollout-and-extensions-design.md` §2 (and `2026-09-15-full-catalogue-design.md` §5–§6, §9).
 
 ## Global Constraints
-- No secrets in git or in chat. R2 keys live only in 1Password item `solar-system-db-r2-publisher` and reach processes via `op run`.
+- No secrets in git or in chat. R2 keys live only in 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN` and reach processes via `op run`.
 - R2 rejects object ACLs: never send `ACL`/`x-amz-acl` to the R2 endpoint.
 - Never work in a deploy checkout: llm1 builder uses `/opt/solar-system-db` (a clean clone), php01 uses `/home/wizzo/solar-system-db` (pull only, never edit).
 - Preserve before disruptive change: on php01 copy `data/solar_system.sqlite` to `data/solar_system.sqlite.pre-v2-YYYYMMDD` before the first pull.
@@ -25,16 +25,16 @@
 **Files:** none in repo. Output is a 1Password item and a Cloudflare bucket.
 
 **Interfaces:**
-- Produces: bucket `solar-system-db` in account `4ce32b0dd5d81195ffdef6d24d1a8297`; custom domain `download.sol.wickedsick.com`; op item `Shared-Secrets/solar-system-db-r2-publisher` with fields `access_key_id`, `secret_access_key`.
+- Produces: bucket `solar-system-db` in account `4ce32b0dd5d81195ffdef6d24d1a8297`; custom domain `download.sol.wickedsick.com`; op item `Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN` with fields `Access Key ID`, `Secret Access Key`.
 
 - [x] **Step 1: Create the bucket** — DONE 2026-09-16 13:04 UTC via the API with `CLOUDFLARE_WS_WRITE`: `solar-system-db`, location WEUR, Standard class, account `4ce32b0dd5d81195ffdef6d24d1a8297`.
 - [x] **Step 2: Public access via custom domain** — DONE 2026-09-16: `download.sol.wickedsick.com` attached (zone `910d8628e4bad2afaf4d5f1492bcca46`, minTLS 1.2, proxied CNAME to `public.r2.dev` created automatically); SSL and ownership both `active` within two minutes.
 - [x] **Step 2b: Bot protection** — DONE 2026-09-16: the zone is on Pro with Super Bot Fight Mode set to managed-challenge "definitely automated", which challenged curl (`cf-mitigated: challenge`). Added WAF custom rule "Skip Super Bot Fight Mode for the Solar catalogue download host" (`http.host eq "download.sol.wickedsick.com"`, action skip, phases `http_request_sbfm`, `http_request_firewall_managed`, `http_ratelimit`), mirroring the existing api.sol rule. The host now answers R2's own 404 for a missing key.
 - [ ] **Step 3: Create an R2 API token.** Two routes. **(a) Craig in the dashboard:** R2 → Manage R2 API Tokens → Create: permission **Object Read & Write**, scope **Apply to specific buckets: solar-system-db**, TTL none; copy the Access Key ID and Secret Access Key. **(b) Claude via the API** (attempted 2026-09-16, blocked by the auto-mode classifier at the 1Password write, no token left behind): `POST /accounts/{acct}/tokens` with permission groups `6a018a9f2fc74eb6b293b0c548f38b39` (Bucket Item Read) and `2efd5506f9c8494dacb1fa10a3e7d5b6` (Bucket Item Write) on resource `com.cloudflare.edge.r2.bucket.{acct}_default_solar-system-db`; Access Key ID = token id, Secret Access Key = SHA-256 hex of the token value. Route (b) needs a Bash permission rule allowing `op item create`, and the llm1 service account can only write to vault `craig-claude-code`, not Shared-Secrets.
-- [ ] **Step 4: Store in 1Password**: item `solar-system-db-r2-publisher`, fields `access_key_id`, `secret_access_key`, notes "R2, bucket solar-system-db, created YYYY-MM-DD, Object Read & Write, no ACLs". Vault Shared-Secrets if Craig creates it; if it lands in `craig-claude-code`, change the two `op://` references in `build/.env.op` (Task 3) to that vault.
+- [ ] **Step 4: Store in 1Password**: item `CLOUDFLARE_SOL_R2_API_TOKEN`, fields `Access Key ID`, `Secret Access Key`, notes "R2, bucket solar-system-db, created YYYY-MM-DD, Object Read & Write, no ACLs". Vault Shared-Secrets if Craig creates it; if it lands in `craig-claude-code`, change the two `op://` references in `build/.env.op` (Task 3) to that vault.
 - [ ] **Step 5: Verify from llm1** (read-only):
 ```bash
-op read "op://Shared-Secrets/solar-system-db-r2-publisher/access_key_id" | wc -c
+op read "op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/access_key_id" | wc -c
 curl -sI https://download.sol.wickedsick.com/ | head -1
 ```
 Expected: a non-zero character count; an HTTP response (404 is fine, the bucket is empty) rather than a Cloudflare challenge page.
@@ -140,7 +140,7 @@ def test_env_op_has_only_references():
         k, v = line.split("=", 1)
         assert k in {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "S3_BUCKET", "S3_ENDPOINT", "S3_PUBLIC_BASE", "S3_REGION", "S3_NO_ACL", "CRAWLER_RPS"}, k
         if k.startswith("AWS_"):
-            assert v.startswith("op://Shared-Secrets/solar-system-db-r2-publisher/"), v
+            assert v.startswith("op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/"), v
 
 def test_compose_builder_passes_r2_env():
     text = (ROOT / "docker-compose.yml").read_text()
@@ -155,8 +155,8 @@ def test_timer_is_0300_utc_and_persistent():
 - [ ] **Step 3: Create `build/.env.op`**:
 ```
 # op run --env-file build/.env.op -- <command>   (references only; nothing secret is in this file)
-AWS_ACCESS_KEY_ID=op://Shared-Secrets/solar-system-db-r2-publisher/access_key_id
-AWS_SECRET_ACCESS_KEY=op://Shared-Secrets/solar-system-db-r2-publisher/secret_access_key
+AWS_ACCESS_KEY_ID=op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/access_key_id
+AWS_SECRET_ACCESS_KEY=op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/secret_access_key
 S3_BUCKET=solar-system-db
 S3_ENDPOINT=https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com
 S3_PUBLIC_BASE=https://download.sol.wickedsick.com

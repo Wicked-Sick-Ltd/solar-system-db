@@ -30,7 +30,7 @@ default `/data/solar` on llm1 vs. `./data` in dev).
 - **No ACLs are ever sent** — R2 doesn't support per-object ACLs and errors on
   them. `publish_artifact.py` is invoked with `S3_NO_ACL=1` (`--no-acl`) on this
   host; do not remove that.
-- 1Password item `solar-system-db-r2-publisher` (vault Shared-Secrets) holds an
+- 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN` (vault Shared-Secrets) holds an
   R2 API token scoped to Object Read & Write on this one bucket only.
 - Retention: the publisher prunes dated artefacts older than 30 days; `latest.json`
   always points at the newest.

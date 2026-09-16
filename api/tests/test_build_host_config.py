@@ -11,7 +11,7 @@ def test_env_op_has_only_references():
         k, v = line.split("=", 1)
         assert k in {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "S3_BUCKET", "S3_ENDPOINT", "S3_PUBLIC_BASE", "S3_REGION", "S3_NO_ACL", "CRAWLER_RPS"}, k
         if k.startswith("AWS_"):
-            assert v.startswith("op://Shared-Secrets/solar-system-db-r2-publisher/"), v
+            assert v.startswith("op://Shared-Secrets/CLOUDFLARE_SOL_R2_API_TOKEN/"), v
 
 def test_compose_builder_passes_r2_env():
     text = (ROOT / "docker-compose.yml").read_text()
