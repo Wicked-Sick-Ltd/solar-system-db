@@ -61,6 +61,10 @@ def test_s3dest_no_acl_omits_acl_from_extra_args(monkeypatch):
             calls["upload"] = ExtraArgs
         def put_object(self, **kw):
             calls["put"] = kw
+        def list_objects_v2(self, **kw):
+            return {"Contents": []}
+        def delete_object(self, **kw):
+            calls["delete"] = kw
     class FakeBoto:
         @staticmethod
         def client(name, **kw):
@@ -73,6 +77,10 @@ def test_s3dest_no_acl_omits_acl_from_extra_args(monkeypatch):
     dest.put_text("{}", "latest.json")
     assert "ACL" not in calls["upload"] and "ACL" not in calls["put"]
     assert calls["client_kw"]["region_name"] == "auto"
+    # ACL/region change must not drop prune(); publish() always calls list_keys then delete.
+    assert dest.list_keys() == []
+    dest.delete("x.zst")
+    assert calls["delete"]["Key"] == "x.zst"
 ```
 (`ROOT` is already defined at the top of that test module.)
 - [ ] **Step 2: Run it**: `uv run pytest api/tests/test_publish_pull.py -k no_acl -q` — expected FAIL: `TypeError: __init__() got an unexpected keyword argument 'acl'`.
@@ -101,7 +109,23 @@ class S3Dest:
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=text.encode(), ContentType="application/json",
                            CacheControl="max-age=300", **self._extra())
         return f"{self.public_base}/{key}"
+
+    def list_keys(self) -> list[str]:
+        out, token = [], None
+        while True:
+            kw = {"Bucket": self.bucket, "Prefix": "solar_system-"}
+            if token:
+                kw["ContinuationToken"] = token
+            r = self.s3.list_objects_v2(**kw)
+            out += [o["Key"] for o in r.get("Contents", [])]
+            token = r.get("NextContinuationToken")
+            if not token:
+                return out
+
+    def delete(self, key: str) -> None:
+        self.s3.delete_object(Bucket=self.bucket, Key=key)
 ```
+Keep `list_keys` and `delete` (shown above, unchanged from the live class). `publish()` always calls `prune()` after upload; dropping them raises `AttributeError` on the first R2 run.
 and in `main()`:
 ```python
     p.add_argument("--no-acl", action="store_true", default=os.environ.get("S3_NO_ACL") == "1",
@@ -150,6 +174,13 @@ def test_compose_builder_passes_r2_env():
 def test_timer_is_0300_utc_and_persistent():
     t = (ROOT / "build" / "systemd" / "solar-build.timer").read_text()
     assert "OnCalendar=*-*-* 03:00:00 UTC" in t and "Persistent=true" in t
+
+def test_service_injects_op_service_account_token_not_a_file_var():
+    # `op` honours OP_SERVICE_ACCOUNT_TOKEN (the token value), not *_FILE.
+    for name in ("solar-build.service", "solar-crawler.service"):
+        t = (ROOT / "build" / "systemd" / name).read_text()
+        assert "OP_SERVICE_ACCOUNT_TOKEN_FILE" not in t
+        assert "OP_SERVICE_ACCOUNT_TOKEN" in t
 ```
 - [ ] **Step 2: Run**: `uv run pytest api/tests/test_build_host_config.py -q` — expected FAIL (files missing).
 - [ ] **Step 3: Create `build/.env.op`**:
@@ -205,7 +236,7 @@ RestartSec=30
 [Install]
 WantedBy=default.target
 ```
-(`ExecStartPost` posts to the fleet board; `build/mcp_notify.py` is written in Task 6 and its absence is harmless meanwhile.)
+(`ExecStartPost` posts to the fleet board once Task 6 writes `build/mcp_notify.py` and the builder CMD writes `/data/last-publish.json`; until then `|| true` keeps a missing script from failing the oneshot. Do not hide stderr with `2>/dev/null` — a missing summary should show in the journal.)
 - [ ] **Step 6: Docs**: replace the "Box" and "Nightly build" sections of `docs/BUILD-HOST.md` with the llm1 procedure:
 ```bash
 mkdir -p ~/deploy/solar-data   # no sudo: the deploy clone and data live under the user's home (14 TB volume on llm1)
@@ -289,7 +320,8 @@ Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the ma
 ### Task 6: Fleet-board notification from the builder
 
 **Files:**
-- Create: `build/mcp-notify.py`
+- Create: `build/mcp_notify.py`
+- Modify: `scripts/publish_artifact.py` (`--summary-out`), `build/Dockerfile` (builder `CMD`), `build/systemd/solar-build.service` (`ExecStartPost` path)
 - Test: `api/tests/test_mcp_notify.py`
 
 **Interfaces:**
@@ -306,11 +338,21 @@ import importlib
 notify = importlib.import_module("mcp-notify") if False else __import__("mcp_notify")  # module named mcp_notify.py
 
 def test_format_board_message():
+    # Live shape from enrich_crawler.coverage() / build_manifest: *_within_7d is a count, *_fraction is 0–1.
     s = {"artefact": "solar_system-20260917.sqlite.zst", "size_bytes": 690000000, "built_at": "2026-09-17T03:31:00Z",
-         "counts_by_type": {"asteroid": 1564353, "comet": 4076}, "enrichment_coverage": {"tier1_fresh_within_7d": 0.12}}
+         "counts_by_type": {"asteroid": 1564353, "comet": 4076},
+         "enrichment_coverage": {"tier1_fresh_within_7d": 187722, "tier1_fresh_fraction": 0.12}}
     subject, body = notify.format_board_message(s)
     assert subject == "solar-system-db nightly: 1,568,429 objects, 658 MB, 2026-09-17"
-    assert "tier1_fresh_within_7d=12%" in body and "solar_system-20260917.sqlite.zst" in body
+    assert "tier1_fresh_fraction=12%" in body and "solar_system-20260917.sqlite.zst" in body
+    assert "18772200%" not in body  # do not treat the integer count as a fraction
+
+def test_builder_writes_summary_where_the_host_oneshot_reads_it():
+    df = (ROOT / "build" / "Dockerfile").read_text()
+    assert "--summary-out /data/last-publish.json" in df
+    unit = (ROOT / "build" / "systemd" / "solar-build.service").read_text()
+    assert "/data/solar/last-publish.json" in unit
+    assert "/data/solar/solar" not in unit
 ```
 (Name the file `build/mcp_notify.py`; update the unit's `ExecStartPost` in Task 3 to match.)
 - [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `~/deploy/solar-data/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "mesh-send", "--type", "info", "--subject", subject, "--body", body], check=False)` if that path exists, else `print(subject); print(body)`.
@@ -321,12 +363,14 @@ def test_format_board_message():
 **Files:**
 - Modify: `.gitignore`, `README.md`, `scripts/verify.py`, `solar_db/data_access.py` (the three files #11 touched; recover with `git show 7a647c6 -- .gitignore README.md scripts/verify.py solar_db/data_access.py`)
 - Delete: `data/solar_system.sqlite` (`git rm --cached` then add to `.gitignore`)
-- Test: `api/tests/test_schema.py` (no change) and the full suite
+- Test: `api/tests/test_schema.py` (no change), the full suite, **and** `python scripts/verify.py` with no catalogue file present (this is CI's independent "Verify DB" step in `.github/workflows/test.yml`; pytest's `conftest.py` fixture is not enough)
 
 - [ ] **Step 1: Precondition**: Task 5 Step 6 passed within the last 24 h (`curl -s https://api.sol.wickedsick.com/api/v1/stats` shows > 1.5M). Do not start otherwise.
-- [ ] **Step 2: Cherry-pick the content of #11**: `git checkout 7a647c6 -- .gitignore README.md scripts/verify.py solar_db/data_access.py && git rm --cached data/solar_system.sqlite`.
+- [ ] **Step 2: Cherry-pick the content of #11**: `git checkout 7a647c6 -- .gitignore README.md scripts/verify.py solar_db/data_access.py && git rm --cached data/solar_system.sqlite`. Keep both of these from that commit — do not "simplify" them away:
+  - `scripts/verify.py` missing-file fallback (846e046): when `DB_PATH` does not exist, build the offline fixture catalogue (`build_full.py --fresh --offline --no-vacuum` into a temp `SSDB_BUILD_PATH`) and re-invoke verify against it. After `git rm`, a fresh clone has no sqlite; `.github/workflows/test.yml`'s Verify DB step runs `python scripts/verify.py` on the default path and will exit 2 without this fallback. Do not change the workflow to skip that step.
+  - `SolarDB`'s missing-file error must keep pointing at `scripts/pull_latest.sh`, `scripts/build_full.py`, or `SOLAR_DB_PATH` — not `populate_initial.py`.
 - [ ] **Step 3: README edits on top**: in "What's in the box" describe `data/` as "populated by `scripts/pull_latest.sh` from the published artefact; not in git"; replace "Out of scope for v1" with "Non-goals" copied from spec 2026-09-15 §2 minus artificial satellites and meteor showers, and add "Coming: meteor showers (IAU MDC) and artificial satellites (CelesTrak) — see `docs/superpowers/specs/2026-09-16-…`"; update the counts sentence to read from `/api/v1/stats` ("about 1.57 million objects at the last build; live figure at /api/v1/stats"); update "Hosting" minimum box to 2 CPU, 4 GB RAM, 10 GB disk; add a "Download the whole database" section with the `download.sol.wickedsick.com/latest.json` URL and the `zstd -d` + `sqlite3` one-liner; update the sources table to add IAU MPC as a first-class source with attribution text.
-- [ ] **Step 4: Run** `uv run pytest -q` — the suite builds its own offline DB, so removing the committed file must not break anything. Expected PASS.
+- [ ] **Step 4: Run** `uv run pytest -q` (the suite builds its own offline DB) **and** `python scripts/verify.py` with `data/solar_system.sqlite` absent — expected pytest PASS and verify building the fixture then `VERIFY OK`. Pytest alone is not sufficient: CI's Verify DB step is independent of `conftest.py`.
 - [ ] **Step 5: Retire the Actions nightly**: `.github/workflows/nightly-refresh.yml` needs a `workflow`-scoped token, so **Craig deletes the file** in the PR via the GitHub UI, or disables the workflow in Actions settings. Note this in the PR body.
 - [ ] **Step 6: Commit**: `git commit -am "chore: retire the committed database and the Actions nightly; README for the full catalogue"`. Open the PR; Craig merges; then on php01 `git pull --ff-only` (the pulled DB is untracked and untouched).
 
