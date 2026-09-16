@@ -15,11 +15,12 @@ set -euo pipefail
 MANIFEST_URL="${MANIFEST_URL:?set MANIFEST_URL to the published latest.json}"
 DATA_DIR="${DATA_DIR:-$(cd "$(dirname "$0")/.." && pwd)/data}"
 RESTART_CMD="${RESTART_CMD:-docker compose restart rest-api mcp-server}"
-VERSION=""; FORCE=0
+VERSION=""; FORCE=0; DRY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --version) VERSION="$2"; shift 2 ;;
     --force) FORCE=1; shift ;;
+    --dry-run) DRY=1; shift ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac
 done
@@ -47,6 +48,8 @@ have_sha=""
 if [[ "$FORCE" -eq 0 && "$have_sha" == "$want_sha" && -f "$DATA_DIR/solar_system.sqlite" ]]; then
   log "already at $name ($want_sha)"; exit 0
 fi
+
+if [[ "$DRY" -eq 1 ]]; then log "would download $art_url ($want_sha)"; exit 0; fi
 
 tmp="$(mktemp -d "${DATA_DIR}/.pull.XXXXXX")"; trap 'rm -rf "$tmp"' EXIT
 log "downloading $art_url"

@@ -73,6 +73,21 @@ def test_pull_latest_rejects_traversal_and_records_only_after_restart(tmp_path):
     assert r.returncode != 0 and (data / "solar_system.sqlite").exists() and not (data / "latest.json").exists()
 
 
+@pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
+def test_pull_dry_run_downloads_nothing(tmp_path):
+    out = tmp_path / "out"
+    dest = LocalDest(out, public_base="file://" + str(out))
+    publish(_db(), dest, enrichment_store=None, keep_days=30, level=3, stamp="20260915")
+    data = tmp_path / "data"
+    env = {**os.environ, "MANIFEST_URL": "file://" + str(out / "latest.json"), "DATA_DIR": str(data),
+           "RESTART_CMD": "true"}
+    r = subprocess.run(["bash", str(ROOT / "scripts" / "pull_latest.sh"), "--dry-run"], env=env,
+                        capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "would download" in r.stdout
+    assert not (data / "solar_system.sqlite").exists()
+
+
 def test_s3dest_no_acl_omits_acl_from_extra_args(monkeypatch):
     sys.path.insert(0, str(ROOT / "scripts"))
     import publish_artifact as pa
