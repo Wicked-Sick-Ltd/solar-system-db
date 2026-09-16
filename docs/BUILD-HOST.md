@@ -9,17 +9,17 @@ Compose `build` profile driven by systemd **user** units (no root, no system-wid
 services). Install:
 
 ```bash
-sudo mkdir -p /opt/solar-system-db /data/solar && sudo chown wizzo:wizzo /opt/solar-system-db /data/solar
-git clone https://github.com/Wicked-Sick-Ltd/solar-system-db /opt/solar-system-db
-mkdir -p ~/.config/systemd/user && cp /opt/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
+mkdir -p ~/deploy/solar-data   # no sudo: the deploy clone and data live under the user's home (14 TB volume on llm1)
+git clone https://github.com/Wicked-Sick-Ltd/solar-system-db ~/deploy/solar-system-db
+mkdir -p ~/.config/systemd/user && cp ~/deploy/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
 loginctl enable-linger wizzo     # timers survive logout; may need sudo if polkit refuses
 systemctl --user daemon-reload && systemctl --user enable --now solar-build.timer solar-crawler.service
 systemctl --user list-timers solar-build.timer
 ```
 
 The raw build is ~2.5 GB; keep headroom for two builds plus the crawler store and
-scratch under `/data/solar` (mounted into the containers via `SOLAR_DATA_DIR`,
-default `/data/solar` on llm1 vs. `./data` in dev).
+scratch under `~/deploy/solar-data` (mounted into the containers via `SOLAR_DATA_DIR`,
+default `~/deploy/solar-data` on llm1 vs. `./data` in dev).
 
 ## Object storage (Cloudflare R2)
 - Bucket `solar-system-db` on Cloudflare R2, endpoint
@@ -54,11 +54,11 @@ above into `~/.config/systemd/user/`):
 ```
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
 EnvironmentFile=%h/.config/op/op-service-account.env
-ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py || true'
+ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
+ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
 ```
 Timer: `OnCalendar=*-*-* 03:00:00 UTC`, `Persistent=true` (catches up after a missed
 run), `RandomizedDelaySec=300`. Budget: ~40 min bulk + ~10 min compress/upload. The
@@ -72,7 +72,7 @@ above), not started by hand:
 systemctl --user status solar-crawler.service
 ```
 Single-threaded at `CRAWLER_RPS` (default 1.0). Raise it only after agreeing a rate
-with JPL for our static IP range. The store `/data/solar/enrichment.sqlite` (the
+with JPL for our static IP range. The store `~/deploy/solar-data/enrichment.sqlite` (the
 host path on llm1; `/data/enrichment.sqlite` inside the container) is merged into
 every nightly build (`--enrichment-store`), so coverage never regresses.
 

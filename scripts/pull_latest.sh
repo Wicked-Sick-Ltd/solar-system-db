@@ -10,7 +10,7 @@
 #            --dry-run   print what would be downloaded and exit 0
 # Env:       RESTART_CMD          default "docker compose restart rest-api mcp-server"
 # Cron (every 15 min; the build publishes around 03:40 UTC):
-#   */15 * * * * cd /opt/solar-system-db && MANIFEST_URL=… ./scripts/pull_latest.sh >> /var/log/solar-pull.log 2>&1
+#   */15 * * * * cd /home/wizzo/solar-system-db && set -a && . ~/.config/solar-pull.env && set +a && ./scripts/pull_latest.sh >> /home/wizzo/solar-pull.log 2>&1
 set -euo pipefail
 
 MANIFEST_URL="${MANIFEST_URL:?set MANIFEST_URL to the published latest.json}"

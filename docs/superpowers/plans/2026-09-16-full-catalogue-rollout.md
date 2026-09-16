@@ -13,7 +13,7 @@
 ## Global Constraints
 - No secrets in git or in chat. R2 keys live only in 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN` and reach processes via `op run`.
 - R2 rejects object ACLs: never send `ACL`/`x-amz-acl` to the R2 endpoint.
-- Never work in a deploy checkout: llm1 builder uses `/opt/solar-system-db` (a clean clone), php01 uses `/home/wizzo/solar-system-db` (pull only, never edit).
+- Never work in a deploy checkout: llm1 builder uses `~/deploy/solar-system-db` (a clean clone), php01 uses `/home/wizzo/solar-system-db` (pull only, never edit).
 - Preserve before disruptive change: on php01 copy `data/solar_system.sqlite` to `data/solar_system.sqlite.pre-v2-YYYYMMDD` before the first pull.
 - `git push` and merges follow the fleet protocol: feature branch, PR, Craig says "merge".
 - Tests never touch the network (`--offline`).
@@ -164,7 +164,7 @@ S3_REGION=auto
 S3_NO_ACL=1
 CRAWLER_RPS=1.0
 ```
-- [ ] **Step 4: Compose**: in `docker-compose.yml` builder `environment`, add `- S3_REGION` and `- S3_NO_ACL` (pass-through, no defaults) and change `AWS_DEFAULT_REGION=default` to `- AWS_DEFAULT_REGION=${S3_REGION:-auto}`. Change both `./data:/data` mounts in `builder` and `crawler` to `${SOLAR_DATA_DIR:-./data}:/data` so llm1 can point at `/data/solar`.
+- [ ] **Step 4: Compose**: in `docker-compose.yml` builder `environment`, add `- S3_REGION` and `- S3_NO_ACL` (pass-through, no defaults) and change `AWS_DEFAULT_REGION=default` to `- AWS_DEFAULT_REGION=${S3_REGION:-auto}`. Change both `./data:/data` mounts in `builder` and `crawler` to `${SOLAR_DATA_DIR:-./data}:/data` so llm1 can point at `~/deploy/solar-data`.
 - [ ] **Step 5: Units** (`build/systemd/`):
 `solar-build.service`
 ```
@@ -173,11 +173,11 @@ Description=solar-system-db nightly full build and publish
 After=docker.service
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
 Environment=OP_SERVICE_ACCOUNT_TOKEN_FILE=%h/.config/op/service-account-token
-ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 /opt/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
+ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
+ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py 2>/dev/null || true'
 ```
 `solar-build.timer`
 ```
@@ -196,9 +196,9 @@ WantedBy=timers.target
 Description=solar-system-db enrichment crawler (Forth Road Bridge)
 After=docker.service
 [Service]
-WorkingDirectory=/opt/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
-ExecStart=/usr/bin/op run --env-file=/opt/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build up crawler
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
+ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build up crawler
 ExecStop=/usr/bin/docker compose --profile build stop crawler
 Restart=always
 RestartSec=30
@@ -208,9 +208,9 @@ WantedBy=default.target
 (`ExecStartPost` posts to the fleet board; `build/mcp_notify.py` is written in Task 6 and its absence is harmless meanwhile.)
 - [ ] **Step 6: Docs**: replace the "Box" and "Nightly build" sections of `docs/BUILD-HOST.md` with the llm1 procedure:
 ```bash
-sudo mkdir -p /opt/solar-system-db /data/solar && sudo chown wizzo:wizzo /opt/solar-system-db /data/solar
-git clone https://github.com/Wicked-Sick-Ltd/solar-system-db /opt/solar-system-db
-mkdir -p ~/.config/systemd/user && cp /opt/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
+mkdir -p ~/deploy/solar-data   # no sudo: the deploy clone and data live under the user's home (14 TB volume on llm1)
+git clone https://github.com/Wicked-Sick-Ltd/solar-system-db ~/deploy/solar-system-db
+mkdir -p ~/.config/systemd/user && cp ~/deploy/solar-system-db/build/systemd/*.{service,timer} ~/.config/systemd/user/
 systemctl --user daemon-reload && systemctl --user enable --now solar-build.timer solar-crawler.service
 loginctl enable-linger wizzo     # timers survive logout
 systemctl --user list-timers solar-build.timer
@@ -283,7 +283,7 @@ curl -s "https://api.sol.wickedsick.com/api/v1/objects/2024%20YR4" | python3 -c 
 curl -s https://api.sol.wickedsick.com/api/v1/download | python3 -m json.tool | head -5
 ```
 Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the manifest served.
-- [ ] **Step 7: Crawler**: `systemctl --user enable --now solar-crawler.service`; after 10 minutes `sqlite3 /data/solar/enrichment.sqlite "select status,count(*) from lookups group by 1"` shows `ok` rows growing at roughly 1 per second.
+- [ ] **Step 7: Crawler**: `systemctl --user enable --now solar-crawler.service`; after 10 minutes `sqlite3 ~/deploy/solar-data/enrichment.sqlite "select status,count(*) from lookups group by 1"` shows `ok` rows growing at roughly 1 per second.
 - [ ] **Step 8: Record** the first-run numbers (duration, bytes, counts, php01 pull time) in `docs/BUILD-HOST.md` and commit: `git commit -am "docs(build-host): first live build and pull on 2026-09-XX"`.
 
 ### Task 6: Fleet-board notification from the builder
@@ -293,7 +293,7 @@ Expected: object count > 1.5M; `APO` and a non-zero close-approach count; the ma
 - Test: `api/tests/test_mcp_notify.py`
 
 **Interfaces:**
-- Consumes: the publisher's JSON summary, which the builder writes to `/data/solar/last-publish.json` (add `--summary-out` to `publish_artifact.py` `main()`: `Path(args.summary_out).write_text(json.dumps(result))`).
+- Consumes: the publisher's JSON summary, which the builder writes to `~/deploy/solar-data/last-publish.json` (add `--summary-out` to `publish_artifact.py` `main()`: `Path(args.summary_out).write_text(json.dumps(result))`).
 - Produces: `format_board_message(summary: dict) -> tuple[str, str]` (subject, body) and a `main()` that posts via `coordctl mesh-send --type info --subject ... --body ...` when `~/.config/wizzo-coordination/.env` exists, otherwise prints.
 
 - [ ] **Step 1: Failing test**:
@@ -313,7 +313,7 @@ def test_format_board_message():
     assert "tier1_fresh_within_7d=12%" in body and "solar_system-20260917.sqlite.zst" in body
 ```
 (Name the file `build/mcp_notify.py`; update the unit's `ExecStartPost` in Task 3 to match.)
-- [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `/data/solar/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "mesh-send", "--type", "info", "--subject", subject, "--body", body], check=False)` if that path exists, else `print(subject); print(body)`.
+- [ ] **Step 2: Run** → FAIL (module missing). **Step 3: Implement** `format_board_message` (sum counts with thousands separators, MB = bytes // 1_000_000, date = built_at[:10], coverage as percentages) and `main()` reading `~/deploy/solar-data/last-publish.json`, calling `subprocess.run(["python3", "/home/wizzo/wizzo-digital-twin/mcp/coordctl.py", "mesh-send", "--type", "info", "--subject", subject, "--body", body], check=False)` if that path exists, else `print(subject); print(body)`.
 - [ ] **Step 4: Tests PASS. Commit**: `git commit -am "feat(build): post the nightly publish summary to the fleet board"`.
 
 ### Task 7: Re-land PR #11 — retire the committed DB, rewrite the README

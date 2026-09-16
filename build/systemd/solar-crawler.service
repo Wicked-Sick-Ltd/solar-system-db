@@ -3,8 +3,8 @@ Description=solar-system-db enrichment crawler (Forth Road Bridge)
 # After=docker.service is inert in a user unit (cannot order against system units); kept for documentation only.
 After=docker.service
 [Service]
-WorkingDirectory=/data/solar-system-db
-Environment=SOLAR_DATA_DIR=/data/solar
+WorkingDirectory=%h/deploy/solar-system-db
+Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
 Environment=CRAWLER_RPS=1.0
 ExecStart=/usr/bin/docker compose --profile build up crawler
 ExecStop=/usr/bin/docker compose --profile build stop crawler
