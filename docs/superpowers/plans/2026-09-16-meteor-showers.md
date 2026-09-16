@@ -252,7 +252,7 @@ add `p.add_argument("--skip-showers", action="store_true")` and call the stage a
 - Test: `api/tests/test_api_v2_surface.py` (extend), `mcp-server/tests/test_mcp_smoke.py` (extend)
 
 **Interfaces:**
-- Produces: `SolarDB.list_meteor_showers(*, established_only: bool = False, active_on: str | None = None, limit: int = 500) -> list[dict]`; `SolarDB.get_meteor_shower(code_or_name: str) -> dict | None` (all parameter sets under `parameter_sets`, parent object summary under `parent`); `get_object()` gains `meteor_showers: list[dict]`; routes `GET /api/v1/meteor-showers`, `GET /api/v1/meteor-showers/{code}`; MCP tools `list_meteor_showers`, `get_meteor_shower`.
+- Produces: `SolarDB.list_meteor_showers(*, established_only: bool = False, active_on: str | None = None, limit: int = 500) -> list[dict]` — clamp `limit` with `self._lim(limit, 1000)` (SQL `LIMIT ?`, never interpolate; SQLite treats `LIMIT -1` as unbounded and MCP shares this method); `SolarDB.get_meteor_shower(code_or_name: str) -> dict | None` (all parameter sets under `parameter_sets`, parent object summary under `parent`); `get_object()` gains `meteor_showers: list[dict]`; routes `GET /api/v1/meteor-showers`, `GET /api/v1/meteor-showers/{code}`; MCP tools `list_meteor_showers`, `get_meteor_shower`.
 
 - [ ] **Step 1: Failing API tests** (append to `test_api_v2_surface.py`, which already has a `client`):
 ```python
@@ -272,9 +272,15 @@ def test_active_on_filters_by_solar_longitude(client):
 def test_parent_object_lists_its_showers(client):
     d = client.get("/api/v1/objects/3200").json()
     assert any(s["code"] == "GEM" for s in d["meteor_showers"])
+
+def test_list_meteor_showers_clamps_negative_limit():
+    from solar_db import SolarDB
+    db = SolarDB(os.environ["SOLAR_DB_PATH"])
+    assert len(db.list_meteor_showers(limit=-1)) <= 1000
+    assert len(db.list_meteor_showers(limit=0)) >= 1
 ```
 and an MCP smoke test calling `get_meteor_shower("Perseids")` expecting `code == "PER"`.
-- [ ] **Step 2: Run** → FAIL (404s). **Step 3: Implement**. Solar longitude of a date for `active_on`: reuse `solar_db/positions.py`'s Earth heliocentric longitude if exposed, else the low-precision formula `L = (280.460 + 0.9856474 * n) % 360` with `n` = days since J2000 (accuracy ~1°, fine for ±15°); the shower is active if the circular difference between `L` and `solar_longitude_deg` is ≤ 15. In `data_access`, group rows by `iau_no` for `get_meteor_shower` (match `code` case-insensitively or `name` NOCASE), and attach `parent` = `{id, name, designation, object_type}` when `parent_object_id` is set. All methods return `[]`/`None` when `_has_table(conn, "meteor_showers")` is false. Routes return `{"items": [...], "count": n}` for the list to match `/api/v1/objects`. MCP tools call the same methods with docstrings that name the source.
+- [ ] **Step 2: Run** → FAIL (404s). **Step 3: Implement**. Solar longitude of a date for `active_on`: reuse `solar_db/positions.py`'s Earth heliocentric longitude if exposed, else the low-precision formula `L = (280.460 + 0.9856474 * n) % 360` with `n` = days since J2000 (accuracy ~1°, fine for ±15°); the shower is active if the circular difference between `L` and `solar_longitude_deg` is ≤ 15. In `data_access`, group rows by `iau_no` for `get_meteor_shower` (match `code` case-insensitively or `name` NOCASE), and attach `parent` = `{id, name, designation, object_type}` when `parent_object_id` is set. `list_meteor_showers` must pass `self._lim(limit, 1000)` as a bound parameter (`LIMIT ?`), not interpolate the raw value; extend `test_negative_limits_are_clamped_everywhere` is optional once the dedicated clamp test above exists. All methods return `[]`/`None` when `_has_table(conn, "meteor_showers")` is false. Routes return `{"items": [...], "count": n}` for the list to match `/api/v1/objects`. MCP tools call the same methods with docstrings that name the source.
 - [ ] **Step 4: Run all tests** → PASS. **Step 5: Commit** `feat(api): meteor showers list/detail, parent links, MCP tools`.
 
 ### Task 5: Docs and README
