@@ -66,12 +66,14 @@ def test_main_registers_send_end_in_order_with_coordctl(tmp_path, monkeypatch):
     monkeypatch.setenv("COORDCTL_PATH", str(coordctl_path))
 
     calls: list[list[str]] = []
+    call_kwargs: list[dict] = []
 
     class FakeResult:
         returncode = 0
 
     def fake_run(argv, *args, **kwargs):
         calls.append(argv)
+        call_kwargs.append(kwargs)
         return FakeResult()
 
     monkeypatch.setattr(mcp_notify.subprocess, "run", fake_run)
@@ -84,6 +86,53 @@ def test_main_registers_send_end_in_order_with_coordctl(tmp_path, monkeypatch):
     assert str(coordctl_path) in calls[0]
     assert str(coordctl_path) in calls[1]
     assert str(coordctl_path) in calls[2]
+    # All three calls use the same fail-open contract: never block the build,
+    # never raise past this notifier.
+    for kwargs in call_kwargs:
+        assert kwargs["check"] is False
+        assert kwargs["timeout"] == 30
+    # Only the "send" step carries the body, and it's on stdin (input=), not argv.
+    register_kwargs, send_kwargs, end_kwargs = call_kwargs
+    assert "input" not in register_kwargs
+    assert "input" not in end_kwargs
+    assert send_kwargs["input"] == mcp_notify.format_board_message(summary)[1]
+    assert send_kwargs["text"] is True
+
+
+def test_main_tolerates_missing_python3_or_coordctl(tmp_path, monkeypatch, capsys):
+    """A missing python3/coordctl raises FileNotFoundError (an OSError subclass);
+    main() must still return 0 and keep going rather than crash the build."""
+    summary = {
+        "artefact": "solar_system-20260917.sqlite.zst",
+        "size_bytes": 658_000_000,
+        "built_at": "2026-09-17T03:31:00Z",
+        "counts_by_type": {"asteroid": 1564353, "comet": 4076},
+    }
+    summary_path = tmp_path / "last-publish.json"
+    summary_path.write_text(json.dumps(summary))
+    coordctl_path = tmp_path / "coordctl.py"
+    coordctl_path.write_text("# stub coordctl for the test\n")
+    monkeypatch.setenv("SOLAR_SUMMARY_PATH", str(summary_path))
+    monkeypatch.setenv("COORDCTL_PATH", str(coordctl_path))
+
+    calls: list[list[str]] = []
+
+    def fake_run(argv, *args, **kwargs):
+        calls.append(argv)
+        raise FileNotFoundError("python3 not found")
+
+    monkeypatch.setattr(mcp_notify.subprocess, "run", fake_run)
+
+    rc = mcp_notify.main()
+
+    assert rc == 0
+    # register, send, and end were each still attempted despite the previous
+    # step raising — no early exit on OSError.
+    assert len(calls) == 3
+    err = capsys.readouterr().err
+    assert "coordctl register failed" in err
+    assert "coordctl send failed" in err
+    assert "coordctl end failed" in err
 
 
 def test_main_returns_ok_on_unreadable_summary(tmp_path, monkeypatch, capsys):

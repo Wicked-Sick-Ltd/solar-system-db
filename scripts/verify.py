@@ -26,13 +26,17 @@ def main() -> int:
         import subprocess
         import sys as _sys
         import tempfile
-        scratch = Path(tempfile.mkdtemp(prefix="solar-verify-")) / "solar_system.sqlite"
-        print(f"{DB_PATH} does not exist — building the offline fixture catalogue at {scratch} to verify")
-        env = {**os.environ, "SSDB_BUILD_PATH": str(scratch), "SSDB_NO_PUBLISH": "1"}
-        subprocess.run([_sys.executable, str(Path(__file__).resolve().parent / "build_full.py"),
-                        "--fresh", "--offline", "--no-vacuum"], check=True, env=env)
-        os.environ["SSDB_BUILD_PATH"] = str(scratch)
-        rc = subprocess.run([_sys.executable, __file__], env=os.environ).returncode
+        with tempfile.TemporaryDirectory(prefix="solar-verify-") as scratch_dir:
+            scratch = Path(scratch_dir) / "solar_system.sqlite"
+            # flush=True: CI captures build_full.py's child-process output separately
+            # from this print, so without it this line can appear after the build log.
+            print(f"{DB_PATH} does not exist — building the offline fixture catalogue at {scratch} to verify",
+                  flush=True)
+            env = {**os.environ, "SSDB_BUILD_PATH": str(scratch), "SSDB_NO_PUBLISH": "1"}
+            subprocess.run([_sys.executable, str(Path(__file__).resolve().parent / "build_full.py"),
+                            "--fresh", "--offline", "--no-vacuum"], check=True, env=env)
+            os.environ["SSDB_BUILD_PATH"] = str(scratch)
+            rc = subprocess.run([_sys.executable, __file__], env=os.environ).returncode
         return rc
 
     conn = connect()
