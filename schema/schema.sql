@@ -287,7 +287,45 @@ CREATE VIRTUAL TABLE IF NOT EXISTS objects_fts USING fts5(
     id UNINDEXED, name, designation, alt, tokenize = 'unicode61 remove_diacritics 2'
 );
 
-PRAGMA user_version = 2;
+----------------------------------------------------------------------
+-- v3: Meteor showers (IAU Meteor Data Center)
+----------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS meteor_showers (
+    iau_no                  INTEGER NOT NULL,
+    ad_no                   INTEGER NOT NULL,
+    code                    TEXT NOT NULL,
+    name                    TEXT NOT NULL,
+    status_code             INTEGER,
+    status_label            TEXT,
+    activity                TEXT,
+    solar_longitude_deg     REAL,
+    ra_deg                  REAL,
+    dec_deg                 REAL,
+    dra_deg_per_day         REAL,
+    ddec_deg_per_day        REAL,
+    vg_km_s                 REAL,
+    a_au                    REAL,
+    q_au                    REAL,
+    e                       REAL,
+    peri_deg                REAL,
+    node_deg                REAL,
+    incl_deg                REAL,
+    n_members               INTEGER,
+    shower_group            TEXT,
+    parent_body             TEXT,
+    parent_object_id        TEXT REFERENCES objects(id),
+    technique               TEXT,
+    reference               TEXT,
+    submitted_on            TEXT,
+    source                  TEXT NOT NULL DEFAULT 'IAU MDC',
+    PRIMARY KEY (iau_no, ad_no)
+);
+
+CREATE INDEX IF NOT EXISTS idx_showers_code   ON meteor_showers(code);
+CREATE INDEX IF NOT EXISTS idx_showers_parent ON meteor_showers(parent_object_id);
+CREATE INDEX IF NOT EXISTS idx_showers_status ON meteor_showers(status_code);
+
+PRAGMA user_version = 3;
 
 ----------------------------------------------------------------------
 -- Build metadata (one row per refresh run)

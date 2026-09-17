@@ -20,7 +20,7 @@ def _db() -> Path:
 
 def test_manifest_reports_counts_schema_and_licence():
     m = build_manifest(_db(), artefact_name="x.zst", url="u", size_bytes=1, sha256="s")
-    assert m["schema_version"] == 2 and m["total_objects"] > 2000 and "MIT" in m["licence"]
+    assert m["schema_version"] >= 2 and m["total_objects"] > 2000 and "MIT" in m["licence"]
     assert m["row_counts"]["close_approaches"] > 0 and m["counts_by_type"]["planet"] == 8
 
 
