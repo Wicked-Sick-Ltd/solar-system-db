@@ -116,7 +116,7 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 
 ## Data sources
 
-Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskels et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
+Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskens et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
 
 ## Precision note
 
