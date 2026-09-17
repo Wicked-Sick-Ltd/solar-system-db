@@ -30,5 +30,11 @@ solar-system-db.egg-info/
 .pytest_cache/
 pytest-cache-files-*/
 
+# The catalogue is built nightly and published to object storage; never commit it.
+data/solar_system.sqlite
+data/latest.json
+data/enrichment.sqlite
+data/.pull.*
+
 # superpowers SDD scratch (ledgers, briefs, review packages)
 .superpowers/
