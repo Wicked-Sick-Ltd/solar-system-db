@@ -32,6 +32,8 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 | GET | `/api/v1/neos?min_diameter_km=…&max_diameter_km=…` | Near-Earth Objects |
 | GET | `/api/v1/comets/periodic` | Numbered periodic comets |
 | GET | `/api/v1/tnos` | Trans-Neptunian objects + centaurs |
+| GET | `/api/v1/meteor-showers?established_only=…&active_on=…&limit=…` | IAU Meteor Data Center showers |
+| GET | `/api/v1/meteor-showers/{code}` | One IAU meteor shower by code or name |
 | GET | `/api/v1/search?q=…` | Fuzzy search across names/designations |
 | GET | `/api/v1/positions/{name}?date=YYYY-MM-DD` | Heliocentric position (two-body Kepler) |
 | GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
@@ -48,6 +50,10 @@ does the heavy lifting in front of public deployments; this is defence in
 depth. Adjust the `@limiter.limit("60/minute")` decorators in `api/main.py`
 if you need different limits.
 
+## Data sources
+
+Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskels et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
+
 ## Read-only by design
 
 There are no `POST`/`PUT`/`DELETE` endpoints. The DB is opened with the
@@ -59,6 +65,9 @@ if a route bug introduced one.
 ```bash
 # Saturn's moons
 curl https://solar.example.com/api/v1/planets/Saturn/moons | jq
+
+# Geminids meteor shower by 3-letter code
+curl 'https://solar.example.com/api/v1/meteor-showers/GEM' | jq
 
 # Earth's position on 2030-01-01
 curl 'https://solar.example.com/api/v1/positions/Earth?date=2030-01-01' | jq

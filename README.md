@@ -227,6 +227,7 @@ All upstream sources are public-domain or freely redistributable:
 | [JPL Small-Body Database](https://ssd-api.jpl.nasa.gov/doc/sbdb.html) | Asteroids, comets, TNOs, orbital elements | NASA public domain |
 | [NASA Planetary Fact Sheets](https://nssdc.gsfc.nasa.gov/planetary/factsheet/) | Physical properties | NASA public domain |
 | [IAU Minor Planet Center](https://www.minorplanetcenter.net/) | Named-asteroid + periodic-comet lists (via SBDB) | Free use with attribution |
+| [IAU Meteor Data Center](https://www.ta3.sk/IAUC22DB/MDC2007/Etc/streamfulldata.txt) | Meteor shower parameter sets (code, name, activity, radiant, orbital elements, parent bodies) | Free use with attribution: `IAU Meteor Data Center (Jenniskens et al. 2020; Hajdukova & Rudawska)` |
 | [CDS catalogue VI/42](https://cdsarc.cds.unistra.fr/ftp/VI/42/) (Roman 1987) | Constellation boundaries for sky lookups | Public domain |
 
 Wikipedia is referenced in `wikipedia_url` columns for human reading; it is
@@ -243,6 +244,7 @@ physical_properties      radius, mass, density, rotation, axial tilt, gravity
 visual_properties        albedo, H magnitude, B-V, dominant_colour_hex
 rings                    parent_id → planets; inner/outer radius, width, thickness
 classifications          multi-label: NEO, PHA, Trojan, Hilda, MBA, ...
+meteor_showers           IAU MDC shower parameter sets: code, name, activity, radiant, elements, parent body
 sources                  provenance per (object, table, field)
 build_meta               one row per refresh
 ```
@@ -254,7 +256,6 @@ Plus views: `v_planets`, `v_moons_by_planet`, `v_dwarf_planets`, `v_neos`,
 
 - The full 1.4M asteroid catalogue (we cap at named + bright + classified).
 - Artificial satellites.
-- Meteor showers.
 - The Oort cloud as such.
 - Sub-arcsecond precision ephemerides (use JPL Horizons directly).
 

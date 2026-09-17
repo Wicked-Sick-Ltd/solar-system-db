@@ -66,6 +66,8 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 | `list_neos` | Near-Earth Objects, filterable by diameter. |
 | `list_periodic_comets` | Numbered comets (P < 200 y). |
 | `list_tnos` | Trans-Neptunian objects + centaurs. |
+| `list_meteor_showers` | IAU Meteor Data Center showers, optionally filtered by establishment status or activity date. |
+| `get_meteor_shower` | One IAU meteor shower by 3-letter code or name — all parameter sets, plus parent comet/asteroid. |
 | `get_rings` | Known rings of a given planet. |
 | `search` | Fuzzy text search across names / designations / discoverers. |
 
@@ -102,12 +104,19 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 > what moons does Saturn have?
 [uses list_moons("Saturn")]
 
+> tell me about the Perseids meteor shower
+[uses get_meteor_shower("Perseids")]
+
 > tell me everything you know about Comet Halley
 [uses get_object("1P/Halley")]
 
 > where is Pluto on 2030-01-01?
 [uses compute_position("Pluto", "2030-01-01")]
 ```
+
+## Data sources
+
+Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskels et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
 
 ## Precision note
 
