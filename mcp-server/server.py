@@ -208,7 +208,8 @@ def list_meteor_showers(established_only: bool = False, active_on: str | None = 
                         limit: int = 200) -> list[dict]:
     """List IAU Meteor Data Center showers — one entry per parameter set (a
     shower may have several, from different observation campaigns).
-    `established_only` keeps only showers whose MDC status is "established".
+    `established_only` keeps only showers whose MDC status code is 1 (single
+    established shower, group) or 6 (member of the established group).
     `active_on` (ISO date, YYYY-MM-DD) keeps only showers whose activity peak
     (solar longitude) falls within 15 degrees of the Sun's position on that
     date."""

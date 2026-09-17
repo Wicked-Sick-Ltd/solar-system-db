@@ -574,11 +574,14 @@ class SolarDB:
         """IAU Meteor Data Center shower list — one row per parameter set (a
         shower typically has several, from different observation campaigns).
 
-        `established_only` keeps only rows whose status legend says
-        "established" (MDC status codes 1 and 6). `active_on` (an ISO
-        YYYY-MM-DD date) keeps only showers whose solar-longitude activity
-        peak is within 15 degrees (circular) of the Sun's ecliptic longitude
-        on that date — raises ValueError for an unparseable date.
+        `established_only` keeps only rows whose MDC status code is 1
+        ("single established shower, group") or 6 ("member of the established
+        group") — an exact code match, not a text match against the label
+        (status 2, "to be established shower", is deliberately excluded).
+        `active_on` (an ISO YYYY-MM-DD date) keeps only showers whose
+        solar-longitude activity peak is within 15 degrees (circular) of the
+        Sun's ecliptic longitude on that date — raises ValueError for an
+        unparseable date.
         """
         target_l: float | None = None
         if active_on is not None:
@@ -592,7 +595,7 @@ class SolarDB:
             clauses = []
             params: list[Any] = []
             if established_only:
-                clauses.append("status_label LIKE '%stablished%'")
+                clauses.append("status_code IN (1, 6)")
             where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
             rows = [dict(r) for r in conn.execute(
                 f"""

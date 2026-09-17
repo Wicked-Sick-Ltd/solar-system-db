@@ -160,7 +160,7 @@ def close_approaches(request: Request,
 @app.get("/api/v1/meteor-showers", tags=["catalog"], summary="IAU meteor showers")
 @limiter.limit("60/minute")
 def list_meteor_showers(request: Request,
-                        established_only: bool = False,
+                        established_only: bool = Query(False, description="Keep only MDC status codes 1 (single established shower, group) or 6 (member of the established group)"),
                         active_on: Optional[str] = Query(None, description="ISO date (YYYY-MM-DD); filters to showers active on this date"),
                         limit: int = Query(500, ge=1, le=1000)):
     try:

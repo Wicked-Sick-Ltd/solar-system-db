@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -116,3 +117,34 @@ def test_list_meteor_showers_clamps_negative_limit():
     db = SolarDB(os.environ["SOLAR_DB_PATH"])
     assert len(db.list_meteor_showers(limit=-1)) <= 1000
     assert len(db.list_meteor_showers(limit=0)) >= 1
+
+
+def test_established_only_excludes_to_be_established(tmp_path):
+    """established_only must match MDC status codes 1/6 exactly, not a
+    '%stablished%' text match — status 2 ("to be established shower") is a
+    substring match for that text but is NOT established."""
+    from solar_db import SolarDB
+
+    schema_sql = (Path(__file__).resolve().parents[2] / "schema" / "schema.sql").read_text()
+    db_path = tmp_path / "showers_established.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(schema_sql)
+    conn.executemany(
+        "INSERT INTO meteor_showers (iau_no, ad_no, code, name, status_code, status_label, source) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            (99999, 0, "TBE", "Synthetic to-be-established", 2, "to be established shower", "test"),
+            (99998, 0, "MEG", "Synthetic member of established group", 6, "member of the established group", "test"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    db = SolarDB(db_path)
+    established = db.list_meteor_showers(established_only=True)
+    everything = db.list_meteor_showers(established_only=False)
+
+    assert any(r["code"] == "MEG" for r in established)
+    assert not any(r["code"] == "TBE" for r in established)
+    assert any(r["code"] == "TBE" for r in everything)
+    assert any(r["code"] == "MEG" for r in everything)
