@@ -3,7 +3,12 @@
 # catalogue from object storage and swap it in atomically.
 #
 #   MANIFEST_URL=https://download.sol.wickedsick.com/latest.json \
-#   DATA_DIR=/home/wizzo/solar-system-db/data ./scripts/pull_latest.sh
+#   DATA_DIR=/home/wizzo/solar-data ./scripts/pull_latest.sh
+#
+# Default DATA_DIR (<repo>/data) is fine for the build host's docker-compose
+# profile. On a bare-metal API host keep DATA_DIR outside the git checkout
+# (see deploy/php01/README.md) — otherwise the live catalogue ends up at a
+# path `git pull` also wants to touch.
 #
 # Options:   --version YYYYMMDD   pin/roll back to a dated artefact
 #            --force              re-download even if the sha matches

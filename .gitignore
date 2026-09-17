@@ -7,7 +7,7 @@ __pycache__/
 venv/
 .env
 
-# SQLite WAL / journal — keep the main .sqlite committed
+# SQLite WAL / journal — the catalogue is never committed; see README › Download
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm

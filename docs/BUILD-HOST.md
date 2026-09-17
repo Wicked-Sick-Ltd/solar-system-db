@@ -83,6 +83,12 @@ live in `deploy/php01/README.md`. The pull logs to `/home/wizzo/solar-pull.log`
 (rather than `/var/log`) because cron runs there as the unprivileged `wizzo`
 user — a deliberate deviation from the spec's `/var/log` path.
 
+**One-time migration required before the first `git pull` after PR #15**: php01's
+live catalogue currently sits at the tracked path `data/solar_system.sqlite`
+(locally modified), which a plain `git pull` cannot handle safely — see
+"Migrating from the committed database" in `deploy/php01/README.md` for the exact
+steps (move the data to `/home/wizzo/solar-data`, then pull).
+
 Rollback: `./scripts/pull_latest.sh --version YYYYMMDD` with the env file
 sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --version 20260914`.
 

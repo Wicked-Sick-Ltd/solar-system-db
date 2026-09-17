@@ -264,6 +264,11 @@ curl -O "$(curl -s https://download.sol.wickedsick.com/latest.json | jq -r .url)
 zstd -d solar_system-*.sqlite.zst && sqlite3 solar_system-*.sqlite 'SELECT COUNT(*) FROM objects'
 ```
 
+To use the file you just downloaded: point the API or MCP server at it with
+`SOLAR_DB_PATH=$PWD/solar_system-YYYYMMDD.sqlite python api/main.py`, or open
+it directly with `sqlite3 solar_system-YYYYMMDD.sqlite` — see *Query locally*
+above for canned queries.
+
 The same manifest is served at `GET /api/v1/download` and by the MCP tool
 `get_download_info`. Dated artefacts are kept for 30 days.
 
