@@ -35,13 +35,27 @@ def parse_line(line: str) -> dict[str, Any] | None:
     y, mo, d = date.split()
     name = line[9:29].strip() or None
     prov = line[29:41].strip() or None
+    site_field = line[53:78].strip()
+    site_code = None
+    if site_field:
+        parts = site_field.rsplit(None, 1)
+        # The column header on minorplanetcenter.net (e.g.
+        # /iau/lists/NumberedMPs005001.html) labels this trailing token
+        # "Name Ref." — a reference to the Minor Planet Circular that
+        # published the naming citation, NOT a site/observatory code (those
+        # are 3-4 char alphanumeric, e.g. "691"). Confirmed 2026-09-17 by
+        # fetching that page. So strip it out of the site name but do not
+        # store it as a site code anywhere.
+        if len(parts) == 2 and parts[1].isdigit():
+            site_field, site_code = parts[0], int(parts[1])
     return {
         "number": int(m.group(1)),
         "name": name,
         "provisional": prov,
         "discovered_on": f"{y}-{mo}-{d}",
         "date_is_conventional": line[51:52] == "*",
-        "site": line[53:78].strip() or None,
+        "site": site_field or None,
+        "site_code": site_code,
         "discoverer": line[78:].strip() or None,
     }
 

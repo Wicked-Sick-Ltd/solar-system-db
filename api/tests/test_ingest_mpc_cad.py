@@ -35,10 +35,29 @@ def test_parse_handles_multiple_discoverers_and_no_name():
     assert parse_line(line)["discoverer"] == "Pollas, C."
     unnamed = "(346889) Rhiphonos           2009 QV38   2009 08 28  Zelenchukskaya Stn 84384 Kryachko, T. V."
     rec = parse_line(unnamed)
-    assert rec["provisional"] == "2009 QV38" and rec["site"] == "Zelenchukskaya Stn 84384" and rec["discoverer"] == "Kryachko, T. V."
+    assert rec["provisional"] == "2009 QV38" and rec["site"] == "Zelenchukskaya Stn" and rec["discoverer"] == "Kryachko, T. V."
+    assert rec["site_code"] == 84384
     starred = "(306173)                     2010 NK83   2010 07 01* WISE                     WISE"
     rec = parse_line(starred)
     assert rec["name"] is None and rec["date_is_conventional"] is True and rec["discoverer"] == "WISE"
+
+
+def test_parse_strips_trailing_name_ref_number_from_site():
+    # tests/fixtures/mpc_numbered.txt line 587: (5145) Pholus — site "Kitt Peak"
+    # is followed by "20523", the Minor Planet Circular naming-citation
+    # reference number, not part of the site name.
+    pholus = "  (5145) Pholus              1992 AD     1992 01 09  Kitt Peak          20523 Spacewatch"
+    rec = parse_line(pholus)
+    assert rec["site"] == "Kitt Peak"
+    assert rec["site_code"] == 20523
+    assert rec["discoverer"] == "Spacewatch"
+
+    # line 596: (5590) — same observatory, no Name Ref. present, so nothing
+    # to strip and site_code stays None.
+    unnumbered = "  (5590)                     1990 VA     1990 11 09  Kitt Peak                Spacewatch"
+    rec = parse_line(unnumbered)
+    assert rec["site"] == "Kitt Peak"
+    assert rec["site_code"] is None
 
 
 def test_discoveries_written_for_fixture_bodies():
