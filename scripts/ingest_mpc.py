@@ -35,13 +35,22 @@ def parse_line(line: str) -> dict[str, Any] | None:
     y, mo, d = date.split()
     name = line[9:29].strip() or None
     prov = line[29:41].strip() or None
+    site_field = line[53:78].strip()
+    # MPC "Name Ref." — Minor Planet Circular citation number; parsed for
+    # completeness, not stored.
+    name_ref = None
+    if site_field:
+        parts = site_field.rsplit(None, 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            site_field, name_ref = parts[0], int(parts[1])
     return {
         "number": int(m.group(1)),
         "name": name,
         "provisional": prov,
         "discovered_on": f"{y}-{mo}-{d}",
         "date_is_conventional": line[51:52] == "*",
-        "site": line[53:78].strip() or None,
+        "site": site_field or None,
+        "name_ref": name_ref,
         "discoverer": line[78:].strip() or None,
     }
 
