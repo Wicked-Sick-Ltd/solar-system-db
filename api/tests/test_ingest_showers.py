@@ -3,7 +3,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from ingest_showers import parse_legend, parse_showers  # noqa: E402
+import common  # noqa: E402
+from ingest_showers import fetch_showers, parse_legend, parse_showers  # noqa: E402
 
 FIX = (ROOT / "tests" / "fixtures" / "mdc_showers.txt").read_bytes().decode("utf-8", errors="replace")
 
@@ -33,3 +34,32 @@ def test_empty_fields_become_none():
     rows = parse_showers(FIX)
     assert any(r["parent_body"] is None for r in rows)
     assert all(isinstance(r["status_code"], int) for r in rows)
+
+
+def test_fetch_showers_retries_on_429_via_fetch_bytes(monkeypatch):
+    data_row = FIX.splitlines()[-1].encode("utf-8")
+    assert data_row.startswith(b'"')  # sanity: a real data row, not a header line
+    payload = b":header\n" + data_row
+    calls = {"n": 0}
+
+    class FakeResponse:
+        def __init__(self, status_code, content=b""):
+            self.status_code = status_code
+            self.content = content
+
+        def raise_for_status(self):
+            return None
+
+    def fake_get(url, params=None, timeout=30):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FakeResponse(429)
+        return FakeResponse(200, payload)
+
+    monkeypatch.setattr(common.session, "get", fake_get)
+    monkeypatch.setattr(common.time, "sleep", lambda *a, **k: None)
+
+    text = fetch_showers()
+
+    assert calls["n"] == 2
+    assert text == payload.decode("utf-8", errors="replace")

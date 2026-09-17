@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import session  # noqa: E402
+from common import fetch_bytes  # noqa: E402
 
 MDC_URL = "https://www.ta3.sk/IAUC22DB/MDC2007/Etc/streamfulldata.txt"
 SOURCE_NAME = "IAU Meteor Data Center (Jenniskens et al. 2020; Hajdukova & Rudawska)"
@@ -104,9 +104,10 @@ def fetch_showers(timeout: int = 120) -> str:
     """Fetch the raw shower list, decoding leniently.
 
     The file carries at least one stray non-UTF-8 byte, so we read it as
-    bytes and decode with errors="replace" rather than let requests' own
-    text-decoding guess (or a strict decode) raise/garble the whole file.
+    bytes (via common.fetch_bytes, for the same retry/429/backoff handling
+    as every other fetcher in this repo) and decode with errors="replace"
+    rather than let requests' own text-decoding guess (or a strict decode)
+    raise/garble the whole file.
     """
-    resp = session.get(MDC_URL, timeout=timeout)
-    resp.raise_for_status()
-    return resp.content.decode("utf-8", errors="replace")
+    raw = fetch_bytes(MDC_URL, timeout=timeout)
+    return raw.decode("utf-8", errors="replace")

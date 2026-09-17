@@ -180,6 +180,22 @@ def fetch_text(url: str, params: dict | None = None, retries: int = 3, timeout: 
     raise RuntimeError(f"fetch_text failed for {url}: {last_err}")
 
 
+def fetch_bytes(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30) -> bytes:
+    last_err: Exception | None = None
+    for attempt in range(retries):
+        try:
+            r = session.get(url, params=params, timeout=timeout)
+            if r.status_code == 429:
+                time.sleep(2 + attempt * 3)
+                continue
+            r.raise_for_status()
+            return r.content
+        except requests.RequestException as e:
+            last_err = e
+            time.sleep(1 + attempt)
+    raise RuntimeError(f"fetch_bytes failed for {url}: {last_err}")
+
+
 # ---------------------------------------------------------------------------
 # Slug / ID helpers
 # ---------------------------------------------------------------------------
