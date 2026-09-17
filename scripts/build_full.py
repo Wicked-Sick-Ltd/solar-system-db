@@ -30,6 +30,19 @@ from common import DB_PATH, ROOT, connect, publish  # noqa: E402
 FIXTURES = ROOT / "tests" / "fixtures"
 
 
+def _run_stage(label: str, fn) -> object:
+    """Print label, run fn(), print its elapsed wall time, return its result.
+
+    time.monotonic() (not time.time()) so the timing is immune to any
+    wall-clock adjustment during a build that can run for well over an hour.
+    """
+    print(label)
+    t = time.monotonic()
+    result = fn()
+    print(f"  … ({time.monotonic() - t:.1f}s)")
+    return result
+
+
 def _fresh_db() -> None:
     if DB_PATH.exists():
         try:
@@ -167,43 +180,46 @@ def main(argv: list[str] | None = None) -> int:
     build_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     totals: dict[str, object] = {}
 
-    t0 = time.time()
-    print("Stage 1: curated seed")
-    totals["seed"] = stage_seed(conn)
-    print("Stage 1b: NASA fact sheets (seed/factsheets.json)")
-    totals["factsheets"] = stage_factsheets(conn)
-    print("Stage 1c: JPL planetary satellites")
-    totals["satellites"] = stage_satellites(conn, offline=offline)
-    print("Stage 2: SBDB bulk (all fields)")
-    totals["sbdb"] = stage_sbdb(conn, offline=offline, page=args.page)
+    t0 = time.monotonic()
+    totals["seed"] = _run_stage("Stage 1: curated seed", lambda: stage_seed(conn))
+    totals["factsheets"] = _run_stage("Stage 1b: NASA fact sheets (seed/factsheets.json)",
+                                       lambda: stage_factsheets(conn))
+    totals["satellites"] = _run_stage("Stage 1c: JPL planetary satellites",
+                                       lambda: stage_satellites(conn, offline=offline))
+    totals["sbdb"] = _run_stage("Stage 2: SBDB bulk (all fields)",
+                                 lambda: stage_sbdb(conn, offline=offline, page=args.page))
     if not args.skip_mpc:
-        print("Stage 4: MPC discoveries")
-        totals["mpc"] = stage_mpc(conn, offline=offline)
+        totals["mpc"] = _run_stage("Stage 4: MPC discoveries", lambda: stage_mpc(conn, offline=offline))
     if not args.skip_cad:
-        print("Stage 5: JPL close approaches")
-        totals["cad"] = stage_cad(conn, offline=offline, years=args.cad_years)
-    print("Stage 6: crawler tiers")
-    totals["tiers"] = stage_tiers(conn)
-    print("Stage 7: merge crawler enrichment")
-    totals["enrichment"] = stage_enrichment(conn, args.enrichment_store)
-    print("Stage 8: full-text index (after every designation source, incl. lookups)")
-    totals["fts_rows"] = stage_fts(conn)
+        totals["cad"] = _run_stage("Stage 5: JPL close approaches",
+                                    lambda: stage_cad(conn, offline=offline, years=args.cad_years))
+    totals["tiers"] = _run_stage("Stage 6: crawler tiers", lambda: stage_tiers(conn))
+    totals["enrichment"] = _run_stage("Stage 7: merge crawler enrichment",
+                                       lambda: stage_enrichment(conn, args.enrichment_store))
+    totals["fts_rows"] = _run_stage("Stage 8: full-text index (after every designation source, incl. lookups)",
+                                     lambda: stage_fts(conn))
 
     row_count = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
     conn.execute("UPDATE build_meta SET finished_at = ?, row_count = ?, notes = ? WHERE id = ?",
                  (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), row_count, json.dumps(totals), build_id))
     conn.commit()
-    conn.execute("ANALYZE")
-    if not args.no_vacuum:
-        conn.execute("VACUUM")
+
+    def _analyze_vacuum() -> None:
+        conn.execute("ANALYZE")
+        if not args.no_vacuum:
+            conn.execute("VACUUM")
+    _run_stage("Stage 9: ANALYZE + VACUUM", _analyze_vacuum)
     conn.close()
 
     published = publish()
+    elapsed = time.monotonic() - t0
+    minutes, seconds = divmod(int(elapsed), 60)
     print("=" * 60)
-    print(f"Done in {time.time() - t0:.0f}s. {row_count} objects.")
+    print(f"Done in {elapsed:.0f}s. {row_count} objects.")
     for k, v in totals.items():
         print(f"  {k:12s} {v}")
     print(f"DB: {published} ({published.stat().st_size / 1048576:.1f} MiB)")
+    print(f"Total: {minutes}m{seconds}s")
     return 0
 
 
