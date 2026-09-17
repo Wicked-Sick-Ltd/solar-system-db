@@ -13,8 +13,11 @@ import os
 import re
 import sqlite3
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterator, Optional
+
+from .positions import solar_longitude_deg
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -252,6 +255,18 @@ class SolarDB:
                 row = conn.execute("SELECT flagged, source, retrieved_at FROM impact_monitoring WHERE object_id = ?",
                                    (obj_id,)).fetchone()
                 out["impact_monitoring"] = dict(row) if row else None
+            if self._has_table(conn, "meteor_showers"):
+                showers: list[dict] = []
+                seen_iau_no: set[int] = set()
+                for r in conn.execute(
+                    "SELECT iau_no, code, name, solar_longitude_deg, vg_km_s "
+                    "FROM meteor_showers WHERE parent_object_id = ? ORDER BY iau_no, ad_no",
+                    (obj_id,)):
+                    if r["iau_no"] in seen_iau_no:
+                        continue
+                    seen_iau_no.add(r["iau_no"])
+                    showers.append(dict(r))
+                out["meteor_showers"] = showers
             out["sources"] = [
                 dict(r) for r in conn.execute(
                     "SELECT table_name, source_name, source_url, retrieved_at "
@@ -550,6 +565,89 @@ class SolarDB:
                 return []
             return [dict(r) for r in conn.execute(
                 "SELECT designation, kind, source FROM designations WHERE object_id = ? ORDER BY kind, designation", (obj_id,))]
+
+    # ----------------------------------------------------------------------
+    # Meteor showers (IAU Meteor Data Center)
+    # ----------------------------------------------------------------------
+    def list_meteor_showers(self, *, established_only: bool = False,
+                            active_on: str | None = None, limit: int = 500) -> list[dict]:
+        """IAU Meteor Data Center shower list — one row per parameter set (a
+        shower typically has several, from different observation campaigns).
+
+        `established_only` keeps only rows whose status legend says
+        "established" (MDC status codes 1 and 6). `active_on` (an ISO
+        YYYY-MM-DD date) keeps only showers whose solar-longitude activity
+        peak is within 15 degrees (circular) of the Sun's ecliptic longitude
+        on that date — raises ValueError for an unparseable date.
+        """
+        target_l: float | None = None
+        if active_on is not None:
+            try:
+                target_l = solar_longitude_deg(datetime.strptime(active_on, "%Y-%m-%d").date())
+            except ValueError as e:
+                raise ValueError(f"active_on must be an ISO date (YYYY-MM-DD): {active_on!r}") from e
+        with self._conn() as conn:
+            if not self._has_table(conn, "meteor_showers"):
+                return []
+            clauses = []
+            params: list[Any] = []
+            if established_only:
+                clauses.append("status_label LIKE '%stablished%'")
+            where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+            rows = [dict(r) for r in conn.execute(
+                f"""
+                SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
+                       solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
+                       vg_km_s, a_au, q_au, e, peri_deg, node_deg, incl_deg, n_members,
+                       shower_group, parent_body, parent_object_id, technique, reference,
+                       submitted_on, source
+                FROM meteor_showers
+                {where}
+                ORDER BY iau_no, ad_no
+                LIMIT ?
+                """, [*params, self._lim(limit, 1000)])]
+        if target_l is not None:
+            def _active(row: dict) -> bool:
+                l = row.get("solar_longitude_deg")
+                if l is None:
+                    return False
+                diff = abs(l - target_l) % 360
+                return min(diff, 360 - diff) <= 15
+            rows = [r for r in rows if _active(r)]
+        return rows
+
+    def get_meteor_shower(self, code_or_name: str) -> dict | None:
+        """One IAU-registered meteor shower (all its parameter sets, plus its
+        parent body when the MDC has linked one), matched by IAU code (e.g.
+        "GEM") or name (e.g. "Geminids"), case-insensitively."""
+        with self._conn() as conn:
+            if not self._has_table(conn, "meteor_showers"):
+                return None
+            head = conn.execute(
+                "SELECT iau_no FROM meteor_showers WHERE code = ? COLLATE NOCASE "
+                "OR name = ? COLLATE NOCASE LIMIT 1",
+                (code_or_name, code_or_name)).fetchone()
+            if not head:
+                return None
+            rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY ad_no",
+                (head["iau_no"],))]
+            first = rows[0]
+            parent = None
+            parent_id = first.get("parent_object_id")
+            if parent_id:
+                prow = conn.execute(
+                    "SELECT id, name, designation, object_type FROM objects WHERE id = ?",
+                    (parent_id,)).fetchone()
+                parent = dict(prow) if prow else None
+            return {
+                "iau_no": first["iau_no"],
+                "code": first["code"],
+                "name": first["name"],
+                "status_label": first["status_label"],
+                "parameter_sets": rows,
+                "parent": parent,
+            }
 
     def download_manifest(self) -> dict | None:
         """The published-artefact manifest (latest.json) written by the nightly

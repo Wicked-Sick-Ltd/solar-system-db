@@ -84,3 +84,35 @@ def test_negative_limits_are_clamped_everywhere(client):
     conn = _db()
     obj_id = conn.execute("SELECT object_id FROM close_approaches LIMIT 1").fetchone()[0]
     assert len(db.close_approaches_for(obj_id, limit=0)) >= 1
+
+
+def test_meteor_showers_list_and_detail(client):
+    r = client.get("/api/v1/meteor-showers?established_only=true")
+    assert r.status_code == 200 and any(s["code"] == "GEM" for s in r.json()["items"])
+    r = client.get("/api/v1/meteor-showers/GEM")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["code"] == "GEM" and d["parameter_sets"] and d["parent"] and d["parent"]["name"].lower().startswith("phaethon")
+
+
+def test_active_on_filters_by_solar_longitude(client):
+    dec = client.get("/api/v1/meteor-showers?active_on=2026-12-14").json()["items"]
+    jun = client.get("/api/v1/meteor-showers?active_on=2026-06-14").json()["items"]
+    assert any(s["code"] == "GEM" for s in dec) and not any(s["code"] == "GEM" for s in jun)
+
+
+def test_active_on_rejects_garbage_date(client):
+    r = client.get("/api/v1/meteor-showers?active_on=not-a-date")
+    assert r.status_code == 422
+
+
+def test_parent_object_lists_its_showers(client):
+    d = client.get("/api/v1/objects/3200").json()
+    assert any(s["code"] == "GEM" for s in d["meteor_showers"])
+
+
+def test_list_meteor_showers_clamps_negative_limit():
+    from solar_db import SolarDB
+    db = SolarDB(os.environ["SOLAR_DB_PATH"])
+    assert len(db.list_meteor_showers(limit=-1)) <= 1000
+    assert len(db.list_meteor_showers(limit=0)) >= 1
