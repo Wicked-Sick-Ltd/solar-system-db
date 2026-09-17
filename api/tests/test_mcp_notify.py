@@ -51,6 +51,41 @@ def test_main_prints_when_coordctl_missing(tmp_path, monkeypatch, capsys):
     assert "solar-system-db nightly: 1,568,429 objects, 658 MB, 2026-09-17" in out
 
 
+def test_main_registers_send_end_in_order_with_coordctl(tmp_path, monkeypatch):
+    summary = {
+        "artefact": "solar_system-20260917.sqlite.zst",
+        "size_bytes": 658_000_000,
+        "built_at": "2026-09-17T03:31:00Z",
+        "counts_by_type": {"asteroid": 1564353, "comet": 4076},
+    }
+    summary_path = tmp_path / "last-publish.json"
+    summary_path.write_text(json.dumps(summary))
+    coordctl_path = tmp_path / "coordctl.py"
+    coordctl_path.write_text("# stub coordctl for the test\n")
+    monkeypatch.setenv("SOLAR_SUMMARY_PATH", str(summary_path))
+    monkeypatch.setenv("COORDCTL_PATH", str(coordctl_path))
+
+    calls: list[list[str]] = []
+
+    class FakeResult:
+        returncode = 0
+
+    def fake_run(argv, *args, **kwargs):
+        calls.append(argv)
+        return FakeResult()
+
+    monkeypatch.setattr(mcp_notify.subprocess, "run", fake_run)
+
+    rc = mcp_notify.main()
+
+    assert rc == 0
+    assert len(calls) == 3
+    assert [c[2] for c in calls] == ["register", "send", "end"]
+    assert str(coordctl_path) in calls[0]
+    assert str(coordctl_path) in calls[1]
+    assert str(coordctl_path) in calls[2]
+
+
 def test_main_returns_ok_on_unreadable_summary(tmp_path, monkeypatch, capsys):
     summary_path = tmp_path / "last-publish.json"
     summary_path.write_text("{not valid json,,,")

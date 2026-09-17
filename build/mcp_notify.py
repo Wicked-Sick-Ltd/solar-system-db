@@ -78,6 +78,18 @@ def main() -> int:
     subject, body = format_board_message(summary)
 
     if Path(coordctl_path).exists():
+        # The board rejects a send from a session it doesn't know about
+        # ("unknown sender session '…' — register first"), so register this
+        # one-shot process as a coordctl session before sending, and end it
+        # afterwards so it doesn't linger on the board as a phantom session.
+        try:
+            reg = subprocess.run(["python3", coordctl_path, "register"], check=False, timeout=30)
+        except subprocess.TimeoutExpired:
+            print("mcp_notify: coordctl register timed out", file=sys.stderr)
+        else:
+            if reg.returncode != 0:
+                print(f"mcp_notify: coordctl register exited {reg.returncode}", file=sys.stderr)
+
         try:
             result = subprocess.run(
                 ["python3", coordctl_path, "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"],
@@ -88,6 +100,11 @@ def main() -> int:
         else:
             if result.returncode != 0:
                 print(f"mcp_notify: coordctl send exited {result.returncode}", file=sys.stderr)
+
+        try:
+            subprocess.run(["python3", coordctl_path, "end"], check=False, timeout=30)
+        except subprocess.TimeoutExpired:
+            print("mcp_notify: coordctl end timed out", file=sys.stderr)
     else:
         print(subject)
         print(body)
