@@ -91,3 +91,24 @@ def test_write_showers_counts_and_links():
     row = conn.execute("SELECT parent_object_id FROM meteor_showers WHERE code='ETA' LIMIT 1").fetchone()
     assert row and row[0] is not None
     assert conn.execute("SELECT COUNT(*) FROM sources WHERE table_name='meteor_showers'").fetchone()[0] == 1
+
+
+def test_resolve_parent_does_not_misread_a_provisional_designations_year_as_a_number():
+    conn = _db()
+    conn.execute(
+        "INSERT INTO objects (id, name, object_type, parent_id) VALUES ('ast-2001-einstein', 'Einstein', 'asteroid', 'sun')"
+    )
+    conn.execute(
+        "INSERT INTO designations (object_id, designation, kind, source) VALUES ('ast-2001-einstein', '2001', 'number', 'test')"
+    )
+    conn.commit()
+    assert resolve_parent(conn, "2001 MEW1?") is None
+    assert resolve_parent(conn, "2001") == "ast-2001-einstein"
+    assert resolve_parent(conn, "2001 Einstein") == "ast-2001-einstein"
+    assert resolve_parent(conn, "3200 Phaethon") is not None
+
+
+def test_write_showers_counts_unchanged_by_the_provisional_designation_guard():
+    conn = _db()
+    counts = write_showers(conn, parse_showers(FIX))
+    assert counts["parents_resolved"] == 22 and counts["parents_unresolved"] == 3

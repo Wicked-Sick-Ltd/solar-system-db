@@ -102,13 +102,37 @@ def parse_showers(text: str) -> list[dict[str, Any]]:
 
 _NUM = re.compile(r"^\s*\(?(\d+)\)?")
 _COMET = re.compile(r"\b(\d+[PDCIX])(?:/|\b)")
+_PROV_TAIL = re.compile(r"^\s*[A-Z]{1,2}\d")
+
+
+def _looks_like_numbered_name(parent_body: str) -> bool:
+    """True iff `_NUM`'s leading-number match is followed by something that
+    reads as a name (e.g. "3200 Phaethon", "(3200) Phaethon (=1983 TB)",
+    "3200") rather than a provisional-designation tail.
+
+    Guards against e.g. "2001 MEW1?" (a provisional designation, not a
+    numbered asteroid) being misread as asteroid number 2001 — which the
+    fixture happens to lack, but the live catalogue has as (2001) Einstein,
+    so an online build would otherwise silently link the wrong body. Blocks
+    only the two shapes that actually indicate "this isn't a number": a "?"
+    anywhere in the remainder, or a provisional-designation-style tail
+    (optional whitespace, then one or two uppercase letters immediately
+    followed by a digit, as in "2004 MN4").
+    """
+    m = _NUM.match(parent_body)
+    if not m:
+        return False
+    rest = parent_body[m.end():]
+    return "?" not in rest and not _PROV_TAIL.match(rest)
 
 
 def resolve_parent(conn, parent_body: str | None) -> str | None:
     """Match a shower's free-text parent body to an ingested object.id.
 
     Tries, in order: a comet designation like "1P" (or "109P/Swift-Tuttle"),
-    a leading asteroid number like "3200" (or "(3200) Phaethon"), then a
+    a leading asteroid number like "3200" (or "(3200) Phaethon") — but only
+    when what follows the number looks like a name rather than a
+    provisional-designation tail (see `_looks_like_numbered_name`) — then a
     plain name match. Returns None (never raises) when nothing matches, so
     callers can count unresolved parents instead of crashing on them.
     """
@@ -123,8 +147,8 @@ def resolve_parent(conn, parent_body: str | None) -> str | None:
                           (m.group(1) + "/%",)).fetchone()
         if r:
             return r[0]
-    m = _NUM.match(parent_body)
-    if m:
+    if _looks_like_numbered_name(parent_body):
+        m = _NUM.match(parent_body)
         r = conn.execute("SELECT object_id FROM designations WHERE designation = ? AND kind='number' LIMIT 1",
                           (m.group(1),)).fetchone()
         if r:
