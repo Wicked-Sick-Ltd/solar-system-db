@@ -36,6 +36,12 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 | GET | `/api/v1/meteor-showers/{code}` | One IAU meteor shower by code or name |
 | GET | `/api/v1/search?q=…` | Fuzzy search across names/designations |
 | GET | `/api/v1/positions/{name}?date=YYYY-MM-DD` | Heliocentric position (two-body Kepler) |
+| GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
+| GET | `/api/v1/perihelion/{name}` | Next perihelion (JD) |
+| GET | `/api/v1/object-types` | Object types and counts |
+| GET | `/api/v1/sources` | Upstream data sources + timestamps |
+| GET | `/api/v1/schema` | SQLite schema DDL |
+| GET | `/api/v1/stats` | Catalogue stats |
 
 ### Meteor shower filters
 
@@ -44,12 +50,10 @@ The `/api/v1/meteor-showers` endpoint accepts three optional query parameters:
 - **`active_on`** — ISO date string (YYYY-MM-DD); keeps only showers whose peak solar longitude is within ±15° of the Sun's longitude on that date (approximate; the MDC provides peak times only).
 - **`established_only`** — Boolean (default false); keeps only IAU MDC status codes 1 (single established shower or group) and 6 (member of an established group), excluding code 2 ("to be established") and the working list.
 - **`limit`** — Integer, clamped to max 1000 (default 500); maximum rows returned.
-| GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
-| GET | `/api/v1/perihelion/{name}` | Next perihelion (JD) |
-| GET | `/api/v1/object-types` | Object types and counts |
-| GET | `/api/v1/sources` | Upstream data sources + timestamps |
-| GET | `/api/v1/schema` | SQLite schema DDL |
-| GET | `/api/v1/stats` | Catalogue stats |
+
+Many `submitted_on` values are the MDC placeholder `"SD"` rather than a real
+date, and `reference` may contain raw HTML anchors (`<A href='…'>…</A>`) as
+supplied by the source document — neither is cleaned up by this API.
 
 ## Rate limits
 

@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import common  # noqa: E402
+import ingest_showers  # noqa: E402
 from ingest_showers import fetch_showers, parse_legend, parse_showers, resolve_parent, write_showers  # noqa: E402
 from ingest_sbdb import load_fixture as load_sbdb, map_all, write_mapped  # noqa: E402
 
@@ -108,7 +109,46 @@ def test_resolve_parent_does_not_misread_a_provisional_designations_year_as_a_nu
     assert resolve_parent(conn, "3200 Phaethon") is not None
 
 
+def test_resolve_parent_does_not_misread_an_outburst_years_number_as_an_asteroid():
+    """C2 regression: "2015 outburst" is a free-text remark on the Geminids-
+    style fixture row (shower GLY, iau_no 794), not the numbered asteroid
+    2015. A synthetic asteroid numbered 2015 makes the bug concrete: without
+    the fix, resolve_parent would return it."""
+    conn = _db()
+    conn.execute(
+        "INSERT INTO objects (id, name, object_type, parent_id) VALUES ('ast-2015-synthetic', 'Synthetic2015', 'asteroid', 'sun')"
+    )
+    conn.execute(
+        "INSERT INTO designations (object_id, designation, kind, source) VALUES ('ast-2015-synthetic', '2015', 'number', 'test')"
+    )
+    conn.commit()
+    assert resolve_parent(conn, "2015 outburst") is None
+    assert resolve_parent(conn, "2015") == "ast-2015-synthetic"
+    assert resolve_parent(conn, "2015 Synthetic2015") == "ast-2015-synthetic"
+
+
 def test_write_showers_counts_unchanged_by_the_provisional_designation_guard():
     conn = _db()
     counts = write_showers(conn, parse_showers(FIX))
     assert counts["parents_resolved"] == 22 and counts["parents_unresolved"] == 3
+
+
+def test_parse_showers_counts_rows_skipped_for_being_short_of_cols():
+    """I7: a row with fewer fields than COLS is silently dropped by
+    parse_showers — LAST_PARSE_STATS must expose that drop count so it can
+    surface in the build summary instead of vanishing without a trace."""
+    header = FIX.splitlines()[0]  # any ':'-prefixed header line
+    short_row = '"1"|"1"|"000"|"XXX"|"short row"\n'  # far fewer than len(COLS) fields
+    good_row = FIX.splitlines()[-1] + "\n"
+    text = header + "\n" + short_row + good_row
+
+    rows = parse_showers(text)
+
+    assert len(rows) == 1
+    assert ingest_showers.LAST_PARSE_STATS == {"rows": 1, "skipped": 1}
+
+
+def test_write_showers_counts_include_skipped_rows():
+    conn = _db()
+    counts = write_showers(conn, parse_showers(FIX))
+    assert counts["skipped_rows"] == 0

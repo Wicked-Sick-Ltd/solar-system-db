@@ -117,7 +117,7 @@ def stage_cad(conn, *, offline: bool, years: int) -> dict[str, int]:
 
 def stage_showers(conn, *, offline: bool) -> dict[str, int]:
     if offline:
-        # The fixture carries the same stray non-UTF-8 byte as the live feed
+        # The fixture may carry the same stray non-UTF-8 byte as the live feed
         # (see ingest_showers module docstring) — decode leniently.
         text = (FIXTURES / "mdc_showers.txt").read_bytes().decode("utf-8", errors="replace")
     else:
@@ -208,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_showers:
         totals["showers"] = _run_stage("Stage 5b: IAU MDC meteor showers",
                                        lambda: stage_showers(conn, offline=offline))
+    else:
+        totals["showers"] = "skipped"
     totals["tiers"] = _run_stage("Stage 6: crawler tiers", lambda: stage_tiers(conn))
     totals["enrichment"] = _run_stage("Stage 7: merge crawler enrichment",
                                        lambda: stage_enrichment(conn, args.enrichment_store))

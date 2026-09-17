@@ -164,36 +164,34 @@ def fetch_json(url: str, params: dict | None = None, retries: int = 3, timeout: 
     raise RuntimeError(f"fetch_json failed for {url}: {last_err}")
 
 
-def fetch_text(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30) -> str:
-    last_err: Exception | None = None
-    for attempt in range(retries):
-        try:
-            r = session.get(url, params=params, timeout=timeout)
-            if r.status_code == 429:
-                time.sleep(2 + attempt * 3)
-                continue
-            r.raise_for_status()
-            return r.text
-        except requests.RequestException as e:
-            last_err = e
-            time.sleep(1 + attempt)
-    raise RuntimeError(f"fetch_text failed for {url}: {last_err}")
+def fetch_text(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30,
+               encoding: str = "utf-8") -> str:
+    """Text fetch with the same retry/429 handling as fetch_bytes (a thin
+    decode on top of it, rather than a second copy of the retry loop).
+    Decodes leniently (errors="replace") since upstream pages occasionally
+    carry a stray non-UTF-8 byte — see ingest_showers's module docstring for
+    a concrete example."""
+    return fetch_bytes(url, params=params, retries=retries, timeout=timeout).decode(encoding, errors="replace")
 
 
 def fetch_bytes(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30) -> bytes:
     last_err: Exception | None = None
+    last_status: int | None = None
     for attempt in range(retries):
         try:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
+                last_status = 429
                 time.sleep(2 + attempt * 3)
                 continue
             r.raise_for_status()
             return r.content
         except requests.RequestException as e:
             last_err = e
+            last_status = getattr(getattr(e, "response", None), "status_code", None)
             time.sleep(1 + attempt)
-    raise RuntimeError(f"fetch_bytes failed for {url}: {last_err}")
+    detail = f"last status {last_status}" if last_status is not None else str(last_err)
+    raise RuntimeError(f"fetch_bytes gave up after {retries} attempts ({detail}) for {url}")
 
 
 # ---------------------------------------------------------------------------

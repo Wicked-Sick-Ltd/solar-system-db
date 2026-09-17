@@ -6,7 +6,7 @@ Header/comment lines start with ":" (not "#"). Data rows are quoted,
 pipe-delimited, space-padded, and end with a trailing pipe, so csv.reader
 yields one extra empty trailing field per row (harmless, ignored by zip()).
 
-The header itself carries at least one non-UTF-8 byte (a Latin-1 accented
+The header itself may carry at least one non-UTF-8 byte (a Latin-1 accented
 character in a contributor's name), so any code that reads the raw file must
 decode leniently rather than crash on it.
 """
@@ -76,14 +76,25 @@ def parse_legend(header_lines: list[str]) -> dict[int, str]:
     return legend
 
 
+# Updated by every parse_showers() call: {"rows": <parsed>, "skipped": <rows
+# dropped for being short of len(COLS) fields>}. A module-level counter
+# (rather than a second return value) keeps parse_showers's signature/return
+# type unchanged for existing callers, while still letting write_showers and
+# the build summary see how many rows a fetch silently dropped.
+LAST_PARSE_STATS: dict[str, int] = {"rows": 0, "skipped": 0}
+
+
 def parse_showers(text: str) -> list[dict[str, Any]]:
+    global LAST_PARSE_STATS
     lines = text.splitlines()
     header = [l for l in lines if l.startswith(":") or l.startswith("#")]
     legend = parse_legend(header)
     data = [l for l in lines if l.startswith('"')]
     out = []
+    skipped = 0
     for rec in csv.reader(io.StringIO("\n".join(data)), delimiter="|", quotechar='"', skipinitialspace=True):
         if len(rec) < len(COLS):
+            skipped += 1
             continue
         row = {k: (v.strip() or None) for k, v in zip(COLS, rec)}
         for k in ("iau_no", "ad_no", "status_code", "n_members"):
@@ -97,33 +108,47 @@ def parse_showers(text: str) -> list[dict[str, Any]]:
         if row["iau_no"] is None or not row["code"]:
             continue
         out.append(row)
+    LAST_PARSE_STATS = {"rows": len(out), "skipped": skipped}
     return out
 
 
 _NUM = re.compile(r"^\s*\(?(\d+)\)?")
 _COMET = re.compile(r"\b(\d+[PDCIX])(?:/|\b)")
 _PROV_TAIL = re.compile(r"^\s*[A-Z]{1,2}\d")
+_NAME_TAIL = re.compile(r"^\s*\(?[A-Z][A-Za-z'’-]+")
 
 
 def _looks_like_numbered_name(parent_body: str) -> bool:
     """True iff `_NUM`'s leading-number match is followed by something that
     reads as a name (e.g. "3200 Phaethon", "(3200) Phaethon (=1983 TB)",
-    "3200") rather than a provisional-designation tail.
+    "3200", "2001 Einstein") rather than a provisional-designation tail or
+    free-text remark (e.g. "2015 outburst").
 
     Guards against e.g. "2001 MEW1?" (a provisional designation, not a
     numbered asteroid) being misread as asteroid number 2001 — which the
     fixture happens to lack, but the live catalogue has as (2001) Einstein,
-    so an online build would otherwise silently link the wrong body. Blocks
-    only the two shapes that actually indicate "this isn't a number": a "?"
-    anywhere in the remainder, or a provisional-designation-style tail
-    (optional whitespace, then one or two uppercase letters immediately
-    followed by a digit, as in "2004 MN4").
+    so an online build would otherwise silently link the wrong body. Also
+    guards against "2015 outburst": a leading number followed by a lowercase
+    word is never a numbered asteroid's designation, so the year 2015 must
+    not be treated as one either. Blocks the remainder unless it is empty
+    or matches one of:
+
+    - `_NAME_TAIL`: optional whitespace, an optional "(", then a capitalised
+      name (e.g. " Phaethon", " Einstein") — the only shape that indicates a
+      genuine numbered-asteroid name.
+
+    and is rejected outright when it contains a "?" or matches
+    `_PROV_TAIL` (a provisional-designation-style tail: optional whitespace,
+    then one or two uppercase letters immediately followed by a digit, as in
+    "2004 MN4").
     """
     m = _NUM.match(parent_body)
     if not m:
         return False
     rest = parent_body[m.end():]
-    return "?" not in rest and not _PROV_TAIL.match(rest)
+    if "?" in rest or _PROV_TAIL.match(rest):
+        return False
+    return not rest.strip() or bool(_NAME_TAIL.match(rest))
 
 
 def resolve_parent(conn, parent_body: str | None) -> str | None:
@@ -135,6 +160,10 @@ def resolve_parent(conn, parent_body: str | None) -> str | None:
     provisional-designation tail (see `_looks_like_numbered_name`) — then a
     plain name match. Returns None (never raises) when nothing matches, so
     callers can count unresolved parents instead of crashing on them.
+
+    Long-period comet designations (e.g. "C/1861 G1") are not resolved: this
+    catalogue does not carry long-period comets as objects, so `_COMET`
+    deliberately matches only the numbered short-period form (e.g. "1P").
     """
     if not parent_body:
         return None
@@ -181,13 +210,14 @@ def write_showers(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
     if n:
         add_source(conn, object_id=None, table_name="meteor_showers", source_name=SOURCE_NAME, source_url=MDC_URL)
     conn.commit()
-    return {"showers": n, "parents_resolved": res, "parents_unresolved": unres}
+    return {"showers": n, "parents_resolved": res, "parents_unresolved": unres,
+            "skipped_rows": LAST_PARSE_STATS.get("skipped", 0)}
 
 
 def fetch_showers(timeout: int = 120) -> str:
     """Fetch the raw shower list, decoding leniently.
 
-    The file carries at least one stray non-UTF-8 byte, so we read it as
+    The file may carry at least one stray non-UTF-8 byte, so we read it as
     bytes (via common.fetch_bytes, for the same retry/429/backoff handling
     as every other fetcher in this repo) and decode with errors="replace"
     rather than let requests' own text-decoding guess (or a strict decode)

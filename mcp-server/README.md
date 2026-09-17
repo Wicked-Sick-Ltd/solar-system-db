@@ -96,7 +96,7 @@ The `list_meteor_showers` tool accepts three optional parameters:
 
 - **`active_on`** — ISO date string (YYYY-MM-DD); keeps only showers whose peak solar longitude is within ±15° of the Sun's longitude on that date (approximate; the MDC provides peak times only).
 - **`established_only`** — Boolean (default false); keeps only IAU MDC status codes 1 (single established shower or group) and 6 (member of an established group), excluding code 2 ("to be established") and the working list.
-- **`limit`** — Integer, default 200; maximum rows returned.
+- **`limit`** — Integer, clamped to 1000 (default 200); maximum rows returned.
 
 ### Position / ephemeris
 

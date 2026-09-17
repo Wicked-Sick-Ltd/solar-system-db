@@ -20,7 +20,7 @@ def _mem():
     return conn
 
 
-def test_user_version_is_2():
+def test_user_version_is_at_least_2():
     assert _mem().execute("PRAGMA user_version").fetchone()[0] >= 2
 
 

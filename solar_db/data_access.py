@@ -593,12 +593,23 @@ class SolarDB:
         with self._conn() as conn:
             if not self._has_table(conn, "meteor_showers"):
                 return []
-            clauses = []
+            clauses: list[str] = []
             params: list[Any] = []
             if established_only:
                 clauses.append("status_code IN (1, 6)")
+            if target_l is not None:
+                # Circular distance in SQL, evaluated before LIMIT so the window
+                # applies to the whole table (~1,420 live rows) rather than only
+                # the first `limit` rows in iau_no/ad_no order. SQLite's two-arg
+                # scalar MIN (not the aggregate MIN) picks the shorter arc.
+                clauses.append(
+                    "(solar_longitude_deg IS NOT NULL AND "
+                    "MIN(ABS(solar_longitude_deg - ?) % 360.0, "
+                    "360.0 - (ABS(solar_longitude_deg - ?) % 360.0)) <= 15.0)"
+                )
+                params.extend([target_l, target_l])
             where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-            rows = [dict(r) for r in conn.execute(
+            return [dict(r) for r in conn.execute(
                 f"""
                 SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
                        solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
@@ -610,15 +621,6 @@ class SolarDB:
                 ORDER BY iau_no, ad_no
                 LIMIT ?
                 """, [*params, self._lim(limit, 1000)])]
-        if target_l is not None:
-            def _active(row: dict) -> bool:
-                l = row.get("solar_longitude_deg")
-                if l is None:
-                    return False
-                diff = abs(l - target_l) % 360
-                return min(diff, 360 - diff) <= 15
-            rows = [r for r in rows if _active(r)]
-        return rows
 
     def get_meteor_shower(self, code_or_name: str) -> dict | None:
         """One IAU-registered meteor shower (all its parameter sets, plus its
@@ -634,11 +636,15 @@ class SolarDB:
             if not head:
                 return None
             rows = [dict(r) for r in conn.execute(
-                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY ad_no",
+                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY iau_no, ad_no",
                 (head["iau_no"],))]
             first = rows[0]
+            # Prefer a parameter set the MDC has actually linked to a parent
+            # body over the first one (which is frequently an earlier, less
+            # complete campaign with no parent_object_id at all).
+            head_row = next((r for r in rows if r.get("parent_object_id")), first)
             parent = None
-            parent_id = first.get("parent_object_id")
+            parent_id = head_row.get("parent_object_id")
             if parent_id:
                 prow = conn.execute(
                     "SELECT id, name, designation, object_type FROM objects WHERE id = ?",
@@ -648,7 +654,7 @@ class SolarDB:
                 "iau_no": first["iau_no"],
                 "code": first["code"],
                 "name": first["name"],
-                "status_label": first["status_label"],
+                "status_label": head_row["status_label"],
                 "parameter_sets": rows,
                 "parent": parent,
             }
