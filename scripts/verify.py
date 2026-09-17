@@ -148,6 +148,35 @@ def main() -> int:
         else:
             ok(f"designations {n_des}; FTS covers all {n_obj} objects")
 
+    # ---- schema v3 invariants (meteor showers, IAU MDC) --------------------
+    if conn.execute("PRAGMA user_version").fetchone()[0] >= 3:
+        n_showers = conn.execute("SELECT COUNT(*) FROM meteor_showers").fetchone()[0]
+        # 41 rows offline, ~1,400 online — a single floor of 30 covers both
+        # without trying to detect which mode built this file.
+        if n_showers < 30:
+            failures.append(f"meteor_showers: expected >=30, got {n_showers}")
+            fail(f"meteor_showers: expected >=30, got {n_showers}")
+        else:
+            ok(f"meteor_showers: {n_showers} rows")
+
+        dupes = conn.execute(
+            "SELECT iau_no, ad_no, COUNT(*) AS n FROM meteor_showers GROUP BY iau_no, ad_no HAVING n > 1"
+        ).fetchall()
+        if dupes:
+            failures.append(f"meteor_showers duplicate (iau_no, ad_no): {[tuple(r) for r in dupes]}")
+            fail(f"meteor_showers duplicate (iau_no, ad_no): {[tuple(r) for r in dupes]}")
+        else:
+            ok("meteor_showers: no duplicate (iau_no, ad_no)")
+
+        established = conn.execute(
+            "SELECT COUNT(*) FROM meteor_showers WHERE status_label LIKE '%stablished%'"
+        ).fetchone()[0]
+        if established == 0:
+            failures.append("meteor_showers: no status_label contains 'stablished'")
+            fail("meteor_showers: no status_label contains 'stablished'")
+        else:
+            ok(f"meteor_showers: {established} rows with an 'established' status_label")
+
     # Halley (the comet, not asteroid 2688)
     halley = conn.execute(
         """

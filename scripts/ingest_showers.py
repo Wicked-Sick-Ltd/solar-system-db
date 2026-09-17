@@ -100,6 +100,66 @@ def parse_showers(text: str) -> list[dict[str, Any]]:
     return out
 
 
+_NUM = re.compile(r"^\s*\(?(\d+)\)?")
+_COMET = re.compile(r"\b(\d+[PDCIX])(?:/|\b)")
+
+
+def resolve_parent(conn, parent_body: str | None) -> str | None:
+    """Match a shower's free-text parent body to an ingested object.id.
+
+    Tries, in order: a comet designation like "1P" (or "109P/Swift-Tuttle"),
+    a leading asteroid number like "3200" (or "(3200) Phaethon"), then a
+    plain name match. Returns None (never raises) when nothing matches, so
+    callers can count unresolved parents instead of crashing on them.
+    """
+    if not parent_body:
+        return None
+    m = _COMET.search(parent_body)
+    if m:
+        r = conn.execute("SELECT object_id FROM designations WHERE designation = ? LIMIT 1", (m.group(1),)).fetchone()
+        if r:
+            return r[0]
+        r = conn.execute("SELECT id FROM objects WHERE designation LIKE ? AND object_type='comet' LIMIT 1",
+                          (m.group(1) + "/%",)).fetchone()
+        if r:
+            return r[0]
+    m = _NUM.match(parent_body)
+    if m:
+        r = conn.execute("SELECT object_id FROM designations WHERE designation = ? AND kind='number' LIMIT 1",
+                          (m.group(1),)).fetchone()
+        if r:
+            return r[0]
+    name = parent_body.split("/")[-1].strip()
+    r = conn.execute("SELECT id FROM objects WHERE name = ? COLLATE NOCASE LIMIT 1", (name,)).fetchone()
+    return r[0] if r else None
+
+
+def write_showers(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
+    """Insert/replace shower rows keyed on (iau_no, ad_no), resolving parent bodies.
+
+    Records one provenance row for the whole run (not one per shower) since
+    every row comes from the same fetch of the same source document.
+    """
+    n = res = unres = 0
+    cols = ["iau_no", "ad_no", "code", "name", "activity", "status_code", "status_label", "solar_longitude_deg",
+            "ra_deg", "dec_deg", "dra_deg_per_day", "ddec_deg_per_day", "vg_km_s", "a_au", "q_au", "e", "peri_deg",
+            "node_deg", "incl_deg", "n_members", "shower_group", "parent_body", "parent_object_id", "technique",
+            "reference", "submitted_on", "source"]
+    sql = f"INSERT OR REPLACE INTO meteor_showers ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})"
+    for r in rows:
+        pid = resolve_parent(conn, r.get("parent_body"))
+        res += pid is not None
+        unres += pid is None and bool(r.get("parent_body"))
+        r = {**r, "parent_object_id": pid, "source": SOURCE_NAME}
+        conn.execute(sql, [r.get(c) for c in cols])
+        n += 1
+    from common import add_source
+    if n:
+        add_source(conn, object_id=None, table_name="meteor_showers", source_name=SOURCE_NAME, source_url=MDC_URL)
+    conn.commit()
+    return {"showers": n, "parents_resolved": res, "parents_unresolved": unres}
+
+
 def fetch_showers(timeout: int = 120) -> str:
     """Fetch the raw shower list, decoding leniently.
 

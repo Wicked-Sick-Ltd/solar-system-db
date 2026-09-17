@@ -1,12 +1,24 @@
+import sqlite3
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import common  # noqa: E402
-from ingest_showers import fetch_showers, parse_legend, parse_showers  # noqa: E402
+from ingest_showers import fetch_showers, parse_legend, parse_showers, resolve_parent, write_showers  # noqa: E402
+from ingest_sbdb import load_fixture as load_sbdb, map_all, write_mapped  # noqa: E402
 
 FIX = (ROOT / "tests" / "fixtures" / "mdc_showers.txt").read_bytes().decode("utf-8", errors="replace")
+
+
+def _db():
+    conn = sqlite3.connect(":memory:"); conn.row_factory = sqlite3.Row
+    conn.executescript((ROOT / "schema" / "schema.sql").read_text())
+    conn.execute("INSERT INTO objects (id, name, object_type) VALUES ('sun', 'Sun', 'star')")
+    for fx in ("sbdb_asteroids.json", "sbdb_comets.json"):
+        fields, data = load_sbdb(ROOT / "tests" / "fixtures" / fx)
+        write_mapped(conn, map_all(fields, data))
+    return conn
 
 
 def test_legend_names_established_and_working():
@@ -63,3 +75,19 @@ def test_fetch_showers_retries_on_429_via_fetch_bytes(monkeypatch):
 
     assert calls["n"] == 2
     assert text == payload.decode("utf-8", errors="replace")
+
+
+def test_resolve_parent_by_comet_designation_and_asteroid_number():
+    conn = _db()
+    assert resolve_parent(conn, "1P/Halley") is not None
+    assert resolve_parent(conn, "3200 Phaethon") == resolve_parent(conn, "3200")
+    assert resolve_parent(conn, None) is None and resolve_parent(conn, "unknown body") is None
+
+
+def test_write_showers_counts_and_links():
+    conn = _db()
+    counts = write_showers(conn, parse_showers(FIX))
+    assert counts["showers"] >= 30 and counts["parents_resolved"] >= 2
+    row = conn.execute("SELECT parent_object_id FROM meteor_showers WHERE code='ETA' LIMIT 1").fetchone()
+    assert row and row[0] is not None
+    assert conn.execute("SELECT COUNT(*) FROM sources WHERE table_name='meteor_showers'").fetchone()[0] == 1
