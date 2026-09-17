@@ -79,12 +79,37 @@ SGP4 via `sgp4` (Brandon Rhodes) as an optional extra `[sats]`, so `GET /api/v1/
 ### 4.4 Non-goals
 Debris conjunction (SOCRATES), classified objects, high-precision ephemerides (point at Space-Track), and any redistribution of Space-Track data we did not get from CelesTrak.
 
-## 5. Delivery order
+## 7. Addendum 2026-09-17 — first live run, build profile, asteroid filter
+
+### 7.1 As run
+Task 1 (Cloudflare) done 16 Sep; Tasks 2/3/4/6 merged as PR #13 (16 Sep 16:15 UTC); first online build on llm1 16 Sep 15:38→17:22 UTC (1 h 44 min): 1,569,036 objects, 4,065,448 designations, 895,910 MPC discoveries, 884,801 close approaches, 2.75 GB, VERIFY OK. Published 17 Sep 10:25 UTC (695 MB zstd) to `download.sol.wickedsick.com`; php01 cut over 16:21 UTC (50 s end to end); website cache cleared via the Forge API. Nightly timer (03:01 UTC) and crawler (1 rps) live on llm1. The R2 credential in use is the 1Password item `CLOUDFLARE_SOL_R2_API_TOKEN`; it is account-wide and should be re-issued scoped to the one bucket.
+
+### 7.2 Build time: where the 1 h 44 min goes (partial, to be confirmed by the per-stage timing landing in Task 7)
+The close-approach stage fetches one JPL CAD page per calendar year for ±200 years, sequentially (`scripts/ingest_cad.py::iter_window`, 401 requests). Measured single-year latency on 17 Sep: 1850 → 0.6 s, 2026 → 1.7 s, 2200 → 13.5 s. Far-future years dominate: roughly 200 × 8–14 s ≈ 30–45 min of the build is the CAD stage waiting on JPL. Two acceptable fixes, either or both:
+- **Bounded concurrency on the CAD bulk endpoint** (3 workers, thread pool over years, writes still serialised through the single connection): cuts the stage to ~12–15 min. The 1-rps politeness rule applies to the *lookup* API the crawler uses, not to this bulk endpoint, but keep it at 3 and back off on 429/503 as `fetch_json` already does.
+- **Narrow the far window**: close approaches beyond +100 years are of little value to any user of this catalogue and are the slowest to compute at JPL; make the window asymmetric (−200/+100) unless a use case appears.
+Also in scope for the same change: `ANALYZE`/`VACUUM` on a 2.75 GB file (measure before touching), and the 50k-row SBDB pages (30 requests, ~30 MB each; fine).
+Decision pending the timing data from the 18 Sep nightly.
+
+### 7.3 Website: filter on `/asteroids` (solar-system-web)
+Now that `/asteroids` lists 1.56 M bodies, the Category page must offer the same kind of filtering the all-objects page (`/objects`, `App\Livewire\Objects\Index`) already has, with asteroid-specific controls. Requirements:
+- Route stays `/asteroids` (`Category::class`, `kind=asteroid`). Filters are URL-bound (`#[Url]`) exactly like `Objects\Index`, so every view is linkable and back-button friendly; a "clear filters" action resets them.
+- Controls, all mapping 1:1 to existing `GET /api/v1/objects` parameters (no API change needed): **orbit class** (`orbit_class`: MBA, IMB, OMB, MCA, ATE, APO, AMO, IEO, TJN, CEN, TNO with labels from `ingest_sbdb.ORBIT_CLASS_NAMES`), **near-Earth** (`neo=true`), **potentially hazardous** (`pha=true`), **named only** (`named_only=true`), **minimum diameter** (`min_diameter_km`, presets 1/10/100 km), **Earth MOID at most** (`max_moid_au`, presets 0.05/0.1/0.5 AU), **orbit quality** (`max_condition_code`, presets 0–2 "well determined", ≤5, any), **discovered after** (`discovered_after`, year picker → ISO date). `type=asteroid` is fixed.
+- Pagination: keep the page's 24-per-page UX for the first pages, but the client must switch to keyset paging (`after=<last id>`) rather than `offset` once the offset would exceed 10,000, because `offset` deep into 1.5 M rows is slow; the API returns `next_after` for this. Show "about N results" only when the API provides `total`; otherwise show "Page n" without a total.
+- Default view unchanged (unfiltered, first 24 by the API's default order) so existing deep links keep working. Filter changes reset `page` to 1.
+- Empty results render a helpful message with the active filters and a link to the equivalent search.
+- Tests: Livewire feature tests for URL binding of each control, the reset action, and the offset→keyset switch; a smoke test that `/asteroids?neo=1&pha=1` renders and calls the API with both flags.
+- The same component serves `/comets` and `/tnos`; the new controls appear only for `kind=asteroid` (comets get `orbit_class` limited to comet classes in a follow-up).
+Delivery: one PR on solar-system-web (plan `docs/superpowers/plans/2026-09-17-asteroid-filter.md` in that repo, to be written next), after the meteor-showers db work so the API surface is stable.
+
+## 8. Delivery order
 1. **Plan A** `docs/superpowers/plans/2026-09-16-full-catalogue-rollout.md`: R2 + publisher changes, llm1 builder, first publish, php01 pull, crawler, re-land #11 with README. Unfreezes the live data.
 2. **Plan B** `docs/superpowers/plans/2026-09-16-meteor-showers.md`: schema v3 + ingest + API/MCP; web PR after.
-3. **Plan C** written once A is live: artificial satellites per §4.
+3. **Plan D** (solar-system-web) `2026-09-17-asteroid-filter.md`: the `/asteroids` filter per §7.3.
+4. **Plan C** written once A is live: artificial satellites per §4.
+5. Build-time fix per §7.2 once the 18 Sep timing is in.
 
-## 6. Decisions taken by default (Craig to override if wrong)
+## 9. Decisions taken by default (Craig to override if wrong)
 - Public download hostname `download.sol.wickedsick.com`.
 - Nightly at 03:00 UTC on llm1; crawler always on at 1 rps until JPL replies.
 - Retention 30 days of dated artefacts in R2 (unchanged).
