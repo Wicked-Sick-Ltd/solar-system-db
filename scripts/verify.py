@@ -4,6 +4,7 @@ Exits non-zero on any failure so CI can fail fast.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -20,8 +21,23 @@ def ok(msg: str) -> None:
 
 def main() -> int:
     if not DB_PATH.exists():
-        print(f"FATAL: {DB_PATH} does not exist")
-        return 2
+        # No catalogue on this checkout (it is downloaded or built, never committed):
+        # verify the offline build instead so CI still exercises the whole pipeline.
+        import subprocess
+        import sys as _sys
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="solar-verify-") as scratch_dir:
+            scratch = Path(scratch_dir) / "solar_system.sqlite"
+            # flush=True: CI captures build_full.py's child-process output separately
+            # from this print, so without it this line can appear after the build log.
+            print(f"{DB_PATH} does not exist — building the offline fixture catalogue at {scratch} to verify",
+                  flush=True)
+            env = {**os.environ, "SSDB_BUILD_PATH": str(scratch), "SSDB_NO_PUBLISH": "1"}
+            subprocess.run([_sys.executable, str(Path(__file__).resolve().parent / "build_full.py"),
+                            "--fresh", "--offline", "--no-vacuum"], check=True, env=env)
+            os.environ["SSDB_BUILD_PATH"] = str(scratch)
+            rc = subprocess.run([_sys.executable, __file__], env=os.environ).returncode
+        return rc
 
     conn = connect()
     failures: list[str] = []

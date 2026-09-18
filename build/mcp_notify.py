@@ -58,6 +58,28 @@ def format_board_message(summary: dict[str, Any]) -> tuple[str, str]:
     return subject, body
 
 
+def _coordctl_step(coordctl_path: str, step: str, args: list[str], *, input_text: str | None = None) -> None:
+    """Run one coordctl subcommand, logging any failure to stderr without raising.
+
+    OSError (not just subprocess.TimeoutExpired) is caught because a missing or
+    non-executable `python3` / coordctl_path raises FileNotFoundError, and this
+    notifier must never fail the build — it's invoked as
+    `ExecStartPost=... || true`, but main() should still return 0 and keep
+    attempting the remaining steps on its own.
+    """
+    kwargs: dict[str, Any] = {"check": False, "timeout": 30}
+    if input_text is not None:
+        kwargs["input"] = input_text
+        kwargs["text"] = True
+    try:
+        result = subprocess.run(["python3", coordctl_path, *args], **kwargs)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        print(f"mcp_notify: coordctl {step} failed: {e.__class__.__name__}", file=sys.stderr)
+        return
+    if result.returncode != 0:
+        print(f"mcp_notify: coordctl {step} exited {result.returncode}", file=sys.stderr)
+
+
 def main() -> int:
     summary_path = Path(
         os.environ.get("SOLAR_SUMMARY_PATH")
@@ -78,16 +100,17 @@ def main() -> int:
     subject, body = format_board_message(summary)
 
     if Path(coordctl_path).exists():
-        try:
-            result = subprocess.run(
-                ["python3", coordctl_path, "send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"],
-                input=body, text=True, check=False, timeout=30,
-            )
-        except subprocess.TimeoutExpired:
-            print("mcp_notify: coordctl send timed out", file=sys.stderr)
-        else:
-            if result.returncode != 0:
-                print(f"mcp_notify: coordctl send exited {result.returncode}", file=sys.stderr)
+        # The board rejects a send from a session it doesn't know about
+        # ("unknown sender session '…' — register first"), so register this
+        # one-shot process as a coordctl session before sending, and end it
+        # afterwards so it doesn't linger on the board as a phantom session.
+        _coordctl_step(coordctl_path, "register", ["register"])
+        _coordctl_step(
+            coordctl_path, "send",
+            ["send", "--to", "*", "--type", "info", "--subject", subject, "--body", "-"],
+            input_text=body,
+        )
+        _coordctl_step(coordctl_path, "end", ["end"])
     else:
         print(subject)
         print(body)

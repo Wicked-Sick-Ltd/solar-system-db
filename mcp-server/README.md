@@ -16,8 +16,27 @@ pip install -e ./mcp-server
 
 (or with [uv](https://docs.astral.sh/uv/): `uv sync` then `uv pip install -e ./mcp-server`).
 
-Make sure `data/solar_system.sqlite` exists — clone has it committed; if you
-deleted it, run `python scripts/populate_initial.py` from the repo root.
+Make sure `data/solar_system.sqlite` exists — it isn't committed to git.
+From the repo root, either fetch the published nightly artefact:
+
+```bash
+MANIFEST_URL=https://download.sol.wickedsick.com/latest.json ./scripts/pull_latest.sh
+```
+
+or build a small offline one (no network, ~1 second):
+
+```bash
+python scripts/build_full.py --fresh --offline
+```
+
+or the full catalogue online (~1.5 h, hits JPL/MPC — see `docs/BUILD-HOST.md`):
+
+```bash
+python scripts/build_full.py --fresh --online
+```
+
+Point `SOLAR_DB_PATH` at whichever file you built if it isn't at the default
+`data/solar_system.sqlite`.
 
 ## Run
 

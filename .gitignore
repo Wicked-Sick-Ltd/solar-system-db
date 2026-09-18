@@ -7,7 +7,7 @@ __pycache__/
 venv/
 .env
 
-# SQLite WAL / journal — keep the main .sqlite committed
+# SQLite WAL / journal — the catalogue is never committed; see README › Download
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
@@ -29,6 +29,12 @@ solar_system_db.egg-info/
 solar-system-db.egg-info/
 .pytest_cache/
 pytest-cache-files-*/
+
+# The catalogue is built nightly and published to object storage; never commit it.
+data/solar_system.sqlite
+data/latest.json
+data/enrichment.sqlite
+data/.pull.*
 
 # superpowers SDD scratch (ledgers, briefs, review packages)
 .superpowers/
