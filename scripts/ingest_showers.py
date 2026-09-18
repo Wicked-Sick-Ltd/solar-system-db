@@ -50,9 +50,16 @@ _LEGEND = re.compile(r"^[:#]\s*(-?\d+)\s+(.+?)\s*$")
 
 
 def _num(v: str | None, kind=float):
+    """Parse an MDC numeric field. Empty, `-`, `--` and `?` are missing. The MDC
+    wraps derived or uncertain values in parentheses — `(29.8)` — which we
+    parse as the plain number; the "derived" marker itself is not stored
+    (there is no column for it), so 29.8 and (29.8) are indistinguishable in
+    the catalogue."""
     v = (v or "").strip()
     if v in ("", "-", "--", "?"):
         return None
+    if len(v) >= 2 and v[0] == "(" and v[-1] == ")":
+        v = v[1:-1].strip()
     try:
         return kind(v)
     except ValueError:

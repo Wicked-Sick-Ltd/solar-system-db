@@ -179,7 +179,7 @@ def main() -> int:
                 if isinstance(parsed, dict):
                     notes = parsed
             except ValueError:
-                pass
+                notes = {}  # pre-#16 builds wrote free text here, not JSON
         showers_skipped = notes.get("showers") == "skipped"
 
         if showers_skipped and n_showers == 0:

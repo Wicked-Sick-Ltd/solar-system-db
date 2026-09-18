@@ -6,8 +6,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import common  # noqa: E402
 import ingest_showers  # noqa: E402
-from ingest_showers import fetch_showers, parse_legend, parse_showers, resolve_parent, write_showers  # noqa: E402
 from ingest_sbdb import load_fixture as load_sbdb, map_all, write_mapped  # noqa: E402
+
+# Module attribute access, not `from ingest_showers import …`: parse_showers()
+# rebinds ingest_showers.LAST_PARSE_STATS, so a from-import of that name would
+# go stale, and mixing both import styles trips code-quality checks.
+fetch_showers = ingest_showers.fetch_showers
+parse_legend = ingest_showers.parse_legend
+parse_showers = ingest_showers.parse_showers
+resolve_parent = ingest_showers.resolve_parent
+write_showers = ingest_showers.write_showers
 
 FIX = (ROOT / "tests" / "fixtures" / "mdc_showers.txt").read_bytes().decode("utf-8", errors="replace")
 
@@ -152,3 +160,24 @@ def test_write_showers_counts_include_skipped_rows():
     conn = _db()
     counts = write_showers(conn, parse_showers(FIX))
     assert counts["skipped_rows"] == 0
+
+
+def test_num_parses_parenthesised_mdc_values_as_numbers():
+    """The MDC wraps derived/uncertain elements in parentheses. Before this fix
+    `_num("(29.8)")` raised inside float() and the element was stored as null,
+    so 45 live parameter sets lost a real orbital element."""
+    _num = ingest_showers._num
+    assert _num("(29.8) ") == 29.8
+    assert _num("( -1.4 )") == -1.4
+    assert _num("(12)", int) == 12
+    assert _num("()") is None
+    assert _num("(?)") is None
+    assert _num("29.8") == 29.8  # unparenthesised path unchanged
+
+
+def test_eta_aquariids_second_parameter_set_keeps_its_parenthesised_semimajor_axis():
+    rows = parse_showers(FIX)
+    eta2 = [r for r in rows if r["iau_no"] == 31 and r["ad_no"] == 2]
+    assert eta2, "fixture must carry ETA ad_no 002 (the (29.8) row)"
+    assert eta2[0]["a_au"] == 29.8
+
