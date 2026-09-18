@@ -77,17 +77,15 @@ host path on llm1; `/data/enrichment.sqlite` inside the container) is merged int
 every nightly build (`--enrichment-store`), so coverage never regresses.
 
 ## API host
-The API host is `php01`, running `solar-api` as a systemd unit from
-`/home/wizzo/solar-system-db`. The full one-time procedure and the cron line
-live in `deploy/php01/README.md`. The pull logs to `/home/wizzo/solar-pull.log`
-(rather than `/var/log`) because cron runs there as the unprivileged `wizzo`
-user — a deliberate deviation from the spec's `/var/log` path.
-
-**One-time migration required before the first `git pull` after PR #15**: php01's
-live catalogue currently sits at the tracked path `data/solar_system.sqlite`
-(locally modified), which a plain `git pull` cannot handle safely — see
-"Migrating from the committed database" in `deploy/php01/README.md` for the exact
-steps (move the data to `/home/wizzo/solar-data`, then pull).
+The API host is `php01`, running `solar-api` as a systemd unit from the checkout
+`/home/wizzo/solar-system-db`, with the live catalogue **outside** the checkout at
+`/home/wizzo/solar-data/` (`DATA_DIR`; moved there 2026-09-18 after PR #15 untracked
+the database). `deploy/php01/README.md` is the runbook: layout, the single cron
+line and how to repair it, the env file, the committed unit template
+(`deploy/php01/solar-api.service`) and its restore procedure, and the history of
+the two cutovers. The pull logs to `/home/wizzo/solar-pull.log` (rather than
+`/var/log`) because cron runs there as the unprivileged `wizzo` user — a
+deliberate deviation from the spec's `/var/log` path.
 
 Rollback: `./scripts/pull_latest.sh --version YYYYMMDD` with the env file
 sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --version 20260914`.
@@ -96,4 +94,4 @@ sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest
 - The publisher prints a JSON summary; `solar-build.service`'s `ExecStartPost` runs
   `build/mcp_notify.py` to relay it to the fleet hub / Slack (best-effort — piped
   through `|| true` so a missing or failing notifier never fails the build).
-- On the API host, alert if `data/latest.json`'s `built_at` is older than 36 h.
+- On the API host, alert if `/home/wizzo/solar-data/latest.json`'s `built_at` is older than 36 h.

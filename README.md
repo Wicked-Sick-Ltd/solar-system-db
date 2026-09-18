@@ -210,8 +210,8 @@ API host (php01), every 15 min →  scripts/pull_latest.sh: new sha? download, v
 
 Full runbooks: [`docs/BUILD-HOST.md`](docs/BUILD-HOST.md) covers the build host
 (systemd user units, R2 credentials, the crawler) and
-[`deploy/php01/README.md`](deploy/php01/README.md) covers the API host (cron
-line, restart command). For your own deployment, set `MANIFEST_URL` in `.env`
+[`deploy/php01/README.md`](deploy/php01/README.md) covers the API host (layout,
+cron line, env file, the systemd unit template and how to restore it). For your own deployment, set `MANIFEST_URL` in `.env`
 and add a cron line following the same pattern:
 
 ```bash
