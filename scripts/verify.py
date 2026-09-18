@@ -4,6 +4,7 @@ Exits non-zero on any failure so CI can fail fast.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -163,6 +164,64 @@ def main() -> int:
             fail(f"designations={n_des}, fts={n_fts} vs objects={n_obj}")
         else:
             ok(f"designations {n_des}; FTS covers all {n_obj} objects")
+
+    # ---- schema v3 invariants (meteor showers, IAU MDC) --------------------
+    if conn.execute("PRAGMA user_version").fetchone()[0] >= 3:
+        n_showers = conn.execute("SELECT COUNT(*) FROM meteor_showers").fetchone()[0]
+
+        build_row = conn.execute(
+            "SELECT mode, notes FROM build_meta ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        notes: dict = {}
+        if build_row and build_row["notes"]:
+            try:
+                parsed = json.loads(build_row["notes"])
+                if isinstance(parsed, dict):
+                    notes = parsed
+            except ValueError:
+                notes = {}  # pre-#16 builds wrote free text here, not JSON
+        showers_skipped = notes.get("showers") == "skipped"
+
+        if showers_skipped and n_showers == 0:
+            # A deliberate `--skip-showers` build: nothing to check, and an
+            # empty table here is expected, not a failure.
+            ok("meteor_showers: build_meta.notes says showers were skipped — shower checks skipped")
+        else:
+            # 41 rows offline, ~1,400 online — read the mode this file was
+            # actually built with instead of a single floor covering both.
+            floor = 30 if (build_row and build_row["mode"] == "full-offline") else 100
+            if n_showers < floor:
+                failures.append(f"meteor_showers: expected >={floor}, got {n_showers}")
+                fail(f"meteor_showers: expected >={floor}, got {n_showers}")
+            else:
+                ok(f"meteor_showers: {n_showers} rows")
+
+            dupes = conn.execute(
+                "SELECT iau_no, ad_no, COUNT(*) AS n FROM meteor_showers GROUP BY iau_no, ad_no HAVING n > 1"
+            ).fetchall()
+            if dupes:
+                failures.append(f"meteor_showers duplicate (iau_no, ad_no): {[tuple(r) for r in dupes]}")
+                fail(f"meteor_showers duplicate (iau_no, ad_no): {[tuple(r) for r in dupes]}")
+            else:
+                ok("meteor_showers: no duplicate (iau_no, ad_no)")
+
+            established = conn.execute(
+                "SELECT COUNT(*) FROM meteor_showers WHERE status_label LIKE '%stablished%'"
+            ).fetchone()[0]
+            if established == 0:
+                failures.append("meteor_showers: no status_label contains 'stablished'")
+                fail("meteor_showers: no status_label contains 'stablished'")
+            else:
+                ok(f"meteor_showers: {established} rows with an 'established' status_label")
+
+            working = conn.execute(
+                "SELECT COUNT(*) FROM meteor_showers WHERE status_label LIKE '%working%'"
+            ).fetchone()[0]
+            if working == 0:
+                failures.append("meteor_showers: no status_label contains 'working' (the MDC working-list legend)")
+                fail("meteor_showers: no status_label contains 'working' (the MDC working-list legend)")
+            else:
+                ok(f"meteor_showers: {working} rows with a 'working' status_label")
 
     # Halley (the comet, not asteroid 2688)
     halley = conn.execute(

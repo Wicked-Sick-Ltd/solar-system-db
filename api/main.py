@@ -157,6 +157,28 @@ def close_approaches(request: Request,
             "results": db.close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)}
 
 
+@app.get("/api/v1/meteor-showers", tags=["catalog"], summary="IAU meteor showers")
+@limiter.limit("60/minute")
+def list_meteor_showers(request: Request,
+                        established_only: bool = Query(False, description="Keep only MDC status codes 1 (single established shower, group) or 6 (member of the established group)"),
+                        active_on: Optional[str] = Query(None, description="ISO date (YYYY-MM-DD); filters to showers active on this date"),
+                        limit: int = Query(500, ge=1, le=1000)):
+    try:
+        items = db.list_meteor_showers(established_only=established_only, active_on=active_on, limit=limit)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"items": items, "count": len(items)}
+
+
+@app.get("/api/v1/meteor-showers/{code}", tags=["detail"], summary="One IAU meteor shower by code or name")
+@limiter.limit("60/minute")
+def get_meteor_shower(request: Request, code: str):
+    shower = db.get_meteor_shower(code)
+    if shower is None:
+        raise HTTPException(status_code=404, detail=f"No meteor shower found matching {code!r}")
+    return shower
+
+
 @app.get("/api/v1/download", tags=["reference"], summary="Where to get the whole database as one file")
 @limiter.limit("60/minute")
 def download_manifest(request: Request):

@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -84,3 +85,146 @@ def test_negative_limits_are_clamped_everywhere(client):
     conn = _db()
     obj_id = conn.execute("SELECT object_id FROM close_approaches LIMIT 1").fetchone()[0]
     assert len(db.close_approaches_for(obj_id, limit=0)) >= 1
+
+
+def test_meteor_showers_list_and_detail(client):
+    r = client.get("/api/v1/meteor-showers?established_only=true")
+    assert r.status_code == 200 and any(s["code"] == "GEM" for s in r.json()["items"])
+    r = client.get("/api/v1/meteor-showers/GEM")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["code"] == "GEM" and d["parameter_sets"] and d["parent"] and d["parent"]["name"].lower().startswith("phaethon")
+
+
+def test_active_on_filters_by_solar_longitude(client):
+    dec = client.get("/api/v1/meteor-showers?active_on=2026-12-14").json()["items"]
+    jun = client.get("/api/v1/meteor-showers?active_on=2026-06-14").json()["items"]
+    assert any(s["code"] == "GEM" for s in dec) and not any(s["code"] == "GEM" for s in jun)
+
+
+def test_active_on_rejects_garbage_date(client):
+    r = client.get("/api/v1/meteor-showers?active_on=not-a-date")
+    assert r.status_code == 422
+
+
+def test_parent_object_lists_its_showers(client):
+    d = client.get("/api/v1/objects/3200").json()
+    assert any(s["code"] == "GEM" for s in d["meteor_showers"])
+
+
+def test_list_meteor_showers_clamps_negative_limit():
+    from solar_db import SolarDB
+    db = SolarDB(os.environ["SOLAR_DB_PATH"])
+    assert len(db.list_meteor_showers(limit=-1)) <= 1000
+    assert len(db.list_meteor_showers(limit=0)) >= 1
+
+
+def test_established_only_excludes_to_be_established(tmp_path):
+    """established_only must match MDC status codes 1/6 exactly, not a
+    '%stablished%' text match — status 2 ("to be established shower") is a
+    substring match for that text but is NOT established."""
+    from solar_db import SolarDB
+
+    schema_sql = (Path(__file__).resolve().parents[2] / "schema" / "schema.sql").read_text()
+    db_path = tmp_path / "showers_established.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(schema_sql)
+    conn.executemany(
+        "INSERT INTO meteor_showers (iau_no, ad_no, code, name, status_code, status_label, source) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            (99999, 0, "TBE", "Synthetic to-be-established", 2, "to be established shower", "test"),
+            (99998, 0, "MEG", "Synthetic member of established group", 6, "member of the established group", "test"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    db = SolarDB(db_path)
+    established = db.list_meteor_showers(established_only=True)
+    everything = db.list_meteor_showers(established_only=False)
+
+    assert any(r["code"] == "MEG" for r in established)
+    assert not any(r["code"] == "TBE" for r in established)
+    assert any(r["code"] == "TBE" for r in everything)
+    assert any(r["code"] == "MEG" for r in everything)
+
+
+def test_active_on_window_applies_before_limit_not_after(tmp_path):
+    """C1 regression: with ~1,400 rows and the default limit of 500, the
+    active_on ±15° window has to be a SQL WHERE clause evaluated before
+    LIMIT — a Python filter applied after LIMIT would silently drop any
+    matching row past the limit (iau_no order), exactly what happened with
+    ~1,420 live rows and a default limit of 500."""
+    import datetime as dt
+
+    from solar_db import SolarDB
+    from solar_db.positions import solar_longitude_deg
+
+    target_date = dt.date(2026, 12, 14)
+    target_l = solar_longitude_deg(target_date)
+
+    schema_sql = (Path(__file__).resolve().parents[2] / "schema" / "schema.sql").read_text()
+    db_path = tmp_path / "showers_window.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(schema_sql)
+    rows = []
+    for iau_no in range(1, 1401):
+        if iau_no == 1300:
+            lon = target_l
+        else:
+            lon = (iau_no * 137) % 360.0
+            diff = abs(lon - target_l) % 360
+            if min(diff, 360 - diff) <= 20:  # keep every other row well outside the window
+                lon = (lon + 90) % 360.0
+        rows.append((iau_no, 0, f"S{iau_no:04d}", f"Synthetic {iau_no}", 0, "working list", lon, "test"))
+    conn.executemany(
+        "INSERT INTO meteor_showers (iau_no, ad_no, code, name, status_code, status_label, "
+        "solar_longitude_deg, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+    conn.close()
+
+    db = SolarDB(db_path)
+    result = db.list_meteor_showers(active_on=target_date.isoformat())
+    assert [r["iau_no"] for r in result] == [1300]
+
+
+def test_active_on_wraps_around_0_360(tmp_path):
+    """A shower peaking at 355° must count as active when the queried date's
+    solar longitude is 5° — an 10° circular gap, not the 350° a naive
+    subtraction would compute."""
+    from solar_db import SolarDB
+
+    schema_sql = (Path(__file__).resolve().parents[2] / "schema" / "schema.sql").read_text()
+    db_path = tmp_path / "showers_wrap.sqlite"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(schema_sql)
+    conn.execute(
+        "INSERT INTO meteor_showers (iau_no, ad_no, code, name, status_code, status_label, "
+        "solar_longitude_deg, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (88888, 0, "WRP", "Synthetic wraparound shower", 0, "working list", 355.0, "test"),
+    )
+    conn.commit()
+    conn.close()
+
+    db = SolarDB(db_path)
+    # Sun's ecliptic longitude ~5° falls in early April; find a date whose
+    # computed solar_longitude_deg lands close to 5° so the window (peak 355°,
+    # target ~5°, circular gap ~10°) is exercised without hardcoding the model's
+    # exact day-of-year mapping.
+    from solar_db.positions import solar_longitude_deg
+    import datetime as dt
+    target_date = None
+    for day_offset in range(365):
+        d = dt.date(2026, 1, 1) + dt.timedelta(days=day_offset)
+        l = solar_longitude_deg(d)
+        diff = abs(l - 5.0) % 360
+        if min(diff, 360 - diff) <= 2:
+            target_date = d
+            break
+    assert target_date is not None, "no date found with solar longitude near 5 degrees"
+
+    result = db.list_meteor_showers(active_on=target_date.isoformat())
+    assert any(r["code"] == "WRP" for r in result)

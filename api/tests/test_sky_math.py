@@ -1,5 +1,7 @@
+import datetime
 import math
 
+from solar_db.positions import solar_longitude_deg
 from solar_db.sky import (ecliptic_to_equatorial, elongation_deg, format_dms, format_hms,
                           geocentric_equatorial, hemisphere)
 
@@ -31,3 +33,11 @@ def test_hemisphere_bands():
 def test_formatting():
     assert format_hms(187.42) == "12h 29m 41s"
     assert format_dms(-2.31) == "-02° 18′ 36″"
+
+
+def test_solar_longitude_deg_december():
+    assert abs(solar_longitude_deg(datetime.date(2026, 12, 14)) - 262) <= 2
+
+
+def test_solar_longitude_deg_june():
+    assert abs(solar_longitude_deg(datetime.date(2026, 6, 14)) - 83) <= 2

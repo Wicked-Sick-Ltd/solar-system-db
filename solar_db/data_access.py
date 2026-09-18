@@ -12,9 +12,13 @@ import json
 import os
 import re
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any
+
+from .positions import solar_longitude_deg
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -253,6 +257,18 @@ class SolarDB:
                 row = conn.execute("SELECT flagged, source, retrieved_at FROM impact_monitoring WHERE object_id = ?",
                                    (obj_id,)).fetchone()
                 out["impact_monitoring"] = dict(row) if row else None
+            if self._has_table(conn, "meteor_showers"):
+                showers: list[dict] = []
+                seen_iau_no: set[int] = set()
+                for r in conn.execute(
+                    "SELECT iau_no, code, name, solar_longitude_deg, vg_km_s "
+                    "FROM meteor_showers WHERE parent_object_id = ? ORDER BY iau_no, ad_no",
+                    (obj_id,)):
+                    if r["iau_no"] in seen_iau_no:
+                        continue
+                    seen_iau_no.add(r["iau_no"])
+                    showers.append(dict(r))
+                out["meteor_showers"] = showers
             out["sources"] = [
                 dict(r) for r in conn.execute(
                     "SELECT table_name, source_name, source_url, retrieved_at "
@@ -551,6 +567,98 @@ class SolarDB:
                 return []
             return [dict(r) for r in conn.execute(
                 "SELECT designation, kind, source FROM designations WHERE object_id = ? ORDER BY kind, designation", (obj_id,))]
+
+    # ----------------------------------------------------------------------
+    # Meteor showers (IAU Meteor Data Center)
+    # ----------------------------------------------------------------------
+    def list_meteor_showers(self, *, established_only: bool = False,
+                            active_on: str | None = None, limit: int = 500) -> list[dict]:
+        """IAU Meteor Data Center shower list — one row per parameter set (a
+        shower typically has several, from different observation campaigns).
+
+        `established_only` keeps only rows whose MDC status code is 1
+        ("single established shower, group") or 6 ("member of the established
+        group") — an exact code match, not a text match against the label
+        (status 2, "to be established shower", is deliberately excluded).
+        `active_on` (an ISO YYYY-MM-DD date) keeps only showers whose
+        solar-longitude activity peak is within 15 degrees (circular) of the
+        Sun's ecliptic longitude on that date — raises ValueError for an
+        unparseable date.
+        """
+        target_l: float | None = None
+        if active_on is not None:
+            try:
+                target_l = solar_longitude_deg(date.fromisoformat(active_on))
+            except ValueError as e:
+                raise ValueError(f"active_on must be an ISO date (YYYY-MM-DD): {active_on!r}") from e
+        with self._conn() as conn:
+            if not self._has_table(conn, "meteor_showers"):
+                return []
+            clauses: list[str] = []
+            params: list[Any] = []
+            if established_only:
+                clauses.append("status_code IN (1, 6)")
+            if target_l is not None:
+                # Circular distance in SQL, evaluated before LIMIT so the window
+                # applies to the whole table (~1,420 live rows) rather than only
+                # the first `limit` rows in iau_no/ad_no order. SQLite's two-arg
+                # scalar MIN (not the aggregate MIN) picks the shorter arc.
+                clauses.append(
+                    "(solar_longitude_deg IS NOT NULL AND "
+                    "MIN(ABS(solar_longitude_deg - ?) % 360.0, "
+                    "360.0 - (ABS(solar_longitude_deg - ?) % 360.0)) <= 15.0)"
+                )
+                params.extend([target_l, target_l])
+            where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+            return [dict(r) for r in conn.execute(
+                f"""
+                SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
+                       solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
+                       vg_km_s, a_au, q_au, e, peri_deg, node_deg, incl_deg, n_members,
+                       shower_group, parent_body, parent_object_id, technique, reference,
+                       submitted_on, source
+                FROM meteor_showers
+                {where}
+                ORDER BY iau_no, ad_no
+                LIMIT ?
+                """, [*params, self._lim(limit, 1000)])]
+
+    def get_meteor_shower(self, code_or_name: str) -> dict | None:
+        """One IAU-registered meteor shower (all its parameter sets, plus its
+        parent body when the MDC has linked one), matched by IAU code (e.g.
+        "GEM") or name (e.g. "Geminids"), case-insensitively."""
+        with self._conn() as conn:
+            if not self._has_table(conn, "meteor_showers"):
+                return None
+            head = conn.execute(
+                "SELECT iau_no FROM meteor_showers WHERE code = ? COLLATE NOCASE "
+                "OR name = ? COLLATE NOCASE ORDER BY iau_no LIMIT 1",
+                (code_or_name, code_or_name)).fetchone()
+            if not head:
+                return None
+            rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY ad_no",
+                (head["iau_no"],))]
+            first = rows[0]
+            # Prefer a parameter set the MDC has actually linked to a parent
+            # body over the first one (which is frequently an earlier, less
+            # complete campaign with no parent_object_id at all).
+            head_row = next((r for r in rows if r.get("parent_object_id")), first)
+            parent = None
+            parent_id = head_row.get("parent_object_id")
+            if parent_id:
+                prow = conn.execute(
+                    "SELECT id, name, designation, object_type FROM objects WHERE id = ?",
+                    (parent_id,)).fetchone()
+                parent = dict(prow) if prow else None
+            return {
+                "iau_no": first["iau_no"],
+                "code": first["code"],
+                "name": first["name"],
+                "status_label": head_row["status_label"],
+                "parameter_sets": rows,
+                "parent": parent,
+            }
 
     def download_manifest(self) -> dict | None:
         """The published-artefact manifest (latest.json) written by the nightly

@@ -204,6 +204,28 @@ def get_designations(name_or_designation: str) -> list[dict] | dict:
 
 
 @mcp.tool()
+def list_meteor_showers(established_only: bool = False, active_on: str | None = None,
+                        limit: int = 200) -> list[dict]:
+    """List IAU Meteor Data Center showers — one entry per parameter set (a
+    shower may have several, from different observation campaigns).
+    `established_only` keeps only showers whose MDC status code is 1 (single
+    established shower, group) or 6 (member of the established group).
+    `active_on` (ISO date, YYYY-MM-DD) keeps only showers whose activity peak
+    (solar longitude) falls within 15 degrees of the Sun's position on that
+    date."""
+    return db().list_meteor_showers(established_only=established_only, active_on=active_on, limit=limit)
+
+
+@mcp.tool()
+def get_meteor_shower(code_or_name: str) -> dict:
+    """One IAU Meteor Data Center shower by 3-letter code (e.g. "GEM") or name
+    (e.g. "Geminids"), case-insensitively — all its parameter sets, plus its
+    parent comet/asteroid when the MDC has linked one."""
+    s = db().get_meteor_shower(code_or_name)
+    return s if s is not None else {"error": f"No meteor shower found matching {code_or_name!r}."}
+
+
+@mcp.tool()
 def get_atmosphere(planet: str) -> dict:
     """Atmosphere of a planet, Pluto or Titan-class body from the NASA fact
     sheets: surface pressure, temperature, density, scale height, winds and

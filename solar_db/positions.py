@@ -46,6 +46,23 @@ def date_to_jd(d: date | datetime | str) -> float:
     return jd
 
 
+def solar_longitude_deg(d: date) -> float:
+    """Low-precision ecliptic *mean* longitude of the Sun, in degrees, for a
+    given calendar date.
+
+    Formula: L = (280.460 + 0.9856474 * n) % 360, where n is the number of
+    days since J2000.0 (2000-01-01 12:00 TT); the date is treated as 00:00
+    UTC. This is the mean longitude — it omits the equation-of-centre terms
+    (+ 1.915*sin(g) + 0.020*sin(2g)) that would turn it into the true/apparent
+    longitude — so accuracy is ~2 degrees, plenty for the +/-15 degree
+    "active on" window used to match meteor showers to a calendar date, but
+    not for precise ephemeris work (use `compute_heliocentric_position` for
+    that).
+    """
+    n = date_to_jd(d) - 2451545.0
+    return (280.460 + 0.9856474 * n) % 360
+
+
 def solve_kepler(M: float, e: float, tol: float = EPS, max_iter: int = 50) -> float:
     """Solve Kepler's equation M = E - e sin E for E. Returns E in radians."""
     M = (M + math.pi) % (2 * math.pi) - math.pi   # wrap to [-π, π]

@@ -78,6 +78,12 @@ def test_search_pluto(db):
     assert any(r["object_type"] == "dwarf_planet" for r in rows)
 
 
+def test_get_meteor_shower_perseids(db):
+    shower = db.get_meteor_shower("Perseids")
+    assert shower is not None
+    assert shower["code"] == "PER"
+
+
 # ----- position / ephemeris --------------------------------------------------
 def test_compute_position_earth(db):
     from solar_db import compute_heliocentric_position
@@ -132,7 +138,8 @@ def test_mcp_server_loads():
                  "list_periodic_comets", "list_tnos", "get_rings",
                  "compute_position", "next_perihelion",
                  "get_schema", "get_stats", "get_sources",
-                 "list_object_types", "search"):
+                 "list_object_types", "search",
+                 "list_meteor_showers", "get_meteor_shower"):
         assert hasattr(server, name), f"missing tool: {name}"
 
 

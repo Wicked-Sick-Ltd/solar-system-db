@@ -32,6 +32,8 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 | GET | `/api/v1/neos?min_diameter_km=…&max_diameter_km=…` | Near-Earth Objects |
 | GET | `/api/v1/comets/periodic` | Numbered periodic comets |
 | GET | `/api/v1/tnos` | Trans-Neptunian objects + centaurs |
+| GET | `/api/v1/meteor-showers?established_only=…&active_on=…&limit=…` | IAU Meteor Data Center showers |
+| GET | `/api/v1/meteor-showers/{code}` | One IAU meteor shower by code or name |
 | GET | `/api/v1/search?q=…` | Fuzzy search across names/designations |
 | GET | `/api/v1/positions/{name}?date=YYYY-MM-DD` | Heliocentric position (two-body Kepler) |
 | GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
@@ -41,12 +43,28 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 | GET | `/api/v1/schema` | SQLite schema DDL |
 | GET | `/api/v1/stats` | Catalogue stats |
 
+### Meteor shower filters
+
+The `/api/v1/meteor-showers` endpoint accepts three optional query parameters:
+
+- **`active_on`** — ISO date string (YYYY-MM-DD); keeps only showers whose peak solar longitude is within ±15° of the Sun's longitude on that date (approximate; the MDC provides peak times only).
+- **`established_only`** — Boolean (default false); keeps only IAU MDC status codes 1 (single established shower or group) and 6 (member of an established group), excluding code 2 ("to be established") and the working list.
+- **`limit`** — Integer, clamped to max 1000 (default 500); maximum rows returned.
+
+Many `submitted_on` values are the MDC placeholder `"SD"` rather than a real
+date, and `reference` may contain raw HTML anchors (`<A href='…'>…</A>`) as
+supplied by the source document — neither is cleaned up by this API.
+
 ## Rate limits
 
 Default: **60 req/min and 1000 req/day per IP** (via `slowapi`). Cloudflare
 does the heavy lifting in front of public deployments; this is defence in
 depth. Adjust the `@limiter.limit("60/minute")` decorators in `api/main.py`
 if you need different limits.
+
+## Data sources
+
+Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskens et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
 
 ## Read-only by design
 
@@ -59,6 +77,9 @@ if a route bug introduced one.
 ```bash
 # Saturn's moons
 curl https://solar.example.com/api/v1/planets/Saturn/moons | jq
+
+# Geminids meteor shower by 3-letter code
+curl 'https://solar.example.com/api/v1/meteor-showers/GEM' | jq
 
 # Earth's position on 2030-01-01
 curl 'https://solar.example.com/api/v1/positions/Earth?date=2030-01-01' | jq

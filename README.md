@@ -230,6 +230,7 @@ All upstream sources are public-domain or freely redistributable:
 | [JPL CAD API](https://ssd-api.jpl.nasa.gov/doc/cad.html) | Close approaches to planets and the Moon | NASA public domain |
 | [JPL planetary satellites](https://ssd.jpl.nasa.gov/sats/elem/) | Elements + physical parameters of every known moon | NASA public domain |
 | [IAU Minor Planet Center](https://www.minorplanetcenter.net/iau/lists/NumberedMPs.txt) | Discovery circumstances (date, site, discoverer) for every numbered minor planet | Free dataset, redistributable "as long as the source for the data is clearly specified" (MPC web policy) — attribution: "Data: IAU Minor Planet Center" |
+| [IAU Meteor Data Center](https://www.ta3.sk/IAUC22DB/MDC2007/Etc/streamfulldata.txt) | Meteor shower parameter sets (code, name, activity, radiant, orbital elements, parent bodies) | Free use with attribution: `IAU Meteor Data Center (Jenniskens et al. 2020; Hajdukova & Rudawska)` |
 | [CDS catalogue VI/42](https://cdsarc.cds.unistra.fr/ftp/VI/42/) (Roman 1987) | Constellation boundaries for sky lookups | Public domain |
 
 Wikipedia is referenced in `wikipedia_url` columns for human reading; it is
@@ -246,6 +247,7 @@ physical_properties      radius, mass, density, rotation, axial tilt, gravity
 visual_properties        albedo, H magnitude, B-V, dominant_colour_hex
 rings                    parent_id → planets; inner/outer radius, width, thickness
 classifications          multi-label: NEO, PHA, Trojan, Hilda, MBA, ...
+meteor_showers           IAU MDC shower parameter sets: code, name, activity, radiant, elements, parent body
 sources                  provenance per (object, table, field)
 build_meta               one row per refresh
 ```
@@ -283,6 +285,7 @@ Everything the public sources publish, refreshed nightly:
 - close approaches to every planet and the Moon, ±200 years (JPL CAD);
 - every known natural satellite with planetocentric elements (JPL SSD);
 - the complete NASA planetary fact sheets, atmospheres included;
+- every IAU Meteor Data Center meteor shower (all parameter sets, status, radiant, velocity, orbit), linked to its parent comet or asteroid where the catalogue has it;
 - per-object detail from the SBDB lookup API — citations, alternate
   designations, radar observations, impact-monitoring flags, referenced
   physical parameters — filled by a perpetual polite crawler (tier 1, the
@@ -297,7 +300,7 @@ Everything the public sources publish, refreshed nightly:
 - Keeping the SQLite file in git — it left the repo in this rollout; git holds
   code, schema, seed data and a small test fixture, not the catalogue itself.
 
-**Coming next:** meteor showers (IAU MDC) and artificial satellites
+**Coming next:** artificial satellites
 (CelesTrak) — see
 [`docs/superpowers/specs/2026-09-16-full-catalogue-rollout-and-extensions-design.md`](docs/superpowers/specs/2026-09-16-full-catalogue-rollout-and-extensions-design.md).
 

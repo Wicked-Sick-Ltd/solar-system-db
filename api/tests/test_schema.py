@@ -20,8 +20,8 @@ def _mem():
     return conn
 
 
-def test_user_version_is_2():
-    assert _mem().execute("PRAGMA user_version").fetchone()[0] == 2
+def test_user_version_is_at_least_2():
+    assert _mem().execute("PRAGMA user_version").fetchone()[0] >= 2
 
 
 def test_v2_columns_exist():
@@ -43,3 +43,14 @@ def test_v1_columns_still_present():
     have = {r[1] for r in conn.execute("PRAGMA table_info(visual_properties)")}
     assert {"geometric_albedo", "bond_albedo", "absolute_magnitude_h", "colour_b_v", "spectral_type",
             "dominant_colour_hex"} <= have
+
+
+def test_schema_v3_has_meteor_showers():
+    conn = sqlite3.connect(":memory:")
+    conn.executescript((SCHEMA).read_text())
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(meteor_showers)")}
+    assert {"iau_no", "ad_no", "code", "name", "status_code", "status_label", "solar_longitude_deg",
+            "ra_deg", "dec_deg", "vg_km_s", "parent_body", "parent_object_id", "source"} <= cols
+    idx = {r[1] for r in conn.execute("PRAGMA index_list(meteor_showers)")}
+    assert {"idx_showers_code", "idx_showers_parent", "idx_showers_status"} <= idx

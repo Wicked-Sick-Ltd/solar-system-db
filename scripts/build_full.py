@@ -25,6 +25,7 @@ import ingest_mpc  # noqa: E402
 import ingest_sats  # noqa: E402
 import ingest_sbdb  # noqa: E402
 import ingest_seed  # noqa: E402
+import ingest_showers  # noqa: E402
 from common import DB_PATH, ROOT, connect, publish  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -114,6 +115,16 @@ def stage_cad(conn, *, offline: bool, years: int) -> dict[str, int]:
     return total
 
 
+def stage_showers(conn, *, offline: bool) -> dict[str, int]:
+    if offline:
+        # The fixture may carry the same stray non-UTF-8 byte as the live feed
+        # (see ingest_showers module docstring) — decode leniently.
+        text = (FIXTURES / "mdc_showers.txt").read_bytes().decode("utf-8", errors="replace")
+    else:
+        text = ingest_showers.fetch_showers()
+    return ingest_showers.write_showers(conn, ingest_showers.parse_showers(text))
+
+
 def stage_enrichment(conn, store: str | None) -> dict[str, int]:
     if not store or not Path(store).exists():
         return {"applied": 0, "skipped": 0, "note": "no enrichment store"}  # type: ignore[dict-item]
@@ -162,6 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--cad-years", type=int, default=200, help="Close-approach window, ± years from now")
     p.add_argument("--skip-cad", action="store_true")
     p.add_argument("--skip-mpc", action="store_true")
+    p.add_argument("--skip-showers", action="store_true")
     p.add_argument("--no-vacuum", action="store_true")
     p.add_argument("--enrichment-store", default=None, help="crawler store (enrichment.sqlite) to merge in")
     args = p.parse_args(argv)
@@ -193,6 +205,11 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_cad:
         totals["cad"] = _run_stage("Stage 5: JPL close approaches",
                                     lambda: stage_cad(conn, offline=offline, years=args.cad_years))
+    if not args.skip_showers:
+        totals["showers"] = _run_stage("Stage 5b: IAU MDC meteor showers",
+                                       lambda: stage_showers(conn, offline=offline))
+    else:
+        totals["showers"] = "skipped"
     totals["tiers"] = _run_stage("Stage 6: crawler tiers", lambda: stage_tiers(conn))
     totals["enrichment"] = _run_stage("Stage 7: merge crawler enrichment",
                                        lambda: stage_enrichment(conn, args.enrichment_store))

@@ -85,8 +85,18 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 | `list_neos` | Near-Earth Objects, filterable by diameter. |
 | `list_periodic_comets` | Numbered comets (P < 200 y). |
 | `list_tnos` | Trans-Neptunian objects + centaurs. |
+| `list_meteor_showers` | IAU Meteor Data Center showers, optionally filtered by establishment status or activity date. |
+| `get_meteor_shower` | One IAU meteor shower by 3-letter code or name — all parameter sets, plus parent comet/asteroid. |
 | `get_rings` | Known rings of a given planet. |
 | `search` | Fuzzy text search across names / designations / discoverers. |
+
+### Meteor shower parameters
+
+The `list_meteor_showers` tool accepts three optional parameters:
+
+- **`active_on`** — ISO date string (YYYY-MM-DD); keeps only showers whose peak solar longitude is within ±15° of the Sun's longitude on that date (approximate; the MDC provides peak times only).
+- **`established_only`** — Boolean (default false); keeps only IAU MDC status codes 1 (single established shower or group) and 6 (member of an established group), excluding code 2 ("to be established") and the working list.
+- **`limit`** — Integer, clamped to 1000 (default 200); maximum rows returned.
 
 ### Position / ephemeris
 
@@ -121,12 +131,19 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 > what moons does Saturn have?
 [uses list_moons("Saturn")]
 
+> tell me about the Perseids meteor shower
+[uses get_meteor_shower("Perseids")]
+
 > tell me everything you know about Comet Halley
 [uses get_object("1P/Halley")]
 
 > where is Pluto on 2030-01-01?
 [uses compute_position("Pluto", "2030-01-01")]
 ```
+
+## Data sources
+
+Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskens et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.
 
 ## Precision note
 
