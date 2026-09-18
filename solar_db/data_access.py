@@ -12,10 +12,11 @@ import json
 import os
 import re
 import sqlite3
+from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import date
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any
 
 from .positions import solar_longitude_deg
 
@@ -587,7 +588,7 @@ class SolarDB:
         target_l: float | None = None
         if active_on is not None:
             try:
-                target_l = solar_longitude_deg(datetime.strptime(active_on, "%Y-%m-%d").date())
+                target_l = solar_longitude_deg(date.fromisoformat(active_on))
             except ValueError as e:
                 raise ValueError(f"active_on must be an ISO date (YYYY-MM-DD): {active_on!r}") from e
         with self._conn() as conn:
@@ -631,12 +632,12 @@ class SolarDB:
                 return None
             head = conn.execute(
                 "SELECT iau_no FROM meteor_showers WHERE code = ? COLLATE NOCASE "
-                "OR name = ? COLLATE NOCASE LIMIT 1",
+                "OR name = ? COLLATE NOCASE ORDER BY iau_no LIMIT 1",
                 (code_or_name, code_or_name)).fetchone()
             if not head:
                 return None
             rows = [dict(r) for r in conn.execute(
-                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY iau_no, ad_no",
+                "SELECT * FROM meteor_showers WHERE iau_no = ? ORDER BY ad_no",
                 (head["iau_no"],))]
             first = rows[0]
             # Prefer a parameter set the MDC has actually linked to a parent
