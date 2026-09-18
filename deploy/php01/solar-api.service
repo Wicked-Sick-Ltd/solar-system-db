@@ -1,0 +1,23 @@
+# /etc/systemd/system/solar-api.service on php01 — the API host.
+# Restore with:  sudo tee /etc/systemd/system/solar-api.service < deploy/php01/solar-api.service
+# then:          sudo systemctl daemon-reload && sudo systemctl start solar-api
+# (see deploy/php01/README.md § "Restore the unit file"). Keep this file in step with the box.
+[Unit]
+Description=Solar System DB API (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wizzo
+Group=wizzo
+WorkingDirectory=/home/wizzo/solar-system-db
+Environment=API_HOST=127.0.0.1
+Environment=API_PORT=8003
+Environment=SOLAR_DB_PATH=/home/wizzo/solar-data/solar_system.sqlite
+ExecStart=/home/wizzo/solar-system-db/.venv/bin/python /home/wizzo/solar-system-db/api/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
