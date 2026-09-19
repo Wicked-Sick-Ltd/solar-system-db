@@ -14,7 +14,9 @@ pip install -e .
 pip install -e ./mcp-server
 ```
 
-(or with [uv](https://docs.astral.sh/uv/): `uv sync` then `uv pip install -e ./mcp-server`).
+There is no `uv.lock`; `uv sync` is not a supported path. With
+[uv](https://docs.astral.sh/uv/), use `uv pip install -e .` then
+`uv pip install -e ./mcp-server` to match CI.
 
 Make sure `data/solar_system.sqlite` exists — it isn't committed to git.
 From the repo root, either fetch the published nightly artefact:
@@ -155,8 +157,7 @@ For arcsecond precision and close-approach work, use the
 ## Tests
 
 ```bash
-cd mcp-server
-python -m pytest tests/
+pytest mcp-server/tests/ api/tests/ --import-mode=importlib
 ```
 
 Smoke tests confirm each tool family is wired up and the shared data-access
