@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import PlainTextResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -356,11 +356,17 @@ def healthz():
     return {"status": "ok", "total_objects": db.stats()["total_objects"]}
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Start the API server for the packaged console script."""
     import uvicorn
+
     uvicorn.run(
         "main:app",
         host=os.environ.get("API_HOST", "0.0.0.0"),
         port=int(os.environ.get("API_PORT", "8003")),
         reload=False,
     )
+
+
+if __name__ == "__main__":
+    run()
