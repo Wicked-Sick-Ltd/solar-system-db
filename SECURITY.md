@@ -26,4 +26,7 @@ There is no bug bounty programme.
 - Both interfaces are read-only by design and the SQLite file is opened
   `mode=ro&immutable=1`, so the things we care about most are: anything that
   reaches arbitrary SQL through the REST or MCP layers, path/SSRF issues in the
-  refresh scripts, poisoning of the nightly-refresh PR, and rate-limit bypass.
+  ingest/publish scripts, a poisoned R2 artefact or `latest.json` (the
+  manifest is fetched over HTTPS but not signed — `scripts/pull_latest.sh`
+  must keep refusing unexpected artefact names and URLs, verifying sha256,
+  and swapping the SQLite file atomically), and rate-limit bypass.
