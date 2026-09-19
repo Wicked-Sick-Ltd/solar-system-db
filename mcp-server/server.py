@@ -54,9 +54,11 @@ def db() -> SolarDB:
     return _db
 
 
-# ---------------------------------------------------------------------------
 # Catalog tools
-# ---------------------------------------------------------------------------
+def _bounded_limit(limit: int, maximum: int) -> int:
+    return max(1, min(limit, maximum))
+
+
 @mcp.tool()
 def find_objects(
     object_type: str | None = None,
@@ -69,6 +71,12 @@ def find_objects(
     neo: bool | None = None,
     pha: bool | None = None,
     named_only: bool | None = None,
+    orbit_class: str | None = None,
+    max_moid_au: float | None = None,
+    min_diameter_km: float | None = None,
+    max_condition_code: int | None = None,
+    discovered_after: str | None = None,
+    after: str | None = None,
     limit: int = 50,
 ) -> list[dict]:
     """Filter solar-system objects by type, parent body, size, orbit, and classification.
@@ -83,7 +91,13 @@ def find_objects(
       neo: True returns only Near-Earth Objects.
       pha: True returns only Potentially Hazardous Asteroids.
       named_only: True excludes provisional-designation-only objects.
-      limit: 1–500, default 50.
+      orbit_class: SBDB orbit class code, e.g. MBA, APO, TNO, or JFc.
+      max_moid_au: maximum Earth minimum-orbit-intersection distance in AU.
+      min_diameter_km: estimated diameter lower bound in kilometres.
+      max_condition_code: maximum orbit uncertainty code, from 0 (best) to 9.
+      discovered_after: earliest discovery date, as an ISO date.
+      after: last object id from the previous page for keyset pagination.
+      limit: 1–1000, default 50.
     Returns: list of object summaries with key orbital + physical fields.
     """
     return db().find_objects(
@@ -92,7 +106,12 @@ def find_objects(
         max_eccentricity=max_eccentricity,
         min_semi_major_axis_au=min_semi_major_axis_au,
         max_semi_major_axis_au=max_semi_major_axis_au,
-        neo=neo, pha=pha, named_only=named_only, limit=limit,
+        neo=neo, pha=pha, named_only=named_only,
+        orbit_class=orbit_class, max_moid_au=max_moid_au,
+        min_diameter_km=min_diameter_km,
+        max_condition_code=max_condition_code,
+        discovered_after=discovered_after, after=after,
+        limit=_bounded_limit(limit, 1000),
     )
 
 
@@ -136,17 +155,19 @@ def list_neos(min_diameter_km: float | None = None,
 
 
 @mcp.tool()
-def list_periodic_comets() -> list[dict]:
+def list_periodic_comets(limit: int = 500) -> list[dict]:
     """List numbered / periodic comets (orbital period < 200 years), ordered by
-    period. Includes 1P/Halley, 67P/Churyumov-Gerasimenko, 109P/Swift-Tuttle, etc."""
-    return db().list_periodic_comets()
+    period. Includes 1P/Halley, 67P/Churyumov-Gerasimenko, 109P/Swift-Tuttle,
+    etc. `limit` is 1–2000, default 500."""
+    return db().list_periodic_comets(limit=_bounded_limit(limit, 2000))
 
 
 @mcp.tool()
-def list_tnos() -> list[dict]:
+def list_tnos(limit: int = 500) -> list[dict]:
     """List trans-Neptunian objects and centaurs, ordered by semi-major axis.
-    Includes Pluto's KBO cousins, Sedna, Eris, Quaoar, Chiron, Chariklo, etc."""
-    return db().list_tnos()
+    Includes Pluto's KBO cousins, Sedna, Eris, Quaoar, Chiron, Chariklo, etc.
+    `limit` is 1–2000, default 500."""
+    return db().list_tnos(limit=_bounded_limit(limit, 2000))
 
 
 @mcp.tool()
@@ -165,9 +186,7 @@ def search(query: str, limit: int = 20) -> list[dict]:
     return db().search(query, limit=limit)
 
 
-# ---------------------------------------------------------------------------
 # Position / ephemeris tools
-# ---------------------------------------------------------------------------
 @mcp.tool()
 def get_close_approaches(name_or_designation: str, date_min: str | None = None, date_max: str | None = None,
                          body: str | None = None, limit: int = 100) -> dict:
@@ -319,9 +338,7 @@ def next_perihelion(name_or_designation: str) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
 # Reference / discovery
-# ---------------------------------------------------------------------------
 @mcp.tool()
 def list_object_types() -> list[dict]:
     """List the object_type values present in the catalogue and how many rows
@@ -353,9 +370,7 @@ def get_stats() -> dict:
     return db().stats()
 
 
-# ---------------------------------------------------------------------------
 # Resources
-# ---------------------------------------------------------------------------
 @mcp.resource("solar-system://schema")
 def schema_resource() -> str:
     """The SQLite schema, exposed as a resource."""
@@ -369,9 +384,7 @@ def catalog_stats_resource() -> str:
     return json.dumps(db().stats(), indent=2, default=str)
 
 
-# ---------------------------------------------------------------------------
 # Entry point
-# ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__ or "")
     p.add_argument(

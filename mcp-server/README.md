@@ -78,13 +78,13 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 
 | Tool | One-liner |
 |---|---|
-| `find_objects` | Flexible filter: type, parent, size, eccentricity, NEO/PHA, named-only. |
+| `find_objects` | Flexible filter: type, parent, size, orbit class/quality, discovery date, NEO/PHA, named-only, and keyset pagination (`after`); up to 1000 rows. |
 | `get_object` | Full record for one object — orbital + physical + visual + sources. |
 | `list_moons` | All moons of a given planet or dwarf planet. |
 | `list_dwarf_planets` | The 5 IAU dwarf planets (+ candidates with `include_candidates=True`). |
 | `list_neos` | Near-Earth Objects, filterable by diameter. |
-| `list_periodic_comets` | Numbered comets (P < 200 y). |
-| `list_tnos` | Trans-Neptunian objects + centaurs. |
+| `list_periodic_comets` | Numbered comets (P < 200 y); configurable limit up to 2000. |
+| `list_tnos` | Trans-Neptunian objects + centaurs; configurable limit up to 2000. |
 | `list_meteor_showers` | IAU Meteor Data Center showers, optionally filtered by establishment status or activity date. |
 | `get_meteor_shower` | One IAU meteor shower by 3-letter code or name — all parameter sets, plus parent comet/asteroid. |
 | `get_rings` | Known rings of a given planet. |
