@@ -11,9 +11,6 @@ fields it can verify against upstream. The list itself is stable.
 """
 from __future__ import annotations
 
-# --------------------------------------------------------------------------
-# The Sun
-# --------------------------------------------------------------------------
 SUN = {
     "id": "sun", "name": "Sun", "designation": "Sol",
     "wikipedia_url": "https://en.wikipedia.org/wiki/Sun",
@@ -530,9 +527,6 @@ OTHER_DWARF_MOONS = [
      "physical": {"radius_km": 50.0}, "orbital": {"orbital_period_days": 25.220}},
 ]
 
-# --------------------------------------------------------------------------
-# Ring systems
-# --------------------------------------------------------------------------
 RINGS = [
     # Jupiter
     {"parent_id": "planet-jupiter", "name": "Halo Ring",
