@@ -1,16 +1,10 @@
-"""All currently-named natural satellites of the planets and IAU dwarf planets.
+"""Natural satellites of the planets, by name where the IAU has given one and
+by provisional designation (e.g. S/2003 J 5) where it hasn't.
 
-This is the curated set: every IAU-named moon. Confirmed satellites that only
-have provisional designations (e.g. S/2003 J 5) are not enumerated here —
-README tracks that gap. Named moons in this module are seeded via
-`seed_major.py` / `seed_moons.py`; fuller satellite coverage comes from the
-JPL satellites ingest (`scripts/ingest_sats.py` via `build_full.py`). There
-is no `populate_initial.py --include-provisional` flag.
-
-Each entry: id, name, parent_id, plus optional designation/discoverer/year.
-Physical / orbital props for these are mostly null at v1; the high-detail
-properties for the major moons live in seed_major.py and overwrite here on
-upsert.
+Each entry: id, name, parent_id, plus optional discoverer/year. Physical and
+orbital properties are left empty here — the high-detail values for the major
+moons come from seed_major.py, and ingest_sats.py fills in the rest from JPL's
+satellite tables.
 """
 from __future__ import annotations
 
@@ -34,7 +28,6 @@ JUPITER_NAMED = [
     m("Adrastea",   "planet-jupiter", discoverer="David Jewitt et al.", year="1979"),
     m("Amalthea",   "planet-jupiter", discoverer="Edward Emerson Barnard", year="1892"),
     m("Thebe",      "planet-jupiter", discoverer="Stephen P. Synnott", year="1979"),
-    # Galileans handled in seed_major
 
     # Himalia group
     m("Leda",       "planet-jupiter", discoverer="Charles T. Kowal", year="1974"),
