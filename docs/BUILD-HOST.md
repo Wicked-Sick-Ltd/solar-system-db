@@ -36,16 +36,26 @@ default `~/deploy/solar-data` on llm1 vs. `./data` in dev).
   always points at the newest.
 
 ## Secrets
-`op` on llm1 authenticates as a service account: `wizzo`'s `solar-build.service`
-systemd user unit loads `OP_SERVICE_ACCOUNT_TOKEN` from
-`%h/.config/op/op-service-account.env` (`EnvironmentFile=`). `solar-crawler.service`
-needs no R2 credentials — it only sets `CRAWLER_RPS` — so it does not run under
-`op run` and carries no `EnvironmentFile=`.
+`op` on llm1 authenticates as a service account. `solar-build.service` runs
+`build/run_build.sh`, which `.`-sources `%h/.config/op/op-service-account.env`
+(the same file `~/.bashrc` sources) and then `exec`s `op run`. It is **not**
+loaded with `EnvironmentFile=`: that file is written for shells
+(`export OP_SERVICE_ACCOUNT_TOKEN=…`), and systemd rejects the `export` prefix —
+worse, it logs the rejected line, token included, to the journal, and `op`
+then starts with no credentials. That is how the 2026-09-18 and 2026-09-19
+nightlies failed within a second of starting. `solar-crawler.service` needs no
+R2 credentials — it only sets `CRAWLER_RPS` — so it does not run under `op run`.
 The R2 credentials themselves never touch disk as plaintext — `build/.env.op`
 holds only `op://` references and is injected at run time:
 
 ```bash
 op run --env-file build/.env.op -- docker compose --profile build run --rm builder
+```
+
+Prove the token path resolves without running a build:
+
+```bash
+sh -c '. ~/.config/op/op-service-account.env; export OP_SERVICE_ACCOUNT_TOKEN; cd ~/deploy/solar-system-db && op run --env-file build/.env.op -- sh -c "echo AWS_ACCESS_KEY_ID=\${AWS_ACCESS_KEY_ID:+resolved}"'
 ```
 
 ## Nightly build (systemd user timer)
@@ -56,9 +66,14 @@ above into `~/.config/systemd/user/`):
 Type=oneshot
 WorkingDirectory=%h/deploy/solar-system-db
 Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
-EnvironmentFile=%h/.config/op/op-service-account.env
-ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
+ExecStart=/bin/sh %h/deploy/solar-system-db/build/run_build.sh
+ExecStopPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
+```
+After changing a unit in the repo, re-install it — the copies under
+`~/.config/systemd/user/` are plain files, not symlinks:
+```bash
+cp ~/deploy/solar-system-db/build/systemd/solar-build.service ~/.config/systemd/user/ \
+  && systemctl --user daemon-reload && systemd-analyze --user verify ~/.config/systemd/user/solar-build.service
 ```
 Timer: `OnCalendar=*-*-* 03:00:00 UTC`, `Persistent=true` (catches up after a missed
 run), `RandomizedDelaySec=300`. Budget: ~40 min bulk + ~10 min compress/upload. The
@@ -91,7 +106,14 @@ Rollback: `./scripts/pull_latest.sh --version YYYYMMDD` with the env file
 sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest.sh --version 20260914`.
 
 ## Monitoring
-- The publisher prints a JSON summary; `solar-build.service`'s `ExecStartPost` runs
-  `build/mcp_notify.py` to relay it to the fleet hub / Slack (best-effort — piped
+- The publisher prints a JSON summary; `solar-build.service`'s `ExecStopPost` runs
+  `build/mcp_notify.py` to relay it to the fleet board (best-effort — piped
   through `|| true` so a missing or failing notifier never fails the build).
+  `ExecStopPost` also runs when the build fails; systemd hands it
+  `SERVICE_RESULT`/`EXIT_STATUS`, and the notifier posts a "nightly FAILED"
+  notice instead of re-posting the previous summary. Two silent nights
+  (2026-09-18/19) went unnoticed under the old `ExecStartPost`, which only
+  runs after a successful start.
+- If the artefact date on `download.sol.wickedsick.com/latest.json` is not
+  yesterday's, check `systemctl --user status solar-build.service` on llm1 first.
 - On the API host, alert if `/home/wizzo/solar-data/latest.json`'s `built_at` is older than 36 h.

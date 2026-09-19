@@ -6,6 +6,9 @@ After=docker.service
 Type=oneshot
 WorkingDirectory=%h/deploy/solar-system-db
 Environment=SOLAR_DATA_DIR=%h/deploy/solar-data
-EnvironmentFile=%h/.config/op/op-service-account.env
-ExecStart=/usr/bin/op run --env-file=%h/deploy/solar-system-db/build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
-ExecStartPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'
+# No EnvironmentFile=: the op token file uses `export KEY=…`, which systemd rejects
+# and echoes into the journal. build/run_build.sh sources it instead.
+ExecStart=/bin/sh %h/deploy/solar-system-db/build/run_build.sh
+# ExecStopPost (not ExecStartPost) runs on failure too; systemd sets
+# $SERVICE_RESULT / $EXIT_STATUS, which mcp_notify.py turns into a failure post.
+ExecStopPost=/bin/sh -c 'python3 %h/deploy/solar-system-db/build/mcp_notify.py || true'

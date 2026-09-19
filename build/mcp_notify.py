@@ -5,10 +5,13 @@ Reads the JSON summary written by `scripts/publish_artifact.py --summary-out`
 coordctl, so the fleet board reflects the outcome of each nightly build
 without anyone having to tail the builder container's logs.
 
-Run by build/systemd/solar-build.service as an ExecStartPost step on the
-host (llm1), after the builder container has exited:
+Run by build/systemd/solar-build.service as an ExecStopPost step on the
+host (llm1), after the builder container has exited — on success AND on
+failure. systemd exports SERVICE_RESULT ("success", "exit-code", "timeout",
+...) and EXIT_STATUS to ExecStopPost; anything other than success is posted
+as a failure notice instead of the (stale) last summary:
 
-    ExecStartPost=/bin/sh -c 'python3 ~/deploy/solar-system-db/build/mcp_notify.py || true'
+    ExecStopPost=/bin/sh -c 'python3 ~/deploy/solar-system-db/build/mcp_notify.py || true'
 
 Env overrides (mainly for tests):
     SOLAR_SUMMARY_PATH  path to the summary JSON (default $SOLAR_DATA_DIR/last-publish.json,
@@ -80,25 +83,23 @@ def _coordctl_step(coordctl_path: str, step: str, args: list[str], *, input_text
         print(f"mcp_notify: coordctl {step} exited {result.returncode}", file=sys.stderr)
 
 
-def main() -> int:
-    summary_path = Path(
-        os.environ.get("SOLAR_SUMMARY_PATH")
-        or os.path.join(os.environ.get("SOLAR_DATA_DIR", DEFAULT_DATA_DIR), "last-publish.json")
-    )
-    coordctl_path = os.environ.get("COORDCTL_PATH", DEFAULT_COORDCTL_PATH)
+def format_failure_message(service_result: str, exit_status: str | None) -> tuple[str, str]:
+    """Subject/body for a nightly that did not finish (SERVICE_RESULT != success)."""
+    status = f" (exit status {exit_status})" if exit_status else ""
+    subject = f"solar-system-db nightly FAILED: {service_result}{status}"
+    body = "\n".join([
+        f"solar-build.service ended with SERVICE_RESULT={service_result}{status}.",
+        "No new artefact was published; download.sol.wickedsick.com still serves the previous build.",
+        "",
+        "Diagnose on llm1:",
+        "  journalctl --user -u solar-build.service -n 60 --no-pager",
+        "Re-run by hand once fixed:",
+        "  systemctl --user start solar-build.service",
+    ])
+    return subject, body
 
-    if not summary_path.exists():
-        print(f"mcp_notify: no summary at {summary_path}, nothing to report", file=sys.stderr)
-        return 0
 
-    try:
-        summary = json.loads(summary_path.read_text())
-    except (OSError, json.JSONDecodeError, ValueError) as e:
-        print(f"mcp_notify: unreadable summary {summary_path}: {e.__class__.__name__}", file=sys.stderr)
-        return 0
-
-    subject, body = format_board_message(summary)
-
+def _post(coordctl_path: str, subject: str, body: str) -> None:
     if Path(coordctl_path).exists():
         # The board rejects a send from a session it doesn't know about
         # ("unknown sender session '…' — register first"), so register this
@@ -114,6 +115,34 @@ def main() -> int:
     else:
         print(subject)
         print(body)
+
+
+def main() -> int:
+    coordctl_path = os.environ.get("COORDCTL_PATH", DEFAULT_COORDCTL_PATH)
+
+    service_result = os.environ.get("SERVICE_RESULT")
+    if service_result and service_result != "success":
+        subject, body = format_failure_message(service_result, os.environ.get("EXIT_STATUS"))
+        _post(coordctl_path, subject, body)
+        return 0
+
+    summary_path = Path(
+        os.environ.get("SOLAR_SUMMARY_PATH")
+        or os.path.join(os.environ.get("SOLAR_DATA_DIR", DEFAULT_DATA_DIR), "last-publish.json")
+    )
+
+    if not summary_path.exists():
+        print(f"mcp_notify: no summary at {summary_path}, nothing to report", file=sys.stderr)
+        return 0
+
+    try:
+        summary = json.loads(summary_path.read_text())
+    except (OSError, json.JSONDecodeError, ValueError) as e:
+        print(f"mcp_notify: unreadable summary {summary_path}: {e.__class__.__name__}", file=sys.stderr)
+        return 0
+
+    subject, body = format_board_message(summary)
+    _post(coordctl_path, subject, body)
     return 0
 
 
