@@ -27,6 +27,63 @@ def test_find_objects_planets(db):
             "Jupiter", "Saturn", "Uranus", "Neptune"} <= names
 
 
+def test_mcp_find_objects_forwards_rest_filters(monkeypatch):
+    import server
+
+    class RecordingDB:
+        def find_objects(self, **kwargs):
+            self.kwargs = kwargs
+            return []
+
+    recording_db = RecordingDB()
+    monkeypatch.setattr(server, "db", lambda: recording_db)
+
+    assert server.find_objects(
+        orbit_class="APO",
+        max_moid_au=0.05,
+        min_diameter_km=1.0,
+        max_condition_code=3,
+        discovered_after="2000-01-01",
+        after="asteroid-100",
+        limit=1000,
+    ) == []
+    assert recording_db.kwargs["orbit_class"] == "APO"
+    assert recording_db.kwargs["max_moid_au"] == 0.05
+    assert recording_db.kwargs["min_diameter_km"] == 1.0
+    assert recording_db.kwargs["max_condition_code"] == 3
+    assert recording_db.kwargs["discovered_after"] == "2000-01-01"
+    assert recording_db.kwargs["after"] == "asteroid-100"
+    assert recording_db.kwargs["limit"] == 1000
+
+
+def test_mcp_catalog_limits_match_rest(monkeypatch):
+    import server
+
+    class RecordingDB:
+        def find_objects(self, **kwargs):
+            self.find_limit = kwargs["limit"]
+            return []
+
+        def list_periodic_comets(self, limit):
+            self.comet_limit = limit
+            return []
+
+        def list_tnos(self, limit):
+            self.tno_limit = limit
+            return []
+
+    recording_db = RecordingDB()
+    monkeypatch.setattr(server, "db", lambda: recording_db)
+
+    server.find_objects(limit=1001)
+    server.list_periodic_comets(limit=2001)
+    server.list_tnos(limit=0)
+
+    assert recording_db.find_limit == 1000
+    assert recording_db.comet_limit == 2000
+    assert recording_db.tno_limit == 1
+
+
 def test_get_object_halley_comet(db):
     obj = db.get_object("1P/Halley")
     assert obj is not None
@@ -139,7 +196,9 @@ def test_mcp_server_loads():
                  "compute_position", "next_perihelion",
                  "get_schema", "get_stats", "get_sources",
                  "list_object_types", "search",
-                 "list_meteor_showers", "get_meteor_shower"):
+                 "list_meteor_showers", "get_meteor_shower",
+                 "get_sky_position", "get_download_info",
+                 "get_close_approaches", "find_close_approaches"):
         assert hasattr(server, name), f"missing tool: {name}"
 
 
@@ -161,8 +220,34 @@ def test_astronomy_branding():
 
 
 def test_get_sky_position_jupiter(db):
-    from solar_db.sky_lookup import resolve_and_report
-    r = resolve_and_report(db, "Jupiter", "2026-09-15T00:00:00Z")
+    import server
+
+    server._db = db
+    r = server.get_sky_position("Jupiter", "2026-09-15T00:00:00Z")
     assert r["constellation"]["abbr"] == "Cnc"
     assert r["hemisphere"] == "northern"
     assert r["observer"] is None
+
+
+def test_mcp_download_info(db, monkeypatch, tmp_path):
+    import json
+    import server
+
+    manifest = tmp_path / "latest.json"
+    manifest.write_text(json.dumps({"url": "https://example.test/catalogue.zst", "sha256": "abc"}))
+    monkeypatch.setenv("SOLAR_MANIFEST_PATH", str(manifest))
+    server._db = db
+
+    assert server.get_download_info()["sha256"] == "abc"
+
+
+def test_mcp_close_approaches(db):
+    import server
+
+    server._db = db
+    rows = server.find_close_approaches(
+        "1900-01-01", "2200-01-01", max_dist_au=5, limit=1,
+    )
+    assert len(rows) == 1
+    detail = server.get_close_approaches(rows[0]["object_id"], limit=1)
+    assert detail["results"]
