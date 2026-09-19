@@ -174,7 +174,6 @@ SATURN_NAMED = [
     m("Alvaldi",     "planet-saturn", year="2019"),
     m("Beli",        "planet-saturn", year="2019"),
     m("Eggther",     "planet-saturn", year="2019"),
-    m("Hyperion",    "planet-saturn"),  # handled in seed_major but ensure presence
 ]
 # Auto-generate provisional Saturn designations to round out the 146 count.
 for yr, nn in [("2004", 1), ("2004", 2), ("2004", 3), ("2004", 4),
