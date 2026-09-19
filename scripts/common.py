@@ -28,7 +28,7 @@ HORIZONS_URL = "https://ssd.jpl.nasa.gov/api/horizons.api"
 SBDB_QUERY_URL = "https://ssd-api.jpl.nasa.gov/sbdb_query.api"
 SBDB_LOOKUP_URL = "https://ssd-api.jpl.nasa.gov/sbdb.api"
 
-USER_AGENT = "solar-system-db/0.1 (+https://github.com/wizzouk2/solar-system-db)"
+USER_AGENT = "solar-system-db/0.1 (+https://github.com/Wicked-Sick-Ltd/solar-system-db)"
 
 session = requests.Session()
 session.headers["User-Agent"] = USER_AGENT

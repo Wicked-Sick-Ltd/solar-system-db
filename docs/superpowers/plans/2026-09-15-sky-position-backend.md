@@ -1,5 +1,7 @@
 # Sky Position (backend) Implementation Plan
 
+> **Archived:** this plan has landed; do not execute.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `GET /api/v1/sky/{id}` (and an MCP tool) returning an object's RA/Dec, constellation, hemisphere, Earth distance and elongation, plus optional observer-specific altitude/azimuth and rise/transit/set.

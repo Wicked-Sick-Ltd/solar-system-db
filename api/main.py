@@ -1,8 +1,10 @@
 """FastAPI REST front-end for the solar-system-db catalogue.
 
-Read-only. Mirrors the MCP server's tools as HTTP endpoints, calling the same
-shared data-access layer (solar_db.data_access) — so the two interfaces can't
-drift apart. **For astronomy, not astrology** — see the project README.
+Read-only HTTP/JSON over the SQLite catalogue. Many routes call the shared
+`solar_db` data-access layer, as the MCP server does, but REST and MCP are
+maintained as separate surfaces and can diverge; a later contract PR is
+meant to pin them together. **For astronomy, not astrology** — see the
+project README.
 
 OpenAPI spec is served at /openapi.json; Swagger UI at /docs.
 """
@@ -46,7 +48,7 @@ app = FastAPI(
     ),
     version="0.1.0",
     contact={"name": "solar-system-db",
-             "url": "https://github.com/wizzouk2/solar-system-db"},
+             "url": "https://github.com/Wicked-Sick-Ltd/solar-system-db"},
     license_info={"name": "MIT",
                   "url": "https://opensource.org/licenses/MIT"},
 )

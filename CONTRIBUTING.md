@@ -12,9 +12,10 @@ Python 3.10+.
 ```bash
 git clone https://github.com/Wicked-Sick-Ltd/solar-system-db.git
 cd solar-system-db
-pip install -e .[all]          # data layer + API + MCP extras
-pip install -e ./api -e ./mcp-server
-pip install pytest httpx
+pip install -e .               # root package (solar_db)
+pip install -e ./api
+pip install -e ./mcp-server
+pip install pytest httpx       # same extras CI installs explicitly
 ```
 
 The catalogue is **not** committed to git — get it one of these ways:

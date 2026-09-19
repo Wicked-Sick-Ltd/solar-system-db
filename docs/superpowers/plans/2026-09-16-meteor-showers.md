@@ -1,5 +1,7 @@
 # Meteor Showers Implementation Plan
 
+> **Archived:** this plan has landed; do not execute.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ingest the IAU Meteor Data Center shower database into the catalogue (schema v3), link showers to their parent comets and asteroids, and expose them through the REST API and MCP server.

@@ -30,7 +30,8 @@ NASA/JPL and the IAU Minor Planet Centre, refreshed nightly on the build host
 ```
 solar-system-db/
 ├── README.md               this file
-├── pyproject.toml          one Python project; extras [mcp] / [api] / [all]
+├── pyproject.toml          root package (solar_db); optional extras exist
+│                           but are not the CI install path — see below
 ├── schema/schema.sql       the SQLite schema (single source of truth)
 ├── solar_db/               shared data-access layer (used by MCP + REST)
 │   ├── data_access.py      read-only SQLite wrapper, all query methods
@@ -52,12 +53,12 @@ solar-system-db/
 │   ├── server.py
 │   ├── pyproject.toml
 │   ├── Dockerfile
-│   └── tests/test_smoke.py
+│   └── tests/test_mcp_smoke.py
 ├── api/                    FastAPI REST front-end
 │   ├── main.py
 │   ├── pyproject.toml
 │   ├── Dockerfile
-│   └── tests/test_smoke.py
+│   └── tests/test_api_smoke.py
 ├── docker-compose.yml      brings up rest-api + mcp-server + caddy
 ├── Caddyfile               reverse proxy (TLS, gzip, CORS)
 ├── web/index.html          public landing page
@@ -72,21 +73,27 @@ solar-system-db/
 ## Install & build
 
 ```bash
-git clone https://github.com/wizzouk2/solar-system-db.git
+git clone https://github.com/Wicked-Sick-Ltd/solar-system-db.git
 cd solar-system-db
 
-# Editable install of the root package (data_access + positions + scripts)
+# Same install path CI uses (root package + nested API/MCP packages + test deps)
 pip install -e .
+pip install -e ./mcp-server
+pip install -e ./api
+pip install pytest httpx
 
 # To rebuild the whole catalogue from scratch (~1.4 M bodies; see docs/BUILD-HOST.md)
 python scripts/build_full.py --fresh --online
 
-# Verify the rebuild
+# Verify the rebuild (CI runs this, then pytest — see AGENTS.md)
 python scripts/verify.py
 ```
 
-Or with [uv](https://docs.astral.sh/uv/): `uv sync` then `uv run python
-scripts/build_full.py --fresh --offline` (fixtures, no network).
+There is no `uv.lock` in this repo, so `uv sync` is not a supported install
+path. If you use [uv](https://docs.astral.sh/uv/), install the same packages
+CI does (`uv pip install -e .` then the nested `api/` and `mcp-server/`
+packages plus `pytest` and `httpx`). An offline rebuild from fixtures is
+`python scripts/build_full.py --fresh --offline`.
 
 ## Query locally (no server needed)
 
@@ -117,7 +124,7 @@ SELECT object_type, COUNT(*) FROM s.objects GROUP BY 1;
 ## Run the MCP server
 
 ```bash
-pip install -e .[mcp]
+pip install -e . && pip install -e ./mcp-server
 python mcp-server/server.py                       # stdio (Claude Desktop, Cursor)
 python mcp-server/server.py --transport http      # streamable HTTP on :8002
 ```
@@ -144,7 +151,7 @@ Full tool list and examples: see [`mcp-server/README.md`](mcp-server/README.md).
 ## Run the REST API
 
 ```bash
-pip install -e .[api]
+pip install -e . && pip install -e ./api
 python api/main.py
 # → http://localhost:8003/docs   (Swagger UI)
 # → http://localhost:8003/redoc  (ReDoc)

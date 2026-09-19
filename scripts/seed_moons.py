@@ -1,10 +1,11 @@
 """All currently-named natural satellites of the planets and IAU dwarf planets.
 
-This is the curated set: every IAU-named moon. The ~200 additional confirmed
-satellites that only have provisional designations (e.g. S/2003 J 5) are not
-enumerated here — they're tracked as a TBD in the README and can be added by
-running scripts/populate_initial.py --include-provisional once a stable JPL
-endpoint is wired up.
+This is the curated set: every IAU-named moon. Confirmed satellites that only
+have provisional designations (e.g. S/2003 J 5) are not enumerated here —
+README tracks that gap. Named moons in this module are seeded via
+`seed_major.py` / `seed_moons.py`; fuller satellite coverage comes from the
+JPL satellites ingest (`scripts/ingest_sats.py` via `build_full.py`). There
+is no `populate_initial.py --include-provisional` flag.
 
 Each entry: id, name, parent_id, plus optional designation/discoverer/year.
 Physical / orbital props for these are mostly null at v1; the high-detail

@@ -1,7 +1,9 @@
 # solar-system-db REST API
 
-Read-only HTTP/JSON API over the `solar-system-db` SQLite catalogue. Mirrors
-the MCP server's tools so REST clients and AI agents see the same data.
+Read-only HTTP/JSON API over the `solar-system-db` SQLite catalogue. Many
+endpoints call the same `solar_db` data-access methods the MCP server uses,
+but REST and MCP are separate surfaces and can diverge; they are not a
+generated 1:1 contract. A later PR is intended to pin that contract.
 
 OpenAPI spec at `/openapi.json`; Swagger UI at `/docs`; ReDoc at `/redoc`.
 
@@ -10,6 +12,7 @@ OpenAPI spec at `/openapi.json`; Swagger UI at `/docs`; ReDoc at `/redoc`.
 ```bash
 pip install -e .
 pip install -e ./api
+pip install pytest httpx   # only needed to run tests; same as CI
 python api/main.py
 # → http://localhost:8003/docs
 ```
@@ -24,24 +27,31 @@ uvicorn api.main:app --host 0.0.0.0 --port 8003
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/v1/objects` | Flexible object filter (type, parent, size, eccentricity, NEO/PHA, named-only) |
+| GET | `/api/v1/objects` | Flexible object filter (type, parent, size, eccentricity, NEO/PHA, named-only, orbit class, MOID, …) |
 | GET | `/api/v1/objects/{name_or_designation}` | Full record for one object |
+| GET | `/api/v1/objects/{name_or_designation}/close-approaches` | Close approaches of one body to the planets / Moon |
+| GET | `/api/v1/objects/{name_or_designation}/discovery` | Discovery circumstances |
+| GET | `/api/v1/objects/{name_or_designation}/designations` | Numbers, names, provisional and alternate designations |
 | GET | `/api/v1/planets/{name}/moons` | All moons of a planet/dwarf planet |
 | GET | `/api/v1/planets/{name}/rings` | All known rings of a planet |
+| GET | `/api/v1/planets/{name}/atmosphere` | Atmosphere from the NASA fact sheet |
 | GET | `/api/v1/dwarf-planets?include_candidates=…` | IAU dwarf planets (+ candidates) |
 | GET | `/api/v1/neos?min_diameter_km=…&max_diameter_km=…` | Near-Earth Objects |
 | GET | `/api/v1/comets/periodic` | Numbered periodic comets |
 | GET | `/api/v1/tnos` | Trans-Neptunian objects + centaurs |
+| GET | `/api/v1/close-approaches?from=…&to=…` | Close approaches to a body in a date window |
 | GET | `/api/v1/meteor-showers?established_only=…&active_on=…&limit=…` | IAU Meteor Data Center showers |
 | GET | `/api/v1/meteor-showers/{code}` | One IAU meteor shower by code or name |
 | GET | `/api/v1/search?q=…` | Fuzzy search across names/designations |
 | GET | `/api/v1/positions/{name}?date=YYYY-MM-DD` | Heliocentric position (two-body Kepler) |
 | GET | `/api/v1/sky/{name}?date=…&lat=…&lon=…` | Where it appears in Earth's sky: RA/Dec (J2000), constellation, hemisphere, elongation; with `lat`+`lon` also alt/az, up-after-dark and rise/transit/set |
 | GET | `/api/v1/perihelion/{name}` | Next perihelion (JD) |
+| GET | `/api/v1/download` | Manifest for the published whole-database artefact |
 | GET | `/api/v1/object-types` | Object types and counts |
 | GET | `/api/v1/sources` | Upstream data sources + timestamps |
 | GET | `/api/v1/schema` | SQLite schema DDL |
 | GET | `/api/v1/stats` | Catalogue stats |
+| GET | `/healthz` | Liveness probe (not in the OpenAPI schema) |
 
 ### Meteor shower filters
 
