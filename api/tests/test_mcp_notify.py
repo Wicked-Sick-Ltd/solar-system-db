@@ -144,3 +144,36 @@ def test_main_returns_ok_on_unreadable_summary(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert rc == 0
     assert captured.out == ""
+
+
+def test_failure_result_posts_failure_not_stale_summary(tmp_path, monkeypatch, capsys):
+    """ExecStopPost runs on failure too. With SERVICE_RESULT != success the
+    notifier must NOT re-post last-publish.json (it is the previous night's
+    summary) but say the build failed and how to look."""
+    summary_path = tmp_path / "last-publish.json"
+    summary_path.write_text(json.dumps({"artefact": "solar_system-20260917.sqlite.zst",
+                                        "counts_by_type": {"asteroid": 1}, "size_bytes": 1}))
+    monkeypatch.setenv("SOLAR_SUMMARY_PATH", str(summary_path))
+    monkeypatch.setenv("COORDCTL_PATH", str(tmp_path / "no-such-coordctl.py"))
+    monkeypatch.setenv("SERVICE_RESULT", "exit-code")
+    monkeypatch.setenv("EXIT_STATUS", "1")
+    assert mcp_notify.main() == 0
+    out = capsys.readouterr().out
+    assert "FAILED: exit-code (exit status 1)" in out
+    assert "journalctl --user -u solar-build.service" in out
+    assert "20260917" not in out
+
+
+def test_success_result_posts_the_summary(tmp_path, monkeypatch, capsys):
+    summary_path = tmp_path / "last-publish.json"
+    summary_path.write_text(json.dumps({"artefact": "solar_system-20260919.sqlite.zst",
+                                        "counts_by_type": {"asteroid": 5}, "size_bytes": 2_000_000,
+                                        "built_at": "2026-09-19T04:00:00Z"}))
+    monkeypatch.setenv("SOLAR_SUMMARY_PATH", str(summary_path))
+    monkeypatch.setenv("COORDCTL_PATH", str(tmp_path / "no-such-coordctl.py"))
+    monkeypatch.setenv("SERVICE_RESULT", "success")
+    monkeypatch.delenv("EXIT_STATUS", raising=False)
+    assert mcp_notify.main() == 0
+    out = capsys.readouterr().out
+    assert "5 objects" in out and "20260919" in out and "FAILED" not in out
+
