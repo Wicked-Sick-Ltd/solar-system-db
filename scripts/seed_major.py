@@ -607,7 +607,6 @@ RINGS = [
     # Haumea
     {"parent_id": "dwarf-haumea", "name": "Haumea ring",
      "inner_radius_km": 2287, "outer_radius_km": 2357},
-    # Chariklo (centaur) — added later if we have the object row
 ]
 
 # --------------------------------------------------------------------------
