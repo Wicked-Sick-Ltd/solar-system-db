@@ -12,10 +12,12 @@ Python 3.10+.
 ```bash
 git clone https://github.com/Wicked-Sick-Ltd/solar-system-db.git
 cd solar-system-db
-pip install -e .[all]          # data layer + API + MCP extras
-pip install -e ./api -e ./mcp-server
-pip install pytest httpx
+sudo apt-get install zstd
+pip install -e '.[dev,publish]' -e ./api -e ./mcp-server
 ```
+
+This is the same dependency set CI uses: `[dev]` provides pytest, httpx, and
+ruff; `[publish]` plus the `zstd` CLI exercises the publish/pull tests.
 
 The catalogue is **not** committed to git — get it one of these ways:
 
@@ -59,6 +61,7 @@ every known planetary satellite.
 CI runs these, so run them locally first:
 
 ```bash
+python -m ruff check --select F401 api/main.py
 python scripts/verify.py
 pytest mcp-server/tests/ api/tests/ -v --import-mode=importlib
 ```
