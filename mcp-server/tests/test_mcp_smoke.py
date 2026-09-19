@@ -2,6 +2,7 @@
 DB schema changes or a tool signature drifts, these fail."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -230,7 +231,6 @@ def test_get_sky_position_jupiter(db):
 
 
 def test_mcp_download_info(db, monkeypatch, tmp_path):
-    import json
     import server
 
     manifest = tmp_path / "latest.json"
