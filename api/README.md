@@ -12,7 +12,7 @@ OpenAPI spec at `/openapi.json`; Swagger UI at `/docs`; ReDoc at `/redoc`.
 ```bash
 pip install -e .
 pip install -e ./api
-pip install pytest httpx   # only needed to run tests; same as CI
+pip install pytest httpx   # or pip install -e '.[dev]' from the repo root (CI)
 python api/main.py
 # → http://localhost:8003/docs
 ```

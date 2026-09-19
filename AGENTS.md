@@ -18,16 +18,17 @@ CI builds a small offline fixture when no catalogue file is present
 ## Checks CI runs
 
 From the repo root, after the same install as `.github/workflows/test.yml`
-(`pip install -e .`, then nested `./mcp-server` and `./api`, then
-`pytest` and `httpx`):
+(`pip install -e '.[dev,publish]'` plus nested `./mcp-server` and `./api`,
+and the `zstd` CLI so publish/pull tests run):
 
 ```bash
+python -m ruff check --select F401 api/main.py
 python scripts/verify.py
 pytest mcp-server/tests/ api/tests/ --import-mode=importlib
 ```
 
-That is the path to document and to run before opening a PR. Optional extras
-such as `[all]` are not what CI installs.
+That is the path to document and to run before opening a PR. `[dev]` provides
+pytest, httpx, and ruff; `[all]` is still not what CI installs.
 
 ## Commits
 

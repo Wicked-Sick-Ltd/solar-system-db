@@ -30,8 +30,7 @@ NASA/JPL and the IAU Minor Planet Centre, refreshed nightly on the build host
 ```
 solar-system-db/
 ├── README.md               this file
-├── pyproject.toml          root package (solar_db); optional extras exist
-│                           but are not the CI install path — see below
+├── pyproject.toml          root package (solar_db); CI uses extras [dev,publish]
 ├── schema/schema.sql       the SQLite schema (single source of truth)
 ├── solar_db/               shared data-access layer (used by MCP + REST)
 │   ├── data_access.py      read-only SQLite wrapper, all query methods
@@ -76,11 +75,9 @@ solar-system-db/
 git clone https://github.com/Wicked-Sick-Ltd/solar-system-db.git
 cd solar-system-db
 
-# Same install path CI uses (root package + nested API/MCP packages + test deps)
-pip install -e .
-pip install -e ./mcp-server
-pip install -e ./api
-pip install pytest httpx
+# Same install path CI uses ([dev,publish] extras + nested API/MCP packages)
+sudo apt-get install zstd
+pip install -e '.[dev,publish]' -e ./mcp-server -e ./api
 
 # To rebuild the whole catalogue from scratch (~1.4 M bodies; see docs/BUILD-HOST.md)
 python scripts/build_full.py --fresh --online
@@ -91,8 +88,8 @@ python scripts/verify.py
 
 There is no `uv.lock` in this repo, so `uv sync` is not a supported install
 path. If you use [uv](https://docs.astral.sh/uv/), install the same packages
-CI does (`uv pip install -e .` then the nested `api/` and `mcp-server/`
-packages plus `pytest` and `httpx`). An offline rebuild from fixtures is
+CI does (`uv pip install -e '.[dev,publish]'` then the nested `api/` and
+`mcp-server/` packages). An offline rebuild from fixtures is
 `python scripts/build_full.py --fresh --offline`.
 
 ## Query locally (no server needed)
