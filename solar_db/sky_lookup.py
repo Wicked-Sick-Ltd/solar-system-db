@@ -1,6 +1,7 @@
 """Resolve a catalogue object and produce its sky report.
 
-Shared by the REST API and the MCP server so the two cannot drift. Moons
+Shared by the REST API and the MCP server for this one lookup. Sharing
+this helper does not pin the rest of the REST/MCP surfaces together. Moons
 have planetocentric elements, so they always report their parent's sky
 position (they sit within a fraction of a degree of it at this precision).
 """

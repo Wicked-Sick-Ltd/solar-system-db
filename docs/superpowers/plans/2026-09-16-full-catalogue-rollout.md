@@ -1,5 +1,7 @@
 # Full Catalogue Rollout Implementation Plan
 
+> **Archived:** this plan has landed; do not execute.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Get the already-merged 1.56M-object pipeline running nightly on llm1, publishing to Cloudflare R2, pulled by the live API host php01, with the crawler on, and the committed database retired from git.

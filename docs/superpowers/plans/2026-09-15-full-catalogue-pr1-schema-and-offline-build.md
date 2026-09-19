@@ -1,5 +1,7 @@
 # Full catalogue — PR 1: schema v2, ingest mappers, offline build, fixtures
 
+> **Archived:** this plan has landed; do not execute.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Land schema v2 and a new builder that can produce a complete, correct database from fixtures offline (and from JPL/MPC online), so every later PR builds on real structure; fix the orbit-class-in-`spectral_type` bug.
