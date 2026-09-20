@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import random
 import shutil
 import sqlite3
 import sys
@@ -148,23 +149,41 @@ def add_source(conn, *, object_id: str | None, table_name: str,
 # ---------------------------------------------------------------------------
 # Network helpers
 # ---------------------------------------------------------------------------
-def fetch_json(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30) -> dict:
+def backoff_seconds(attempt: int, *, base: float = 2.0, cap: float = 120.0) -> float:
+    """Exponential back-off with full jitter: 0..min(cap, base * 2**attempt).
+
+    Upstream blips are not evenly spaced. On 2026-09-20 the JPL SBDB bulk
+    endpoint returned 502 for a few minutes at 03:00 UTC and again at 04:05;
+    three attempts a few seconds apart (the old policy) rode straight through
+    both windows and killed a two-hour build twice. Six attempts under this
+    schedule wait up to ~4 minutes in total, which covers the outages we have
+    actually seen without hammering a server that is telling us it hurts.
+    """
+    return random.uniform(0, min(cap, base * (2 ** attempt)))
+
+
+def fetch_json(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30) -> dict:
     last_err: Exception | None = None
+    last_status: int | None = None
     for attempt in range(retries):
         try:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
-                time.sleep(2 + attempt * 3)
+                last_status = 429
+                time.sleep(backoff_seconds(attempt, base=4.0))
                 continue
             r.raise_for_status()
             return r.json()
         except (requests.RequestException, ValueError) as e:
             last_err = e
-            time.sleep(1 + attempt)
-    raise RuntimeError(f"fetch_json failed for {url}: {last_err}")
+            last_status = getattr(getattr(e, "response", None), "status_code", None)
+            if attempt + 1 < retries:
+                time.sleep(backoff_seconds(attempt))
+    detail = f"last status {last_status}" if last_status is not None else str(last_err)
+    raise RuntimeError(f"fetch_json gave up after {retries} attempts ({detail}) for {url}: {last_err}")
 
 
-def fetch_text(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30,
+def fetch_text(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30,
                encoding: str = "utf-8") -> str:
     """Text fetch with the same retry/429 handling as fetch_bytes (a thin
     decode on top of it, rather than a second copy of the retry loop).
@@ -174,7 +193,7 @@ def fetch_text(url: str, params: dict | None = None, retries: int = 3, timeout: 
     return fetch_bytes(url, params=params, retries=retries, timeout=timeout).decode(encoding, errors="replace")
 
 
-def fetch_bytes(url: str, params: dict | None = None, retries: int = 3, timeout: int = 30) -> bytes:
+def fetch_bytes(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30) -> bytes:
     last_err: Exception | None = None
     last_status: int | None = None
     for attempt in range(retries):
@@ -182,14 +201,15 @@ def fetch_bytes(url: str, params: dict | None = None, retries: int = 3, timeout:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
                 last_status = 429
-                time.sleep(2 + attempt * 3)
+                time.sleep(backoff_seconds(attempt, base=4.0))
                 continue
             r.raise_for_status()
             return r.content
         except requests.RequestException as e:
             last_err = e
             last_status = getattr(getattr(e, "response", None), "status_code", None)
-            time.sleep(1 + attempt)
+            if attempt + 1 < retries:
+                time.sleep(backoff_seconds(attempt))
     detail = f"last status {last_status}" if last_status is not None else str(last_err)
     raise RuntimeError(f"fetch_bytes gave up after {retries} attempts ({detail}) for {url}")
 
