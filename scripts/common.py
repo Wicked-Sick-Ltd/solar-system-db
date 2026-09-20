@@ -26,7 +26,6 @@ DB_PATH = Path(os.environ.get(
 ))
 PUBLISH_PATH = ROOT / "data" / "solar_system.sqlite"
 
-HORIZONS_URL = "https://ssd.jpl.nasa.gov/api/horizons.api"
 SBDB_QUERY_URL = "https://ssd-api.jpl.nasa.gov/sbdb_query.api"
 SBDB_LOOKUP_URL = "https://ssd-api.jpl.nasa.gov/sbdb.api"
 
@@ -319,7 +318,3 @@ def asteroid_id(spkid_or_num: Any, name: str | None = None) -> str:
 
 def comet_id(designation: str) -> str:
     return f"comet-{slugify(designation)}"
-
-
-def tno_id(name_or_design: str) -> str:
-    return f"tno-{slugify(name_or_design)}"

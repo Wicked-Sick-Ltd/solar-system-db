@@ -25,11 +25,13 @@ jobs:
 
       - name: Install
         run: |
+          sudo apt-get update
+          sudo apt-get install --yes zstd
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install -e ./mcp-server
-          pip install -e ./api
-          pip install pytest httpx
+          pip install -e '.[dev,publish]' -e ./mcp-server -e ./api
+
+      - name: Check API imports
+        run: python -m ruff check --select F401 api/main.py
 
       - name: Verify DB
         run: python scripts/verify.py

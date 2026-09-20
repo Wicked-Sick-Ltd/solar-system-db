@@ -16,7 +16,8 @@ pip install -e ./mcp-server
 
 There is no `uv.lock`; `uv sync` is not a supported path. With
 [uv](https://docs.astral.sh/uv/), use `uv pip install -e .` then
-`uv pip install -e ./mcp-server` to match CI.
+`uv pip install -e ./mcp-server`. CI also installs `.[dev,publish]` at the
+repo root.
 
 Make sure `data/solar_system.sqlite` exists — it isn't committed to git.
 From the repo root, either fetch the published nightly artefact:
