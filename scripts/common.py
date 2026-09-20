@@ -149,69 +149,122 @@ def add_source(conn, *, object_id: str | None, table_name: str,
 # ---------------------------------------------------------------------------
 # Network helpers
 # ---------------------------------------------------------------------------
-def backoff_seconds(attempt: int, *, base: float = 2.0, cap: float = 120.0) -> float:
-    """Exponential back-off with full jitter: 0..min(cap, base * 2**attempt).
+BACKOFF_BASE = 2.0
+BACKOFF_BASE_429 = 4.0  # a rate limiter is asking for a longer pause than a 502
+BACKOFF_CAP = 120.0
+# One fetch may try this many times, and may spend this many seconds of wall
+# clock doing so. Both limits are deliberate:
+#   * attempts alone do not cover an outage — eight attempts on this schedule
+#     wait at most 2+4+8+16+32+64+120 = 246 s, and the 03:00/04:05 UTC JPL SBDB
+#     502s on 2026-09-20 each ran for a few minutes;
+#   * time alone does not bound the work — with no attempt limit a fast-failing
+#     endpoint would be hammered flat out until the budget ran down.
+FETCH_MAX_ATTEMPTS = 8
+FETCH_BUDGET_SECONDS = 300.0
 
-    Upstream blips are not evenly spaced. On 2026-09-20 the JPL SBDB bulk
-    endpoint returned 502 for a few minutes at 03:00 UTC and again at 04:05;
-    three attempts a few seconds apart (the old policy) rode straight through
-    both windows and killed a two-hour build twice. Six attempts under this
-    schedule wait up to ~4 minutes in total, which covers the outages we have
-    actually seen without hammering a server that is telling us it hurts.
-    """
+
+def backoff_seconds(attempt: int, *, base: float = BACKOFF_BASE, cap: float = BACKOFF_CAP) -> float:
+    """Exponential back-off with full jitter: 0..min(cap, base * 2**attempt)."""
     return random.uniform(0, min(cap, base * (2 ** attempt)))
 
 
-def fetch_json(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30) -> dict:
+class RetryBudget:
+    """How much a single fetch may spend: `max_attempts` tries, `seconds` of
+    wall clock from the first one.
+
+    No attempt is started once the budget is gone and no sleep runs past it, so
+    a fetch cannot wait indefinitely on an upstream that never recovers: the
+    ceiling is `seconds` plus the one request timeout already in flight when
+    the deadline passes.
+    """
+
+    def __init__(self, max_attempts: int = FETCH_MAX_ATTEMPTS,
+                 seconds: float = FETCH_BUDGET_SECONDS) -> None:
+        self.max_attempts = max(1, max_attempts)
+        self.seconds = max(0.0, seconds)
+        self._started = time.monotonic()
+
+    @property
+    def elapsed(self) -> float:
+        return time.monotonic() - self._started
+
+    @property
+    def remaining(self) -> float:
+        return self.seconds - self.elapsed
+
+    def next_delay(self, attempt: int, *, base: float = BACKOFF_BASE) -> float | None:
+        """Seconds to wait before attempt `attempt + 1` (0-based), or None when
+        the attempt limit or the time budget says to give up now."""
+        if attempt + 1 >= self.max_attempts:
+            return None
+        remaining = self.remaining
+        if remaining <= 0:
+            return None
+        return min(backoff_seconds(attempt, base=base), remaining)
+
+
+def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: int,
+           budget: float, extract):
+    """Shared retry loop for fetch_json / fetch_bytes.
+
+    One loop rather than two so both helpers obey the same budget, the same
+    429 handling, and the same give-up message.
+    """
+    policy = RetryBudget(max_attempts=retries, seconds=budget)
     last_err: Exception | None = None
     last_status: int | None = None
-    for attempt in range(retries):
+    attempts = 0
+    for attempt in range(policy.max_attempts):
+        attempts = attempt + 1
+        base = BACKOFF_BASE
         try:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
                 last_status = 429
-                time.sleep(backoff_seconds(attempt, base=4.0))
-                continue
-            r.raise_for_status()
-            return r.json()
+                base = BACKOFF_BASE_429
+            else:
+                r.raise_for_status()
+                return extract(r)
         except (requests.RequestException, ValueError) as e:
             last_err = e
-            last_status = getattr(getattr(e, "response", None), "status_code", None)
-            if attempt + 1 < retries:
-                time.sleep(backoff_seconds(attempt))
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status is not None:
+                last_status = status
+        delay = policy.next_delay(attempt, base=base)
+        if delay is None:
+            break
+        time.sleep(delay)
     detail = f"last status {last_status}" if last_status is not None else str(last_err)
-    raise RuntimeError(f"fetch_json gave up after {retries} attempts ({detail}) for {url}: {last_err}")
+    raise RuntimeError(
+        f"{what} gave up after {attempts}/{policy.max_attempts} attempts in "
+        f"{policy.elapsed:.0f}s of {policy.seconds:.0f}s budget ({detail}) for {url}"
+    )
 
 
-def fetch_text(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30,
-               encoding: str = "utf-8") -> str:
+def fetch_json(url: str, params: dict | None = None, retries: int = FETCH_MAX_ATTEMPTS,
+               timeout: int = 30, budget: float = FETCH_BUDGET_SECONDS) -> dict:
+    """GET and decode JSON, retrying transient failures within the budget."""
+    return _fetch("fetch_json", url, params=params, retries=retries, timeout=timeout,
+                  budget=budget, extract=lambda r: r.json())
+
+
+def fetch_bytes(url: str, params: dict | None = None, retries: int = FETCH_MAX_ATTEMPTS,
+                timeout: int = 30, budget: float = FETCH_BUDGET_SECONDS) -> bytes:
+    """GET raw bytes, retrying transient failures within the budget."""
+    return _fetch("fetch_bytes", url, params=params, retries=retries, timeout=timeout,
+                  budget=budget, extract=lambda r: r.content)
+
+
+def fetch_text(url: str, params: dict | None = None, retries: int = FETCH_MAX_ATTEMPTS,
+               timeout: int = 30, encoding: str = "utf-8",
+               budget: float = FETCH_BUDGET_SECONDS) -> str:
     """Text fetch with the same retry/429 handling as fetch_bytes (a thin
     decode on top of it, rather than a second copy of the retry loop).
     Decodes leniently (errors="replace") since upstream pages occasionally
     carry a stray non-UTF-8 byte — see ingest_showers's module docstring for
     a concrete example."""
-    return fetch_bytes(url, params=params, retries=retries, timeout=timeout).decode(encoding, errors="replace")
-
-
-def fetch_bytes(url: str, params: dict | None = None, retries: int = 6, timeout: int = 30) -> bytes:
-    last_err: Exception | None = None
-    last_status: int | None = None
-    for attempt in range(retries):
-        try:
-            r = session.get(url, params=params, timeout=timeout)
-            if r.status_code == 429:
-                last_status = 429
-                time.sleep(backoff_seconds(attempt, base=4.0))
-                continue
-            r.raise_for_status()
-            return r.content
-        except requests.RequestException as e:
-            last_err = e
-            last_status = getattr(getattr(e, "response", None), "status_code", None)
-            if attempt + 1 < retries:
-                time.sleep(backoff_seconds(attempt))
-    detail = f"last status {last_status}" if last_status is not None else str(last_err)
-    raise RuntimeError(f"fetch_bytes gave up after {retries} attempts ({detail}) for {url}")
+    raw = fetch_bytes(url, params=params, retries=retries, timeout=timeout, budget=budget)
+    return raw.decode(encoding, errors="replace")
 
 
 # ---------------------------------------------------------------------------
