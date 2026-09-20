@@ -26,6 +26,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from common import canonicalize_confined  # noqa: E402
+
 LICENCE = ("Compilation: MIT (Wicked Sick Ltd). Underlying data: NASA/JPL (public domain), "
            "IAU Minor Planet Center (free use with attribution), CDS VI/42 (public domain). "
            "Please credit the sources; see /api/v1/sources.")
@@ -109,23 +111,26 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
 
 class LocalDest:
     def __init__(self, root: Path, public_base: str | None) -> None:
-        self.root = root
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.public_base = public_base or root.resolve().as_uri()
+        root.mkdir(parents=True, exist_ok=True)
+        self.root = root.resolve()
+        self.public_base = public_base or self.root.as_uri()
+
+    def _confined(self, key: str) -> Path:
+        return canonicalize_confined(self.root, key)
 
     def put(self, path: Path, key: str, content_type: str) -> str:
-        shutil.copyfile(path, self.root / key)
+        shutil.copyfile(path, self._confined(key))
         return f"{self.public_base}/{key}"
 
     def put_text(self, text: str, key: str) -> str:
-        (self.root / key).write_text(text)
+        self._confined(key).write_text(text)
         return f"{self.public_base}/{key}"
 
     def list_keys(self) -> list[str]:
         return [p.name for p in self.root.iterdir() if p.is_file()]
 
     def delete(self, key: str) -> None:
-        (self.root / key).unlink(missing_ok=True)
+        self._confined(key).unlink(missing_ok=True)
 
 
 class S3Dest:

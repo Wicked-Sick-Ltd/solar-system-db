@@ -35,6 +35,17 @@ session = requests.Session()
 session.headers["User-Agent"] = USER_AGENT
 
 
+def canonicalize_confined(root: str | Path, candidate: str | Path) -> Path:
+    """Resolve candidate under root, rejecting traversal and symlink escapes."""
+    canonical_root = Path(root).resolve()
+    canonical_candidate = (canonical_root / candidate).resolve()
+    try:
+        canonical_candidate.relative_to(canonical_root)
+    except ValueError as exc:
+        raise ValueError(f"path is outside destination root: {candidate}") from exc
+    return canonical_candidate
+
+
 # ---------------------------------------------------------------------------
 # DB helpers
 # ---------------------------------------------------------------------------

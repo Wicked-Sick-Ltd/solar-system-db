@@ -39,6 +39,37 @@ def test_publish_to_local_dir_and_prune(tmp_path):
     assert removed == ["solar_system-20200101.sqlite.zst"] and (tmp_path / "out" / "latest.json").exists()
 
 
+def test_local_destination_rejects_write_and_delete_outside_root(tmp_path):
+    root = tmp_path / "out"
+    dest = LocalDest(root, public_base=None)
+    source = tmp_path / "source"
+    source.write_text("source")
+    outside = tmp_path / "outside"
+    outside.write_text("keep")
+
+    with pytest.raises(ValueError, match="outside destination root"):
+        dest.put(source, "../outside", "text/plain")
+    with pytest.raises(ValueError, match="outside destination root"):
+        dest.put_text("overwrite", "../outside")
+    with pytest.raises(ValueError, match="outside destination root"):
+        dest.delete("../outside")
+
+    assert outside.read_text() == "keep"
+
+
+def test_local_destination_rejects_symlink_escape(tmp_path):
+    root = tmp_path / "out"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    dest = LocalDest(root, public_base=None)
+    (root / "escape").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="outside destination root"):
+        dest.put_text("escaped", "escape/file")
+
+    assert not (outside / "file").exists()
+
+
 @pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
 def test_pull_latest_installs_verified_artefact(tmp_path):
     out = tmp_path / "out"
