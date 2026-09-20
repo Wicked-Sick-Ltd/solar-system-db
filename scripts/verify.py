@@ -142,7 +142,8 @@ def main() -> int:
         bad = conn.execute(
             "SELECT COUNT(*) FROM visual_properties "
             "WHERE spectral_type IN (SELECT value FROM json_each(?))",
-            (json.dumps(ORBIT_CLASS_CODES),),
+            # json.dumps has no encoding for the frozenset ORBIT_CLASS_CODES is.
+            (json.dumps(sorted(ORBIT_CLASS_CODES)),),
         ).fetchone()[0]
         if bad:
             failures.append(f"{bad} rows carry an orbit class in spectral_type")
