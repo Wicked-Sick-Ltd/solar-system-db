@@ -5,6 +5,7 @@ import json
 import math
 import os
 import random
+import re
 import shutil
 import sqlite3
 import sys
@@ -49,6 +50,21 @@ def canonicalize_confined(root: str | Path, candidate: str | Path) -> Path:
 # ---------------------------------------------------------------------------
 # DB helpers
 # ---------------------------------------------------------------------------
+_SQL_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _identifier(value: str) -> str:
+    """Return a validated SQLite identifier for structural query composition."""
+    if not _SQL_IDENTIFIER.fullmatch(value):
+        raise ValueError(f"Invalid SQL identifier: {value!r}")
+    return value
+
+
+def _execute(conn, query: str, params: dict[str, Any] | tuple[Any, ...]):
+    """Execute composed SQL with values kept in bound parameters."""
+    return conn.execute(query, params)
+
+
 def connect(create: bool = False) -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -100,11 +116,13 @@ def upsert_object(conn, *, id: str, name: str, object_type: str,
 
 def upsert_row(conn, table: str, object_id: str, fields: dict[str, Any]) -> None:
     """Generic upsert keyed on object_id for the *_properties / orbital_elements tables."""
+    table = _identifier(table)
+    fields = {_identifier(k): v for k, v in fields.items()}
     fields = {k: v for k, v in fields.items() if v is not None}
     if not fields:
         # nothing to write — ensure a row exists so FK joins work
-        conn.execute(
-            f"INSERT OR IGNORE INTO {table} (object_id) VALUES (?)", (object_id,)
+        _execute(
+            conn, f"INSERT OR IGNORE INTO {table} (object_id) VALUES (?)", (object_id,)
         )
         return
     fields["object_id"] = object_id
@@ -116,26 +134,28 @@ def upsert_row(conn, table: str, object_id: str, fields: dict[str, Any]) -> None
         f"ON CONFLICT(object_id) DO UPDATE SET {updates}, "
         f"updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')"
     )
-    conn.execute(sql, fields)
+    _execute(conn, sql, fields)
 
 
 def upsert_row_fill(conn, table: str, object_id: str, fields: dict[str, Any]) -> None:
     """Like upsert_row, but existing non-null values win: bulk sources may only
     fill gaps in curated rows, never overwrite fact-sheet values."""
+    table = _identifier(table)
+    fields = {_identifier(k): v for k, v in fields.items()}
     fields = {k: v for k, v in fields.items() if v is not None}
     if not fields:
-        conn.execute(f"INSERT OR IGNORE INTO {table} (object_id) VALUES (?)", (object_id,))
+        _execute(conn, f"INSERT OR IGNORE INTO {table} (object_id) VALUES (?)", (object_id,))
         return
     fields["object_id"] = object_id
     cols = ", ".join(fields.keys())
     placeholders = ", ".join(f":{k}" for k in fields)
     updates = ", ".join(f"{k} = COALESCE({table}.{k}, excluded.{k})" for k in fields if k != "object_id")
-    conn.execute(
+    query = (
         f"INSERT INTO {table} ({cols}) VALUES ({placeholders}) "
         f"ON CONFLICT(object_id) DO UPDATE SET {updates}, "
-        f"updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')",
-        fields,
+        f"updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')"
     )
+    _execute(conn, query, fields)
 
 
 def add_classification(conn, object_id: str, label: str) -> None:

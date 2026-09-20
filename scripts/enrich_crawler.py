@@ -55,9 +55,13 @@ def open_store(path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA busy_timeout = 60000")
     conn.executescript(STORE_SCHEMA)
     have = {r[1] for r in conn.execute("PRAGMA table_info(lookups)")}
-    for col in ("attempted_at TEXT", "last_error TEXT"):      # stores created before these columns existed
-        if col.split()[0] not in have:
-            conn.execute(f"ALTER TABLE lookups ADD COLUMN {col}")
+    migrations = {
+        "attempted_at": "ALTER TABLE lookups ADD COLUMN attempted_at TEXT",
+        "last_error": "ALTER TABLE lookups ADD COLUMN last_error TEXT",
+    }
+    for column, query in migrations.items():      # stores created before these columns existed
+        if column not in have:
+            conn.execute(query)
     conn.commit()
     return conn
 

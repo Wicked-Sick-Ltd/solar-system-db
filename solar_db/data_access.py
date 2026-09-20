@@ -48,6 +48,15 @@ ORBITAL_FIELDS = (
 class SolarDB:
     """Thin SQLite wrapper, read-only."""
 
+    @staticmethod
+    def _execute(
+        conn: sqlite3.Connection,
+        query: str,
+        params: tuple[Any, ...] | list[Any] = (),
+    ) -> sqlite3.Cursor:
+        """Execute composed SQL whose values are supplied separately."""
+        return conn.execute(query, params)
+
     def __init__(self, db_path: str | os.PathLike | None = None) -> None:
         self.db_path = Path(db_path or os.environ.get("SOLAR_DB_PATH",
                                                        str(DEFAULT_DB_PATH)))
@@ -190,7 +199,7 @@ class SolarDB:
         """
         params.extend([self._lim(limit, 1000), max(0, int(offset or 0)) if after is None else 0])
         with self._conn() as conn:
-            return [dict(r) for r in conn.execute(sql, params)]
+            return [dict(r) for r in self._execute(conn, sql, params)]
 
     def get_object(self, name_or_designation: str) -> dict[str, Any] | None:
         """Return one full record (object + orbital + physical + visual +
@@ -205,12 +214,13 @@ class SolarDB:
             if not obj:
                 return None
             out: dict[str, Any] = dict(obj)
-            for tbl, key in [("orbital_elements", "orbital"),
-                              ("physical_properties", "physical"),
-                              ("visual_properties", "visual")]:
-                row = conn.execute(
-                    f"SELECT * FROM {tbl} WHERE object_id = ?", (obj_id,)
-                ).fetchone()
+            detail_queries = {
+                "orbital": "SELECT * FROM orbital_elements WHERE object_id = ?",
+                "physical": "SELECT * FROM physical_properties WHERE object_id = ?",
+                "visual": "SELECT * FROM visual_properties WHERE object_id = ?",
+            }
+            for key, query in detail_queries.items():
+                row = conn.execute(query, (obj_id,)).fetchone()
                 out[key] = dict(row) if row else None
             out["classifications"] = [
                 r["label"] for r in conn.execute(
@@ -345,8 +355,8 @@ class SolarDB:
         types = ("dwarf_planet", "dwarf_planet_candidate") if include_candidates \
             else ("dwarf_planet",)
         with self._conn() as conn:
-            return [dict(r) for r in conn.execute(
-                f"""
+            query = (
+                """
                 SELECT o.id, o.name, o.designation, o.object_type,
                        p.radius_km, p.mass_kg,
                        oe.semi_major_axis_au, oe.eccentricity,
@@ -354,10 +364,23 @@ class SolarDB:
                 FROM objects o
                 LEFT JOIN physical_properties p ON p.object_id = o.id
                 LEFT JOIN orbital_elements oe ON oe.object_id = o.id
-                WHERE o.object_type IN ({','.join('?' * len(types))})
+                WHERE o.object_type IN (?, ?)
                 ORDER BY oe.semi_major_axis_au
-                """, types,
-            )]
+                """
+                if include_candidates
+                else """
+                SELECT o.id, o.name, o.designation, o.object_type,
+                       p.radius_km, p.mass_kg,
+                       oe.semi_major_axis_au, oe.eccentricity,
+                       oe.orbital_period_days
+                FROM objects o
+                LEFT JOIN physical_properties p ON p.object_id = o.id
+                LEFT JOIN orbital_elements oe ON oe.object_id = o.id
+                WHERE o.object_type IN (?)
+                ORDER BY oe.semi_major_axis_au
+                """
+            )
+            return [dict(r) for r in conn.execute(query, types)]
 
     def list_neos(
         self,
@@ -377,8 +400,7 @@ class SolarDB:
         where_extra = (" AND " + " AND ".join(clauses)) if clauses else ""
         params.append(self._lim(limit, 1000))
         with self._conn() as conn:
-            return [dict(r) for r in conn.execute(
-                f"""
+            query = f"""
                 SELECT o.id, o.name, o.designation,
                        oe.semi_major_axis_au, oe.perihelion_au,
                        oe.eccentricity, oe.inclination_deg,
@@ -394,8 +416,8 @@ class SolarDB:
                 WHERE 1=1 {where_extra}
                 ORDER BY v.absolute_magnitude_h
                 LIMIT ?
-                """, params,
-            )]
+                """
+            return [dict(r) for r in self._execute(conn, query, params)]
 
     def list_periodic_comets(self, limit: int = 2000) -> list[dict]:
         with self._conn() as conn:
@@ -514,9 +536,12 @@ class SolarDB:
         with self._conn() as conn:
             if not self._has_table(conn, "close_approaches"):
                 return []
-            return [dict(r) for r in conn.execute(
-                f"SELECT body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au, v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source "
-                f"FROM close_approaches WHERE {' AND '.join(clauses)} ORDER BY cd_jd LIMIT ?", params)]
+            query = (
+                "SELECT body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au, "
+                "v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source "
+                f"FROM close_approaches WHERE {' AND '.join(clauses)} ORDER BY cd_jd LIMIT ?"
+            )
+            return [dict(r) for r in self._execute(conn, query, params)]
 
     def close_approaches_between(self, date_min: str, date_max: str, *, body: str = "Earth",
                                  max_dist_au: float = 0.05, limit: int = 200) -> list[dict]:
@@ -543,7 +568,15 @@ class SolarDB:
         with self._conn() as conn:
             if not self._has_table(conn, table):
                 return {}
-            row = conn.execute(f"SELECT * FROM {table} WHERE object_id = ?", (obj_id,)).fetchone()
+            queries = {
+                "discoveries": "SELECT * FROM discoveries WHERE object_id = ?",
+                "atmospheres": "SELECT * FROM atmospheres WHERE object_id = ?",
+            }
+            try:
+                query = queries[table]
+            except KeyError as exc:
+                raise ValueError(f"Unsupported detail table: {table}") from exc
+            row = conn.execute(query, (obj_id,)).fetchone()
             return dict(row) if row else {}
 
     def get_discovery(self, name_or_designation: str) -> dict | None:
@@ -610,8 +643,7 @@ class SolarDB:
                 )
                 params.extend([target_l, target_l])
             where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-            return [dict(r) for r in conn.execute(
-                f"""
+            query = f"""
                 SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
                        solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
                        vg_km_s, a_au, q_au, e, peri_deg, node_deg, incl_deg, n_members,
@@ -621,7 +653,11 @@ class SolarDB:
                 {where}
                 ORDER BY iau_no, ad_no
                 LIMIT ?
-                """, [*params, self._lim(limit, 1000)])]
+                """
+            return [
+                dict(r)
+                for r in self._execute(conn, query, [*params, self._lim(limit, 1000)])
+            ]
 
     def get_meteor_shower(self, code_or_name: str) -> dict | None:
         """One IAU-registered meteor shower (all its parameter sets, plus its

@@ -79,9 +79,18 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
     # Row counts per table. A v1 file lacks the v2 tables; report those as absent
     # rather than failing the publish, but let any other SQLite error surface.
     present = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    count_queries = {
+        "objects": "SELECT COUNT(*) FROM objects",
+        "orbital_elements": "SELECT COUNT(*) FROM orbital_elements",
+        "close_approaches": "SELECT COUNT(*) FROM close_approaches",
+        "discoveries": "SELECT COUNT(*) FROM discoveries",
+        "designations": "SELECT COUNT(*) FROM designations",
+        "atmospheres": "SELECT COUNT(*) FROM atmospheres",
+        "rings": "SELECT COUNT(*) FROM rings",
+    }
     tables = {
-        t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-        for t in ("objects", "orbital_elements", "close_approaches", "discoveries", "designations", "atmospheres", "rings")
+        t: conn.execute(query).fetchone()[0]
+        for t, query in count_queries.items()
         if t in present
     }
     coverage: dict[str, Any] | None = None

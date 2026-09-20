@@ -205,7 +205,17 @@ def write_showers(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             "ra_deg", "dec_deg", "dra_deg_per_day", "ddec_deg_per_day", "vg_km_s", "a_au", "q_au", "e", "peri_deg",
             "node_deg", "incl_deg", "n_members", "shower_group", "parent_body", "parent_object_id", "technique",
             "reference", "submitted_on", "source"]
-    sql = f"INSERT OR REPLACE INTO meteor_showers ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})"
+    sql = """
+        INSERT OR REPLACE INTO meteor_showers (
+            iau_no, ad_no, code, name, activity, status_code, status_label,
+            solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
+            vg_km_s, a_au, q_au, e, peri_deg, node_deg, incl_deg, n_members,
+            shower_group, parent_body, parent_object_id, technique, reference,
+            submitted_on, source
+        ) VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+    """
     for r in rows:
         pid = resolve_parent(conn, r.get("parent_body"))
         res += pid is not None

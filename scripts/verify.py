@@ -139,9 +139,12 @@ def main() -> int:
     if conn.execute("PRAGMA user_version").fetchone()[0] >= 2:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from ingest_sbdb import ORBIT_CLASS_CODES
-        placeholders = ",".join("?" for _ in ORBIT_CLASS_CODES)
-        bad = conn.execute(f"SELECT COUNT(*) FROM visual_properties WHERE spectral_type IN ({placeholders})",
-                           tuple(ORBIT_CLASS_CODES)).fetchone()[0]
+        bad = conn.execute(
+            "SELECT COUNT(*) FROM visual_properties "
+            "WHERE spectral_type IN (SELECT value FROM json_each(?))",
+            # json.dumps has no encoding for the frozenset ORBIT_CLASS_CODES is.
+            (json.dumps(sorted(ORBIT_CLASS_CODES)),),
+        ).fetchone()[0]
         if bad:
             failures.append(f"{bad} rows carry an orbit class in spectral_type")
             fail(f"{bad} rows carry an orbit class in spectral_type")
@@ -254,8 +257,13 @@ def main() -> int:
         ok(f"Saturn rings: {saturn_rings}")
 
     # Property tables aren't empty
-    for tbl in ("orbital_elements", "physical_properties", "visual_properties"):
-        n = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+    property_counts = {
+        "orbital_elements": "SELECT COUNT(*) FROM orbital_elements",
+        "physical_properties": "SELECT COUNT(*) FROM physical_properties",
+        "visual_properties": "SELECT COUNT(*) FROM visual_properties",
+    }
+    for tbl, query in property_counts.items():
+        n = conn.execute(query).fetchone()[0]
         if n == 0:
             failures.append(f"{tbl} is empty")
             fail(f"{tbl} is empty")
