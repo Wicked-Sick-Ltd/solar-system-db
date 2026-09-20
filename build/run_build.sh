@@ -27,4 +27,7 @@ if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
 fi
 
 cd "$REPO"
-exec /usr/bin/op run --env-file=build/.env.op -- /usr/bin/docker compose --profile build run --rm builder
+# --build: the image COPYs the code in at build time, so without it every nightly
+# keeps running whatever was in the checkout when the image was last built
+# (2026-09-17 → 2026-09-20 ran three-day-old code, no showers, no back-off).
+exec /usr/bin/op run --env-file=build/.env.op -- /usr/bin/docker compose --profile build run --build --rm builder
