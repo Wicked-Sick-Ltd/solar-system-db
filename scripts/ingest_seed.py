@@ -68,11 +68,9 @@ def safe_float(x: Any) -> float | None:
 def populate_major_bodies(conn) -> dict[str, int]:
     counts: dict[str, int] = {}
 
-    # Sun
     write_major_body(conn, SUN, "star")
     counts["star"] = 1
 
-    # Planets
     for pl in PLANETS:
         write_major_body(conn, pl, "planet", parent_id="sun")
     counts["planet"] = len(PLANETS)
@@ -119,7 +117,6 @@ def populate_major_bodies(conn) -> dict[str, int]:
         n_moons += 1
     counts["moon"] = n_moons
 
-    # Rings
     n_rings = 0
     for ring in RINGS:
         conn.execute(
