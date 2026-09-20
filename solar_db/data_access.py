@@ -48,15 +48,6 @@ ORBITAL_FIELDS = (
 class SolarDB:
     """Thin SQLite wrapper, read-only."""
 
-    @staticmethod
-    def _execute(
-        conn: sqlite3.Connection,
-        query: str,
-        params: tuple[Any, ...] | list[Any] = (),
-    ) -> sqlite3.Cursor:
-        """Execute composed SQL whose values are supplied separately."""
-        return conn.execute(query, params)
-
     def __init__(self, db_path: str | os.PathLike | None = None) -> None:
         self.db_path = Path(db_path or os.environ.get("SOLAR_DB_PATH",
                                                        str(DEFAULT_DB_PATH)))
@@ -115,91 +106,119 @@ class SolarDB:
         `after` enables keyset pagination over the full catalogue (pass the last
         id of the previous page); results are then ordered by id, and `offset`
         is ignored."""
-        clauses: list[str] = []
-        params: list[Any] = []
-
-        if orbit_class:
-            clauses.append("oe.orbit_class_code = ?")
-            params.append(orbit_class)
-        if max_moid_au is not None:
-            clauses.append("oe.moid_au <= ?")
-            params.append(max_moid_au)
-        if min_diameter_km is not None:
-            clauses.append("p.radius_km >= ?")
-            params.append(min_diameter_km / 2)
-        if max_condition_code is not None:
-            clauses.append("oe.condition_code <= ?")
-            params.append(max_condition_code)
-        if discovered_after:
-            clauses.append("o.discovery_date >= ?")
-            params.append(discovered_after)
-        if after is not None:                      # "" = start of the keyset walk
-            clauses.append("o.id > ?")
-            params.append(after)
-
-        if object_type:
-            if object_type not in OBJECT_TYPES:
-                raise ValueError(f"Unknown object_type {object_type!r}; "
-                                 f"valid: {OBJECT_TYPES}")
-            clauses.append("o.object_type = ?")
-            params.append(object_type)
-
+        if object_type and object_type not in OBJECT_TYPES:
+            raise ValueError(f"Unknown object_type {object_type!r}; "
+                             f"valid: {OBJECT_TYPES}")
+        parent_id = None
         if parent:
             parent_id = self._resolve_id(parent)
             if not parent_id:
                 return []
-            clauses.append("o.parent_id = ?")
-            params.append(parent_id)
-
-        if min_radius_km is not None:
-            clauses.append("p.radius_km >= ?")
-            params.append(min_radius_km)
-        if max_radius_km is not None:
-            clauses.append("p.radius_km <= ?")
-            params.append(max_radius_km)
-        if max_eccentricity is not None:
-            clauses.append("oe.eccentricity <= ?")
-            params.append(max_eccentricity)
-        if min_semi_major_axis_au is not None:
-            clauses.append("oe.semi_major_axis_au >= ?")
-            params.append(min_semi_major_axis_au)
-        if max_semi_major_axis_au is not None:
-            clauses.append("oe.semi_major_axis_au <= ?")
-            params.append(max_semi_major_axis_au)
-
-        if neo:
-            clauses.append("EXISTS (SELECT 1 FROM classifications c "
-                           "WHERE c.object_id=o.id AND c.label='NEO')")
-        if pha:
-            clauses.append("EXISTS (SELECT 1 FROM classifications c "
-                           "WHERE c.object_id=o.id AND c.label='PHA')")
-        if named_only:
-            clauses.append("o.name IS NOT NULL AND o.name <> ''")
-
-        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-        order = "o.id" if after is not None else "oe.semi_major_axis_au IS NULL, oe.semi_major_axis_au, o.id"
+        params = {
+            "orbit_class": orbit_class or None,
+            "max_moid_au": max_moid_au,
+            "min_diameter_radius": None if min_diameter_km is None else min_diameter_km / 2,
+            "max_condition_code": max_condition_code,
+            "discovered_after": discovered_after or None,
+            "keyset": 1 if after is not None else 0,
+            "after": after if after is not None else "",
+            "object_type": object_type or None,
+            "parent_id": parent_id,
+            "min_radius_km": min_radius_km,
+            "max_radius_km": max_radius_km,
+            "max_eccentricity": max_eccentricity,
+            "min_semi_major_axis_au": min_semi_major_axis_au,
+            "max_semi_major_axis_au": max_semi_major_axis_au,
+            "neo": 1 if neo else 0,
+            "pha": 1 if pha else 0,
+            "named_only": 1 if named_only else 0,
+            "limit": self._lim(limit, 1000),
+            "offset": 0 if after is not None else max(0, int(offset or 0)),
+        }
         with self._conn() as probe:
             v2 = self._has_table(probe, "designations")
-        extra = "oe.orbit_class_code, oe.moid_au, oe.condition_code," if v2 else ""
-        sql = f"""
-            SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
-                   o.discoverer, o.discovery_date, o.wikipedia_url,
-                   p.radius_km, p.mass_kg,
-                   oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
-                   oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
-                   {extra}
-                   v.geometric_albedo, v.absolute_magnitude_h
-            FROM objects o
-            LEFT JOIN physical_properties p  ON p.object_id  = o.id
-            LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
-            LEFT JOIN visual_properties   v  ON v.object_id  = o.id
-            {where}
-            ORDER BY {order}
-            LIMIT ? OFFSET ?
-        """
-        params.extend([self._lim(limit, 1000), max(0, int(offset or 0)) if after is None else 0])
         with self._conn() as conn:
-            return [dict(r) for r in self._execute(conn, sql, params)]
+            if v2:
+                rows = conn.execute(
+                    """
+                    SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
+                           o.discoverer, o.discovery_date, o.wikipedia_url,
+                           p.radius_km, p.mass_kg,
+                           oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
+                           oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
+                           oe.orbit_class_code, oe.moid_au, oe.condition_code,
+                           v.geometric_albedo, v.absolute_magnitude_h
+                    FROM objects o
+                    LEFT JOIN physical_properties p  ON p.object_id  = o.id
+                    LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
+                    LEFT JOIN visual_properties   v  ON v.object_id  = o.id
+                    WHERE (:orbit_class IS NULL OR oe.orbit_class_code = :orbit_class)
+                      AND (:max_moid_au IS NULL OR oe.moid_au <= :max_moid_au)
+                      AND (:min_diameter_radius IS NULL OR p.radius_km >= :min_diameter_radius)
+                      AND (:max_condition_code IS NULL OR oe.condition_code <= :max_condition_code)
+                      AND (:discovered_after IS NULL OR o.discovery_date >= :discovered_after)
+                      AND (NOT :keyset OR o.id > :after)
+                      AND (:object_type IS NULL OR o.object_type = :object_type)
+                      AND (:parent_id IS NULL OR o.parent_id = :parent_id)
+                      AND (:min_radius_km IS NULL OR p.radius_km >= :min_radius_km)
+                      AND (:max_radius_km IS NULL OR p.radius_km <= :max_radius_km)
+                      AND (:max_eccentricity IS NULL OR oe.eccentricity <= :max_eccentricity)
+                      AND (:min_semi_major_axis_au IS NULL OR oe.semi_major_axis_au >= :min_semi_major_axis_au)
+                      AND (:max_semi_major_axis_au IS NULL OR oe.semi_major_axis_au <= :max_semi_major_axis_au)
+                      AND (NOT :neo OR EXISTS (
+                            SELECT 1 FROM classifications c
+                            WHERE c.object_id=o.id AND c.label='NEO'))
+                      AND (NOT :pha OR EXISTS (
+                            SELECT 1 FROM classifications c
+                            WHERE c.object_id=o.id AND c.label='PHA'))
+                      AND (NOT :named_only OR (o.name IS NOT NULL AND o.name <> ''))
+                    ORDER BY CASE WHEN :keyset THEN o.id END,
+                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au IS NULL END,
+                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au END,
+                             CASE WHEN NOT :keyset THEN o.id END
+                    LIMIT :limit OFFSET :offset
+                    """,
+                    params,
+                )
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
+                           o.discoverer, o.discovery_date, o.wikipedia_url,
+                           p.radius_km, p.mass_kg,
+                           oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
+                           oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
+                           v.geometric_albedo, v.absolute_magnitude_h
+                    FROM objects o
+                    LEFT JOIN physical_properties p  ON p.object_id  = o.id
+                    LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
+                    LEFT JOIN visual_properties   v  ON v.object_id  = o.id
+                    WHERE (:min_diameter_radius IS NULL OR p.radius_km >= :min_diameter_radius)
+                      AND (:discovered_after IS NULL OR o.discovery_date >= :discovered_after)
+                      AND (NOT :keyset OR o.id > :after)
+                      AND (:object_type IS NULL OR o.object_type = :object_type)
+                      AND (:parent_id IS NULL OR o.parent_id = :parent_id)
+                      AND (:min_radius_km IS NULL OR p.radius_km >= :min_radius_km)
+                      AND (:max_radius_km IS NULL OR p.radius_km <= :max_radius_km)
+                      AND (:max_eccentricity IS NULL OR oe.eccentricity <= :max_eccentricity)
+                      AND (:min_semi_major_axis_au IS NULL OR oe.semi_major_axis_au >= :min_semi_major_axis_au)
+                      AND (:max_semi_major_axis_au IS NULL OR oe.semi_major_axis_au <= :max_semi_major_axis_au)
+                      AND (NOT :neo OR EXISTS (
+                            SELECT 1 FROM classifications c
+                            WHERE c.object_id=o.id AND c.label='NEO'))
+                      AND (NOT :pha OR EXISTS (
+                            SELECT 1 FROM classifications c
+                            WHERE c.object_id=o.id AND c.label='PHA'))
+                      AND (NOT :named_only OR (o.name IS NOT NULL AND o.name <> ''))
+                    ORDER BY CASE WHEN :keyset THEN o.id END,
+                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au IS NULL END,
+                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au END,
+                             CASE WHEN NOT :keyset THEN o.id END
+                    LIMIT :limit OFFSET :offset
+                    """,
+                    params,
+                )
+            return [dict(r) for r in rows]
 
     def get_object(self, name_or_designation: str) -> dict[str, Any] | None:
         """Return one full record (object + orbital + physical + visual +
@@ -355,20 +374,23 @@ class SolarDB:
         types = ("dwarf_planet", "dwarf_planet_candidate") if include_candidates \
             else ("dwarf_planet",)
         with self._conn() as conn:
-            query = (
+            if include_candidates:
+                return [dict(r) for r in conn.execute(
+                    """
+                    SELECT o.id, o.name, o.designation, o.object_type,
+                           p.radius_km, p.mass_kg,
+                           oe.semi_major_axis_au, oe.eccentricity,
+                           oe.orbital_period_days
+                    FROM objects o
+                    LEFT JOIN physical_properties p ON p.object_id = o.id
+                    LEFT JOIN orbital_elements oe ON oe.object_id = o.id
+                    WHERE o.object_type IN (?, ?)
+                    ORDER BY oe.semi_major_axis_au
+                    """,
+                    types,
+                )]
+            return [dict(r) for r in conn.execute(
                 """
-                SELECT o.id, o.name, o.designation, o.object_type,
-                       p.radius_km, p.mass_kg,
-                       oe.semi_major_axis_au, oe.eccentricity,
-                       oe.orbital_period_days
-                FROM objects o
-                LEFT JOIN physical_properties p ON p.object_id = o.id
-                LEFT JOIN orbital_elements oe ON oe.object_id = o.id
-                WHERE o.object_type IN (?, ?)
-                ORDER BY oe.semi_major_axis_au
-                """
-                if include_candidates
-                else """
                 SELECT o.id, o.name, o.designation, o.object_type,
                        p.radius_km, p.mass_kg,
                        oe.semi_major_axis_au, oe.eccentricity,
@@ -378,9 +400,9 @@ class SolarDB:
                 LEFT JOIN orbital_elements oe ON oe.object_id = o.id
                 WHERE o.object_type IN (?)
                 ORDER BY oe.semi_major_axis_au
-                """
-            )
-            return [dict(r) for r in conn.execute(query, types)]
+                """,
+                types,
+            )]
 
     def list_neos(
         self,
@@ -389,18 +411,14 @@ class SolarDB:
         max_diameter_km: float | None = None,
         limit: int = 200,
     ) -> list[dict]:
-        clauses = []
-        params: list[Any] = []
-        if min_diameter_km is not None:
-            clauses.append("p.radius_km >= ?")
-            params.append(min_diameter_km / 2.0)
-        if max_diameter_km is not None:
-            clauses.append("p.radius_km <= ?")
-            params.append(max_diameter_km / 2.0)
-        where_extra = (" AND " + " AND ".join(clauses)) if clauses else ""
-        params.append(self._lim(limit, 1000))
+        params = {
+            "min_radius_km": None if min_diameter_km is None else min_diameter_km / 2.0,
+            "max_radius_km": None if max_diameter_km is None else max_diameter_km / 2.0,
+            "limit": self._lim(limit, 1000),
+        }
         with self._conn() as conn:
-            query = f"""
+            return [dict(r) for r in conn.execute(
+                """
                 SELECT o.id, o.name, o.designation,
                        oe.semi_major_axis_au, oe.perihelion_au,
                        oe.eccentricity, oe.inclination_deg,
@@ -413,11 +431,13 @@ class SolarDB:
                 LEFT JOIN orbital_elements oe ON oe.object_id = o.id
                 LEFT JOIN physical_properties p ON p.object_id = o.id
                 LEFT JOIN visual_properties v ON v.object_id = o.id
-                WHERE 1=1 {where_extra}
+                WHERE (:min_radius_km IS NULL OR p.radius_km >= :min_radius_km)
+                  AND (:max_radius_km IS NULL OR p.radius_km <= :max_radius_km)
                 ORDER BY v.absolute_magnitude_h
-                LIMIT ?
-                """
-            return [dict(r) for r in self._execute(conn, query, params)]
+                LIMIT :limit
+                """,
+                params,
+            )]
 
     def list_periodic_comets(self, limit: int = 2000) -> list[dict]:
         with self._conn() as conn:
@@ -522,26 +542,30 @@ class SolarDB:
         obj_id = self._resolve_id(name_or_designation)
         if not obj_id:
             return None
-        clauses, params = ["object_id = ?"], [obj_id]
-        if date_min:
-            clauses.append("cd_iso >= ?")
-            params.append(date_min)
-        if date_max:
-            clauses.append("cd_iso <= ?")
-            params.append(date_max)
-        if body:
-            clauses.append("body = ? COLLATE NOCASE")
-            params.append(body)
-        params.append(self._lim(limit, 1000))
+        params = {
+            "object_id": obj_id,
+            "date_min": date_min or None,
+            "date_max": date_max or None,
+            "body": body or None,
+            "limit": self._lim(limit, 1000),
+        }
         with self._conn() as conn:
             if not self._has_table(conn, "close_approaches"):
                 return []
-            query = (
-                "SELECT body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au, "
-                "v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source "
-                f"FROM close_approaches WHERE {' AND '.join(clauses)} ORDER BY cd_jd LIMIT ?"
-            )
-            return [dict(r) for r in self._execute(conn, query, params)]
+            return [dict(r) for r in conn.execute(
+                """
+                SELECT body, cd_jd, cd_iso, dist_au, dist_min_au, dist_max_au,
+                       v_rel_km_s, v_inf_km_s, t_sigma, orbit_ref, source
+                FROM close_approaches
+                WHERE object_id = :object_id
+                  AND (:date_min IS NULL OR cd_iso >= :date_min)
+                  AND (:date_max IS NULL OR cd_iso <= :date_max)
+                  AND (:body IS NULL OR body = :body COLLATE NOCASE)
+                ORDER BY cd_jd
+                LIMIT :limit
+                """,
+                params,
+            )]
 
     def close_approaches_between(self, date_min: str, date_max: str, *, body: str = "Earth",
                                  max_dist_au: float = 0.05, limit: int = 200) -> list[dict]:
@@ -627,37 +651,32 @@ class SolarDB:
         with self._conn() as conn:
             if not self._has_table(conn, "meteor_showers"):
                 return []
-            clauses: list[str] = []
-            params: list[Any] = []
-            if established_only:
-                clauses.append("status_code IN (1, 6)")
-            if target_l is not None:
-                # Circular distance in SQL, evaluated before LIMIT so the window
-                # applies to the whole table (~1,420 live rows) rather than only
-                # the first `limit` rows in iau_no/ad_no order. SQLite's two-arg
-                # scalar MIN (not the aggregate MIN) picks the shorter arc.
-                clauses.append(
-                    "(solar_longitude_deg IS NOT NULL AND "
-                    "MIN(ABS(solar_longitude_deg - ?) % 360.0, "
-                    "360.0 - (ABS(solar_longitude_deg - ?) % 360.0)) <= 15.0)"
-                )
-                params.extend([target_l, target_l])
-            where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-            query = f"""
+            # Circular distance is evaluated before LIMIT so the window applies
+            # to the whole table (~1,420 live rows) rather than only the first
+            # `limit` rows in iau_no/ad_no order. SQLite's two-arg scalar MIN
+            # (not the aggregate MIN) picks the shorter arc.
+            return [dict(r) for r in conn.execute(
+                """
                 SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
                        solar_longitude_deg, ra_deg, dec_deg, dra_deg_per_day, ddec_deg_per_day,
                        vg_km_s, a_au, q_au, e, peri_deg, node_deg, incl_deg, n_members,
                        shower_group, parent_body, parent_object_id, technique, reference,
                        submitted_on, source
                 FROM meteor_showers
-                {where}
+                WHERE (NOT :established OR status_code IN (1, 6))
+                  AND (:target_l IS NULL OR (
+                        solar_longitude_deg IS NOT NULL AND
+                        MIN(ABS(solar_longitude_deg - :target_l) % 360.0,
+                            360.0 - (ABS(solar_longitude_deg - :target_l) % 360.0)) <= 15.0))
                 ORDER BY iau_no, ad_no
-                LIMIT ?
-                """
-            return [
-                dict(r)
-                for r in self._execute(conn, query, [*params, self._lim(limit, 1000)])
-            ]
+                LIMIT :limit
+                """,
+                {
+                    "established": 1 if established_only else 0,
+                    "target_l": target_l,
+                    "limit": self._lim(limit, 1000),
+                },
+            )]
 
     def get_meteor_shower(self, code_or_name: str) -> dict | None:
         """One IAU-registered meteor shower (all its parameter sets, plus its
