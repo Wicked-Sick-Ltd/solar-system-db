@@ -52,6 +52,12 @@ holds only `op://` references and is injected at run time:
 op run --env-file build/.env.op -- docker compose --profile build run --rm builder
 ```
 
+The builder image `COPY`s the code in (build/Dockerfile), so `run_build.sh` passes `--build`: a
+nightly always runs the code in `~/deploy/solar-system-db` at 03:00. Pulling main there is
+enough; no manual `docker compose build` step. (Without `--build`, 2026-09-18→20 ran an image
+from 09-17.) The crawler image is rebuilt the same way only when you restart
+`solar-crawler.service` after `docker compose --profile build build crawler`.
+
 Prove the token path resolves without running a build:
 
 ```bash
