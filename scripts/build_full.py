@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ingest_cad  # noqa: E402
 import ingest_enrichment  # noqa: E402
+import ingest_exoplanets  # noqa: E402
 import ingest_factsheets  # noqa: E402
 import ingest_mpc  # noqa: E402
 import ingest_sats  # noqa: E402
@@ -125,6 +126,14 @@ def stage_showers(conn, *, offline: bool) -> dict[str, int]:
     return ingest_showers.write_showers(conn, ingest_showers.parse_showers(text))
 
 
+def stage_exoplanets(conn, *, offline: bool) -> dict[str, int]:
+    rows = (json.loads((FIXTURES / "exoplanets.json").read_text()) if offline
+            else ingest_exoplanets.fetch_exoplanets())
+    retrieved_at = (json.loads((FIXTURES / "exoplanets.meta.json").read_text())["retrieved_at"]
+                    if offline else None)
+    return ingest_exoplanets.write_exoplanets(conn, rows, retrieved_at=retrieved_at)
+
+
 def stage_enrichment(conn, store: str | None) -> dict[str, int]:
     if not store or not Path(store).exists():
         return {"applied": 0, "skipped": 0, "note": "no enrichment store"}  # type: ignore[dict-item]
@@ -174,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--skip-cad", action="store_true")
     p.add_argument("--skip-mpc", action="store_true")
     p.add_argument("--skip-showers", action="store_true")
+    p.add_argument("--skip-exoplanets", action="store_true")
     p.add_argument("--no-vacuum", action="store_true")
     p.add_argument("--enrichment-store", default=None, help="crawler store (enrichment.sqlite) to merge in")
     args = p.parse_args(argv)
@@ -210,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
                                        lambda: stage_showers(conn, offline=offline))
     else:
         totals["showers"] = "skipped"
+    totals["exoplanets"] = ("skipped" if args.skip_exoplanets else
+        _run_stage("Stage 5c: NASA exoplanets", lambda: stage_exoplanets(conn, offline=offline)))
     totals["tiers"] = _run_stage("Stage 6: crawler tiers", lambda: stage_tiers(conn))
     totals["enrichment"] = _run_stage("Stage 7: merge crawler enrichment",
                                        lambda: stage_enrichment(conn, args.enrichment_store))

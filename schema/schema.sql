@@ -325,7 +325,38 @@ CREATE INDEX IF NOT EXISTS idx_showers_code   ON meteor_showers(code);
 CREATE INDEX IF NOT EXISTS idx_showers_parent ON meteor_showers(parent_object_id);
 CREATE INDEX IF NOT EXISTS idx_showers_status ON meteor_showers(status_code);
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
+
+-- Exoplanet systems are separate from the heliocentric solar-system catalogue.
+CREATE TABLE IF NOT EXISTS exoplanet_hosts (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    ra_deg REAL, dec_deg REAL,
+    distance_pc REAL CHECK (distance_pc > 0),
+    distance_error_plus_pc REAL, distance_error_minus_pc REAL,
+    x_pc REAL, y_pc REAL, z_pc REAL,
+    galactocentric_x_pc REAL, galactocentric_y_pc REAL, galactocentric_z_pc REAL,
+    coordinate_source_planet TEXT NOT NULL,
+    coordinate_metadata TEXT NOT NULL,
+    source TEXT NOT NULL,
+    retrieved_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exohost_distance ON exoplanet_hosts(distance_pc);
+
+CREATE TABLE IF NOT EXISTS exoplanets (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    host_id TEXT NOT NULL REFERENCES exoplanet_hosts(id),
+    discovery_method TEXT, discovery_year INTEGER,
+    radius_earth REAL, mass_earth REAL, mass_provenance TEXT,
+    period_days REAL, semi_major_axis_au REAL, equilibrium_temperature_k REAL,
+    controversial INTEGER NOT NULL DEFAULT 0 CHECK (controversial IN (0, 1)),
+    source TEXT NOT NULL, source_url TEXT NOT NULL, retrieved_at TEXT NOT NULL,
+    -- Original selected archive fields include asymmetric errors, limits and references.
+    source_data TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exoplanets_host ON exoplanets(host_id);
+CREATE INDEX IF NOT EXISTS idx_exoplanets_method ON exoplanets(discovery_method);
 
 ----------------------------------------------------------------------
 -- Build metadata (one row per refresh run)

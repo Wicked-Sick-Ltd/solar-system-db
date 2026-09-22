@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from .positions import solar_longitude_deg
+from .exoplanets import ExoplanetQueries
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -45,7 +46,7 @@ ORBITAL_FIELDS = (
 )
 
 
-class SolarDB:
+class SolarDB(ExoplanetQueries):
     """Thin SQLite wrapper, read-only."""
 
     def __init__(self, db_path: str | os.PathLike | None = None) -> None:

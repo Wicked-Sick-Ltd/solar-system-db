@@ -15,6 +15,7 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.32",
+    "astropy>=6,<9",
 ]
 
 [project.optional-dependencies]

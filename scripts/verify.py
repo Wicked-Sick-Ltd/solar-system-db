@@ -52,6 +52,18 @@ def main() -> int:
     else:
         ok("no foreign-key violations")
 
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "exoplanets" in tables:
+        exo_count = conn.execute("SELECT count(*) FROM exoplanets").fetchone()[0]
+        invalid = conn.execute("""SELECT count(*) FROM exoplanet_hosts WHERE
+            (x_pc IS NOT NULL AND (distance_pc IS NULL OR distance_pc<=0 OR ra_deg IS NULL OR dec_deg IS NULL))
+            OR ((x_pc IS NULL) != (y_pc IS NULL)) OR ((x_pc IS NULL) != (z_pc IS NULL))""").fetchone()[0]
+        if invalid:
+            failures.append("invalid exoplanet host coordinates")
+            fail("invalid exoplanet host coordinates")
+        else:
+            ok(f"exoplanets: {exo_count}; host coordinates consistent")
+
     # ---- row counts -------------------------------------------------------
     counts = {r["object_type"]: r["n"] for r in
               conn.execute("SELECT * FROM v_object_counts")}

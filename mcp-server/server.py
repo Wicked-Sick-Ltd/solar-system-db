@@ -39,7 +39,8 @@ mcp = FastMCP(
         "and the IAU Minor Planet Center. Use the `search` and `find_objects` "
         "tools for discovery; `get_object` for full detail; `compute_position` "
         "for two-body orbital propagation. This is an astronomy tool — not "
-        "astrology."
+        "astrology. Use list_exoplanets, get_exoplanet, get_exoplanet_host and "
+        "galaxy_map for NASA Exoplanet Archive data beyond the solar system."
     ),
 )
 
@@ -52,6 +53,40 @@ def db() -> SolarDB:
     if _db is None:
         _db = SolarDB()
     return _db
+
+
+@mcp.tool()
+def list_exoplanets(q: str | None = None, discovery_method: str | None = None,
+                    max_distance_pc: float | None = None, limit: int = 50, offset: int = 0) -> dict:
+    """Search NASA confirmed exoplanets by planet/host name, discovery method and distance in parsecs.
+
+    Separate from solar-system find_objects. Composite measurements may mix references;
+    source_data preserves errors, limits, references and mass provenance.
+    """
+    return db().list_exoplanets(q=q, discovery_method=discovery_method, max_distance_pc=max_distance_pc,
+                                limit=limit, offset=offset)
+
+
+@mcp.tool()
+def get_exoplanet(name: str) -> dict | None:
+    """Get an exoplanet by name or stable id, with original archive measurements and references."""
+    return db().get_exoplanet(name)
+
+
+@mcp.tool()
+def get_exoplanet_host(name: str) -> dict | None:
+    """Get host astrometry, coordinate-frame metadata and its confirmed planets."""
+    return db().get_exoplanet_host(name)
+
+
+@mcp.tool()
+def galaxy_map(max_distance_pc: float | None = None, limit: int = 10000) -> dict:
+    """Measured host-system positions, in parsecs; missing distances are omitted, never guessed.
+
+    Returns Sun-centred Galactic and Galactocentric coordinates with frame metadata,
+    coverage and truncation counts. Not stellar motion or individual planet ephemerides.
+    """
+    return db().galaxy_map(max_distance_pc=max_distance_pc, limit=limit)
 
 
 # Catalog tools

@@ -42,7 +42,8 @@ app = FastAPI(
     description=(
         "A queryable catalogue of known solar-system objects — planets, moons, "
         "dwarf planets, asteroids, comets, TNOs, centaurs, and rings. Sourced "
-        "from NASA/JPL and the IAU Minor Planet Center. "
+        "from NASA/JPL and the IAU Minor Planet Center. Separate exoplanet and host "
+        "catalogues use the NASA Exoplanet Archive. "
         "**For astronomy, science education, sci-fi worldbuilding, and "
         "model-building — not astrology.**"
     ),
@@ -157,6 +158,42 @@ def close_approaches(request: Request,
                      limit: int = Query(200, ge=1, le=1000)):
     return {"from": date_min, "to": date_max, "body": body, "max_dist_au": max_dist_au,
             "results": db.close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)}
+
+
+@app.get("/api/v1/exoplanets", tags=["exoplanets"])
+@limiter.limit("60/minute")
+def list_exoplanets(request: Request, q: Optional[str] = Query(None, max_length=200),
+                    discovery_method: Optional[str] = Query(None, max_length=100),
+                    max_distance_pc: Optional[float] = Query(None, gt=0, allow_inf_nan=False),
+                    limit: int = Query(50, ge=1, le=1000), offset: int = Query(0, ge=0, le=100000)):
+    return db.list_exoplanets(q=q, discovery_method=discovery_method,
+                              max_distance_pc=max_distance_pc, limit=limit, offset=offset)
+
+
+@app.get("/api/v1/exoplanets/{name}", tags=["exoplanets"])
+@limiter.limit("60/minute")
+def get_exoplanet(request: Request, name: str):
+    result = db.get_exoplanet(name)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Exoplanet not found")
+    return result
+
+
+@app.get("/api/v1/exoplanet-hosts/{name}", tags=["exoplanets"])
+@limiter.limit("60/minute")
+def get_exoplanet_host(request: Request, name: str):
+    result = db.get_exoplanet_host(name)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Exoplanet host not found")
+    return result
+
+
+@app.get("/api/v1/galaxy", tags=["exoplanets"], summary="Measured exoplanet host positions in parsecs")
+@limiter.limit("60/minute")
+def galaxy_map(request: Request,
+               max_distance_pc: Optional[float] = Query(None, gt=0, allow_inf_nan=False),
+               limit: int = Query(10000, ge=1, le=10000)):
+    return db.galaxy_map(max_distance_pc=max_distance_pc, limit=limit)
 
 
 @app.get("/api/v1/meteor-showers", tags=["catalog"], summary="IAU meteor showers")
