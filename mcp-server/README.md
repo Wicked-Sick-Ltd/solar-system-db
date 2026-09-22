@@ -164,3 +164,17 @@ pytest mcp-server/tests/ api/tests/ --import-mode=importlib
 Smoke tests confirm each tool family is wired up and the shared data-access
 layer returns expected counts. Not 100% coverage by design — they're the
 breakage-canary, not the spec.
+
+## Exoplanet tools
+
+- `list_exoplanets(q, discovery_method, max_distance_pc, limit=50, offset=0)`:
+  filter confirmed NASA archive planets; returns a paginated envelope.
+- `get_exoplanet(name)`: details with raw selected archive measurements, errors,
+  limits and references. Accepts name or stable ID.
+- `get_exoplanet_host(name)`: astrometry and all catalogue planets for a host.
+- `galaxy_map(max_distance_pc, limit=10000)`: measured host positions and coverage.
+
+These share the REST data-access methods but retain separate typed tool
+definitions; contract tests exercise both. Exoplanets are not returned by
+`find_objects` or propagated by `compute_position`. Missing distances are not
+invented. See [scientific conventions](../docs/EXOPLANETS.md).

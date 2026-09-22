@@ -295,9 +295,31 @@ Everything the public sources publish, refreshed nightly:
   physical parameters — filled by a perpetual polite crawler (tier 1, the
   bodies the website shows, weekly; tier 2, everything else, rolling).
 
+## Exoplanets and galaxy locations
+
+Schema v4 adds `exoplanets` and `exoplanet_hosts`, sourced nightly from the
+[NASA Exoplanet Archive PSCompPars table](https://exoplanetarchive.ipac.caltech.edu/docs/PSCompPars.html)
+(DOI: 10.26133/NEA13). These are separate from `objects`; solar-system counts,
+search and orbital propagation retain their existing meaning.
+
+- `GET /api/v1/exoplanets?q=TRAPPIST&max_distance_pc=25`
+- `GET /api/v1/exoplanets/TRAPPIST-1%20e`
+- `GET /api/v1/exoplanet-hosts/TRAPPIST-1`
+- `GET /api/v1/galaxy?max_distance_pc=25`
+
+Equivalent MCP tools: `list_exoplanets`, `get_exoplanet`, `get_exoplanet_host`,
+`galaxy_map`. The website in `solar-system-web` provides `/exoplanets`,
+`/systems/{id}` and `/galaxy`. Full contract, coordinate conventions, scientific
+limits and rollout order: [exoplanet extension](docs/EXOPLANETS.md).
+
+The normal online/offline build includes this stage. `--skip-exoplanets` is an
+explicit opt-out. A failed or empty NASA fetch fails the build before publication.
+The offline fixture contains 11 real archive records across four hosts; the
+SQLite catalogue remains generated and excluded from Git.
+
 ## Non-goals
 
-- Exoplanets, stars other than the Sun.
+- A complete stellar census or precise exoplanet orbital animations. Host systems of confirmed exoplanets are included separately from solar-system objects.
 - Sub-arcsecond precision ephemerides (use JPL Horizons directly).
 - Serving the 1.4 M-row listing through the website's browse pages as-is; the
   site stays curated-first with search and deep links.

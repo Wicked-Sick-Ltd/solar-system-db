@@ -1,0 +1,11 @@
+{
+  "source": "NASA Exoplanet Archive PSCompPars",
+  "retrieved_at": "2026-09-22T06:44:02.362111+00:00",
+  "hosts": [
+    "51 Peg",
+    "Kepler-16",
+    "Proxima Cen",
+    "TRAPPIST-1"
+  ],
+  "note": "Real selected columns; tests construct invalid and missing examples separately."
+}

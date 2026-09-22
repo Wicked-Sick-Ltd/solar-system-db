@@ -100,3 +100,21 @@ curl 'https://solar.example.com/api/v1/sky/Jupiter?date=2026-09-15T21:00:00Z&lat
 # Search for Halley
 curl 'https://solar.example.com/api/v1/search?q=Halley' | jq
 ```
+
+## Exoplanets (schema v4)
+
+`GET /api/v1/exoplanets` accepts `q` (literal planet/host substring),
+`discovery_method` (exact archive label), `max_distance_pc` (finite, positive),
+`limit` (1–1000, default 50), and `offset` (0–100000). Returns `available`,
+`results`, `total`, `limit`, `offset`, `has_more`.
+
+`GET /api/v1/exoplanets/{name}` and `/api/v1/exoplanet-hosts/{name}` accept
+names or stable IDs and return 404 when missing. Planet records retain the
+selected upstream columns in `source_data`, including references, asymmetric
+errors and limit flags. Host detail includes its planets and coordinate metadata.
+
+`GET /api/v1/galaxy` accepts `max_distance_pc` and `limit` (1–10000). It returns
+one marker per measured host, coordinate frame metadata, total/mapped/unmapped
+host counts, matching count and a `truncated` flag. All positions/distances use
+parsecs. Missing or limited distances are never plotted. Older catalogues return
+`available: false` for list/map endpoints. See [coordinate conventions](../docs/EXOPLANETS.md).

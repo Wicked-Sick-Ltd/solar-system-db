@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import canonicalize_confined  # noqa: E402
 
 LICENCE = ("Compilation: MIT (Wicked Sick Ltd). Underlying data: NASA/JPL (public domain), "
-           "IAU Minor Planet Center (free use with attribution), CDS VI/42 (public domain). "
+           "IAU Minor Planet Center (free use with attribution), CDS VI/42 (public domain), IAU MDC (attribution), NASA Exoplanet Archive PSCompPars (doi:10.26133/NEA13). "
            "Please credit the sources; see /api/v1/sources.")
 SCHEMA_DOC = "https://github.com/Wicked-Sick-Ltd/solar-system-db/blob/main/schema/schema.sql"
 
@@ -87,6 +87,8 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
         "designations": "SELECT COUNT(*) FROM designations",
         "atmospheres": "SELECT COUNT(*) FROM atmospheres",
         "rings": "SELECT COUNT(*) FROM rings",
+        "exoplanets": "SELECT COUNT(*) FROM exoplanets",
+        "exoplanet_hosts": "SELECT COUNT(*) FROM exoplanet_hosts",
     }
     tables = {
         t: conn.execute(query).fetchone()[0]

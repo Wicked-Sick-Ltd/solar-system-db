@@ -48,7 +48,7 @@ def test_v1_columns_still_present():
 def test_schema_v3_has_meteor_showers():
     conn = sqlite3.connect(":memory:")
     conn.executescript((SCHEMA).read_text())
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
     cols = {r[1] for r in conn.execute("PRAGMA table_info(meteor_showers)")}
     assert {"iau_no", "ad_no", "code", "name", "status_code", "status_label", "solar_longitude_deg",
             "ra_deg", "dec_deg", "vg_km_s", "parent_body", "parent_object_id", "source"} <= cols
