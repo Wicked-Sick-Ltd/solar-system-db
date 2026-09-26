@@ -1,6 +1,8 @@
 """REST API smoke tests — one per endpoint family."""
 from __future__ import annotations
 
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -123,6 +125,12 @@ def test_stats(client):
     r = client.get("/api/v1/stats")
     assert r.status_code == 200
     assert r.json()["total_objects"] > 2000
+
+
+def test_stats_does_not_expose_server_paths(client):
+    body = client.get("/api/v1/stats").json()
+    assert "db_path" not in body
+    assert os.environ["SOLAR_DB_PATH"] not in json.dumps(body)
 
 
 def test_healthz(client):

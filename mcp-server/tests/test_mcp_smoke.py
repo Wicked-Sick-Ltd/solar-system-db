@@ -184,6 +184,7 @@ def test_stats(db):
     s = db.stats()
     assert s["total_objects"] > 2000
     assert "by_object_type" in s
+    assert "db_path" not in s  # never publish server filesystem paths
 
 
 # ----- MCP server registration (loads the actual server module) --------------

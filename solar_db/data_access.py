@@ -774,7 +774,6 @@ class SolarDB(ExoplanetQueries):
             "total_objects": total,
             "by_object_type": counts,
             "last_build": last_refresh,
-            "db_path": str(self.db_path),
         }
 
     def get_orbital_elements(self, name_or_designation: str) -> dict | None:
