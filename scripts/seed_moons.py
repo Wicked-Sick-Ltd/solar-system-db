@@ -85,7 +85,6 @@ JUPITER_NAMED = [
     m("Cyllene",    "planet-jupiter", year="2003"),
     m("Kore",       "planet-jupiter", year="2003"),
     m("Herse",      "planet-jupiter", year="2003"),
-    m("S/2003 J 5", "planet-jupiter", year="2003"),
     m("S/2003 J 10","planet-jupiter", year="2003"),
     m("S/2003 J 12","planet-jupiter", year="2003"),
     m("S/2003 J 19","planet-jupiter", year="2003"),
@@ -110,8 +109,10 @@ JUPITER_NAMED = [
     m("S/2003 J 24","planet-jupiter", year="2003"),
 ]
 
-# Saturn — IAU-named moons + the major provisional set (146 confirmed; this
-# list captures the named-or-numbered set).
+# Saturn — IAU-named moons only. Provisional designations come from JPL's
+# satellite elements table (ingest_sats), which is the authority for which
+# moons exist. Never invent designations here: any seeded name JPL doesn't
+# list becomes an empty "ghost" moon on the public site.
 SATURN_NAMED = [
     m("Pan",         "planet-saturn", discoverer="Mark R. Showalter", year="1990"),
     m("Daphnis",     "planet-saturn", discoverer="Cassini Imaging Team", year="2005"),
@@ -168,29 +169,6 @@ SATURN_NAMED = [
     m("Beli",        "planet-saturn", year="2019"),
     m("Eggther",     "planet-saturn", year="2019"),
 ]
-# Auto-generate provisional Saturn designations to round out the 146 count.
-for yr, nn in [("2004", 1), ("2004", 2), ("2004", 3), ("2004", 4),
-               ("2004", 5), ("2004", 6), ("2004", 7),
-               ("2006", 1), ("2006", 2), ("2006", 3), ("2006", 4),
-               ("2006", 5), ("2006", 6), ("2006", 7), ("2006", 8),
-               ("2007", 1), ("2007", 2), ("2007", 3),
-               ("2019", 1), ("2019", 2), ("2019", 3), ("2019", 4),
-               ("2019", 5), ("2019", 6), ("2019", 7), ("2019", 8),
-               ("2019", 9), ("2019", 10), ("2019", 11), ("2019", 12),
-               ("2020", 1), ("2020", 2), ("2020", 3), ("2020", 4),
-               ("2020", 5), ("2020", 6), ("2020", 7), ("2020", 8),
-               ("2020", 9), ("2020", 10), ("2020", 11), ("2020", 12),
-               ("2020", 13), ("2020", 14), ("2020", 15), ("2020", 16),
-               ("2020", 17), ("2020", 18), ("2020", 19), ("2020", 20),
-               ("2020", 21), ("2020", 22), ("2020", 23), ("2020", 24),
-               ("2020", 25), ("2020", 26),
-               ("2004", 8), ("2004", 9), ("2004", 10), ("2004", 11),
-               ("2004", 12), ("2004", 13), ("2004", 14), ("2004", 15),
-               ("2004", 16), ("2004", 17), ("2004", 18), ("2004", 19),
-               ("2004", 20), ("2004", 21), ("2004", 22), ("2004", 23),
-               ("2004", 24)]:
-    SATURN_NAMED.append(m(f"S/{yr} S {nn}", "planet-saturn", year=yr))
-
 # Uranus — 28 moons. The five major handled in seed_major.
 URANUS_OTHERS = [
     m("Cordelia",   "planet-uranus", year="1986"),

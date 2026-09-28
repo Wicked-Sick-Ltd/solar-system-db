@@ -113,6 +113,17 @@ def main() -> int:
     else:
         ok(f"Saturn has {saturn_moons} moons")
 
+    # Ghost moons: provisional designations only exist because JPL lists them,
+    # so one without orbital elements was invented or has since been renamed.
+    ghosts = [r[0] for r in conn.execute(
+        "SELECT o.name FROM objects o LEFT JOIN orbital_elements oe ON oe.object_id = o.id "
+        "WHERE o.object_type='moon' AND o.name LIKE 'S/%' AND oe.orbital_period_days IS NULL"
+    )]
+    if ghosts:
+        print(f"WARN  {len(ghosts)} provisional moon(s) with no orbital elements: {', '.join(ghosts[:10])}")
+    else:
+        ok("No provisional moons without orbital elements")
+
     # Dwarf planets
     dp = conn.execute(
         "SELECT COUNT(*) FROM objects WHERE object_type='dwarf_planet'"
