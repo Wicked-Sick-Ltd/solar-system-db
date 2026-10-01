@@ -1,4 +1,4 @@
-"""One local night of geometric planning, independent of weather/catalogue data."""
+"""One geometric night using ephemerides and optional pinned target directions."""
 
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -10,6 +10,7 @@ from threading import BoundedSemaphore
 
 from .ephemeris import BuiltinEphemeris
 from .inputs import PlanningError
+from .identity import calculation_identity
 from .worker import run_jpl_worker, configured_provider
 
 PLANNING_CAPACITY = BoundedSemaphore(2)
@@ -409,6 +410,7 @@ def _plan(request, provider):
         },
         "method": {
             **provider.metadata,
+            "calculation": calculation_identity(),
             "sample_minutes": SAMPLE_SECONDS / 60,
             "root_tolerance_seconds": ROOT_TOLERANCE_SECONDS,
             "window_note": "Geometric model windows, not visibility or eye-safety advice. Near-tangent crossings and horizon azimuth ambiguity are marked unresolved; ambiguous bands and sub-second intervals are omitted. Returned windows use the selected UTC interval; chart samples cover the whole local night.",
