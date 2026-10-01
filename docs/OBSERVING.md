@@ -321,3 +321,19 @@ Primary implementation/reference sources:
 The distinction between orientation and empirical frame spin is explicit in
 [Astropy’s FK5 transform](https://github.com/astropy/astropy/blob/v8.0.1/astropy/coordinates/builtin_frames/icrs_fk5_transforms.py)
 and [ERFA’s rotation-plus-spin transform](https://github.com/liberfa/erfa/blob/v2.0.1/src/fk52h.c).
+
+### Optional catalogue appearance context
+
+Catalogue targets now include `catalogue.appearance`, copied from the same pinned
+row as the calculated direction: `families`, `magnitude`, `magnitude_band`,
+`magnitude_flag`, `magnitude_code`, `major_axis_arcmin`, `minor_axis_arcmin`.
+These are catalogue values, not apparent sizes calculated for the observing date.
+Missing values remain null; reported zero and negative magnitudes are unchanged.
+No double-star separation is substituted for an extent. The outer catalogue
+snapshot hash, attribution and licence describe these fields as well.
+
+Clients may accept older responses without this additive member, showing context
+as unavailable. When present, validate it before rendering or exporting. A recorded
+major axis supports only an approximate angular field comparison, not an eyepiece
+image, limiting magnitude or observing-success score. Extended-object integrated
+magnitudes, bands and source quality flags must remain distinguishable.

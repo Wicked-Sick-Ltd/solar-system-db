@@ -213,7 +213,13 @@ def assert_catalogue_contract(result):
         )
         assert len(target["catalogue"]["astrometry_evidence"]["response_sha256"]) == 64
         assert target["catalogue"]["license"]
-        original_source = resolve_targets([target["id"]])[target["id"]][1]
+        original_row, original_source = resolve_targets([target["id"]])[target["id"]]
+        assert target["catalogue"]["appearance"] == {
+            key: original_row[key] for key in (
+                "families", "magnitude", "magnitude_band", "magnitude_flag",
+                "magnitude_code", "major_axis_arcmin", "minor_axis_arcmin",
+            )
+        }
         assert target["catalogue"]["attribution"] == original_source["attribution"]
         assert target["catalogue"]["license_url"] == original_source["license_url"]
         for window in target["windows"]:
@@ -320,3 +326,21 @@ def test_rest_get_post_and_actual_mcp_dispatcher_preserve_ids_and_reject_unsuppo
         )
     )
     assert json.loads(result[0].text)["status"] == 422
+
+
+def test_appearance_preserves_missing_zero_negative_and_flags_without_inference():
+    row, source = resolve_targets([STAR])[STAR]
+    row.update(magnitude=0, magnitude_flag="uncertain", magnitude_code="V",
+               major_axis_arcmin=None, minor_axis_arcmin=None, separation_arcsec=30)
+    context = CatalogueDirection(row, source).metadata["appearance"]
+    assert context["magnitude"] == 0
+    assert context["magnitude_flag"] == "uncertain"
+    assert context["magnitude_code"] == "V"
+    assert context["major_axis_arcmin"] is None
+    assert "separation_arcsec" not in context
+    row.update(magnitude=-1.46, major_axis_arcmin=0, minor_axis_arcmin=0)
+    context = CatalogueDirection(row, source).metadata["appearance"]
+    assert context["magnitude"] == -1.46
+    assert context["major_axis_arcmin"] == 0
+    context["families"].append("changed")
+    assert "changed" not in row["families"]

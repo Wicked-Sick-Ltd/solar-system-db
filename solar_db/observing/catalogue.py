@@ -69,6 +69,15 @@ def resolve_targets(selected):
         ) from exc
 
 
+def appearance_metadata(row):
+    """Original catalogue context only, never a visibility/resolution score."""
+    fields = (
+        "families", "magnitude", "magnitude_band", "magnitude_flag",
+        "magnitude_code", "major_axis_arcmin", "minor_axis_arcmin",
+    )
+    return {key: deepcopy(row[key]) for key in fields}
+
+
 class CatalogueDirection:
     def __init__(self, row, source):
         self.row = row
@@ -105,6 +114,7 @@ class CatalogueDirection:
                     "astrometry_evidence",
                 )
             },
+            "appearance": appearance_metadata(row),
             "input_coordinates": {
                 "ra_deg": row["ra_deg"],
                 "dec_deg": row["dec_deg"],
