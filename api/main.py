@@ -27,6 +27,7 @@ from slowapi.util import get_remote_address
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.data_access import UnsupportedCatalogueFilter
+from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
@@ -303,6 +304,30 @@ def search(request: Request,
 # --------------------------------------------------------------------------
 # Positions / ephemeris
 # --------------------------------------------------------------------------
+@app.get("/api/v1/observing/night", tags=["positions"],
+         summary="One local night of approximate geometric Moon and planet planning")
+@limiter.limit("10/minute")
+def observing_night(request: Request, date: str, timezone: str, lat: str, lon: str,
+                    targets: str = "moon,jupiter,saturn", min_altitude_deg: str = "20",
+                    sun_altitude_deg: str = "-12", min_moon_separation_deg: str = "0"):
+    """Offline builtin ephemerides; no weather, terrain or guaranteed visibility.
+
+    Local noon to the next noon, including timezone transitions. Returns explicit
+    model and Earth-orientation coverage; unavailable coverage is HTTP 503.
+    """
+    allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+               "sun_altitude_deg", "min_moon_separation_deg"}
+    if any(key not in allowed or len(request.query_params.getlist(key)) != 1 for key in request.query_params):
+        return JSONResponse(status_code=422, content={"detail": "Use each supported scalar query parameter once."},
+                            headers={"Cache-Control": "no-store"})
+    try:
+        result = plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
+                            sun_altitude_deg, min_moon_separation_deg)
+        return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers={"Cache-Control": "no-store"})
+
+
 @app.get("/api/v1/positions/{name_or_designation:path}", tags=["positions"],
          summary="Heliocentric position by two-body Kepler propagation")
 @limiter.limit("60/minute")
@@ -336,7 +361,8 @@ def sky_position(request: Request, name_or_designation: str,
     """Geocentric RA/Dec (J2000), constellation, hemisphere, distance from
     Earth and elongation from the Sun. Supply `lat` and `lon` together to add
     altitude/azimuth, whether it is up after dark, and rise/transit/set for
-    that UT day. Moons report their parent's position. Two-body accuracy (~1°)."""
+    that UT day. Other moons report an explicit parent-body proxy; Earth's Moon
+    is unavailable here. Two-body accuracy (~1°)."""
     try:
         return resolve_and_report(db, name_or_designation, date, lat, lon)
     except SkyLookupError as e:

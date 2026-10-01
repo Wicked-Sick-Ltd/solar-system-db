@@ -25,12 +25,35 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
+from pydantic import StrictFloat
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
+from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
-mcp = FastMCP(
+
+class CatalogueMCP(FastMCP):
+    """Do not silently discard constraints on the new planning tool."""
+
+    async def call_tool(self, name, arguments):
+        if name == "plan_observing_night":
+            allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+                       "sun_altitude_deg", "min_moon_separation_deg"}
+            if not isinstance(arguments, dict) or set(arguments)-allowed:
+                raise ToolError("Use only the supported night-planning parameters.")
+        return await super().call_tool(name, arguments)
+
+    async def list_tools(self):
+        tools = await super().list_tools()
+        for tool in tools:
+            if tool.name == "plan_observing_night":
+                tool.inputSchema["additionalProperties"] = False
+        return tools
+
+
+mcp = CatalogueMCP(
     name="solar-system-db",
     instructions=(
         "Queryable catalogue of known solar-system objects for astronomy and "
@@ -327,6 +350,24 @@ def compute_position(name_or_designation: str, date: str) -> dict:
 
 
 @mcp.tool()
+def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
+                         targets: str = "moon,jupiter,saturn", min_altitude_deg: StrictFloat = 20,
+                         sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0) -> dict:
+    """Geometric Moon/planet windows for one local noon-to-noon night.
+
+    Uses labelled offline builtin ephemerides, not precision JPL calculations.
+    UTC event times, timezone/DST boundaries, model and IERS coverage are explicit.
+    Weather and terrain are not included. Targets are comma-separated supported
+    planets or moon; Sun and Earth are excluded. No visibility guarantee.
+    """
+    try:
+        return plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
+                          sun_altitude_deg, min_moon_separation_deg)
+    except PlanningError as exc:
+        return {"error": str(exc), "status": exc.status}
+
+
+@mcp.tool()
 def get_sky_position(name_or_designation: str, date: str | None = None,
                      lat: float | None = None, lon: float | None = None) -> dict:
     """Where an object appears in Earth's sky: RA/Dec (J2000), constellation,
@@ -334,7 +375,8 @@ def get_sky_position(name_or_designation: str, date: str | None = None,
 
     Args:
       name_or_designation: any planet, dwarf planet, asteroid, comet or moon
-        (moons report their parent planet's position), or "sun".
+        (other moons report a parent-body proxy; Earth's Moon is unavailable
+        in this legacy endpoint), or "sun".
       date: ISO 8601 date or datetime, UTC. Defaults to now.
       lat, lon: observer's latitude (north-positive) and longitude
         (east-positive) in degrees. Give both to add altitude/azimuth, whether
