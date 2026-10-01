@@ -20,12 +20,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
+from solar_db.data_access import UnsupportedCatalogueFilter
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
@@ -55,6 +56,11 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(UnsupportedCatalogueFilter)
+async def unsupported_catalogue_filter(request: Request, exc: UnsupportedCatalogueFilter):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 # --------------------------------------------------------------------------

@@ -46,6 +46,10 @@ ORBITAL_FIELDS = (
 )
 
 
+class UnsupportedCatalogueFilter(ValueError):
+    """The loaded catalogue cannot honour a requested filter."""
+
+
 class SolarDB(ExoplanetQueries):
     """Thin SQLite wrapper, read-only."""
 
@@ -138,6 +142,10 @@ class SolarDB(ExoplanetQueries):
         }
         with self._conn() as probe:
             v2 = self._has_table(probe, "designations")
+        if not v2 and (orbit_class or max_moid_au is not None or max_condition_code is not None):
+            raise UnsupportedCatalogueFilter(
+                "Orbit class, Earth MOID and orbit uncertainty filters require a schema v2 or newer catalogue."
+            )
         with self._conn() as conn:
             if v2:
                 rows = conn.execute(
@@ -655,7 +663,9 @@ class SolarDB(ExoplanetQueries):
             # Circular distance is evaluated before LIMIT so the window applies
             # to the whole table (~1,420 live rows) rather than only the first
             # `limit` rows in iau_no/ad_no order. SQLite's two-arg scalar MIN
-            # (not the aggregate MIN) picks the shorter arc.
+            # (not the aggregate MIN) picks the shorter arc. Avoid SQLite %:
+            # it truncates operands to integers. A 1e-10 degree tolerance keeps
+            # exact boundary values inclusive despite binary float rounding.
             return [dict(r) for r in conn.execute(
                 """
                 SELECT iau_no, ad_no, code, name, status_code, status_label, activity,
@@ -667,8 +677,12 @@ class SolarDB(ExoplanetQueries):
                 WHERE (NOT :established OR status_code IN (1, 6))
                   AND (:target_l IS NULL OR (
                         solar_longitude_deg IS NOT NULL AND
-                        MIN(ABS(solar_longitude_deg - :target_l) % 360.0,
-                            360.0 - (ABS(solar_longitude_deg - :target_l) % 360.0)) <= 15.0))
+                        MIN(
+                            ABS(solar_longitude_deg - :target_l)
+                                - 360.0 * CAST(ABS(solar_longitude_deg - :target_l) / 360.0 AS INTEGER),
+                            360.0 - (ABS(solar_longitude_deg - :target_l)
+                                - 360.0 * CAST(ABS(solar_longitude_deg - :target_l) / 360.0 AS INTEGER))
+                        ) <= 15.0000000001))
                 ORDER BY iau_no, ad_no
                 LIMIT :limit
                 """,
