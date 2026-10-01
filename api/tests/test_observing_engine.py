@@ -1,6 +1,7 @@
 """Offline numerical/contract tests; authoritative fixtures were retrieved separately."""
 
 from datetime import datetime
+import asyncio
 import importlib.util
 import json
 from pathlib import Path
@@ -209,9 +210,9 @@ def test_rest_and_mcp_share_contract_and_report_invalid_or_unavailable(monkeypat
     server = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(server)
     monkeypatch.setattr(server, "plan_night", lambda *a: fake)
-    assert server.plan_observing_night(**args()) == fake
+    assert asyncio.run(server.plan_observing_night(**args())) == fake
     monkeypatch.setattr(server, "plan_night", unavailable)
-    assert server.plan_observing_night(**args()) == {
+    assert asyncio.run(server.plan_observing_night(**args())) == {
         "error": "Data unavailable.",
         "status": 503,
     }
@@ -284,7 +285,6 @@ def test_sample_aligned_tangencies_are_explicitly_unresolved(centre):
 
 
 def test_real_mcp_dispatcher_rejects_boolean_coordinates_before_provider(monkeypatch):
-    import asyncio
     from mcp.server.fastmcp.exceptions import ToolError
 
     spec = importlib.util.spec_from_file_location(
@@ -364,3 +364,87 @@ def test_missing_or_stale_iers_data_returns_unavailable(monkeypatch, failure):
     with pytest.raises(PlanningError) as error:
         plan_night(**args(targets="moon"))
     assert error.value.status == 503
+
+
+def test_mcp_planning_does_not_block_other_tools_or_queue_unbounded_work(monkeypatch):
+    import threading
+
+    spec = importlib.util.spec_from_file_location(
+        "concurrent_observing_mcp", ROOT / "mcp-server/server.py"
+    )
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    started = [threading.Event(), threading.Event()]
+    release = threading.Event()
+    counter = []
+    lock = threading.Lock()
+
+    def slow_plan(*args):
+        with lock:
+            index = len(counter)
+            counter.append(index)
+        started[index].set()
+        assert release.wait(3), "test must release the worker"
+        return {"schema_version": 1}
+
+    monkeypatch.setattr(server, "plan_night", slow_plan)
+    db = Mock()
+    db.search.return_value = []
+    monkeypatch.setattr(server, "db", lambda: db)
+
+    async def scenario():
+        tasks = [
+            asyncio.create_task(server.mcp.call_tool("plan_observing_night", args()))
+            for _ in range(2)
+        ]
+        try:
+            for event in started:
+                assert await asyncio.to_thread(event.wait, 1)
+            assert not any(task.done() for task in tasks)
+            await asyncio.wait_for(
+                server.mcp.call_tool("search", {"query": "Moon"}), 0.5
+            )
+            overload = await asyncio.wait_for(
+                server.plan_observing_night(**args()), 0.5
+            )
+            assert overload["status"] == 503 and "busy" in overload["error"]
+            assert len(counter) == 2
+            tasks[0].cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await tasks[0]
+            assert (await server.plan_observing_night(**args()))["status"] == 503
+        finally:
+            release.set()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    asyncio.run(scenario())
+    assert db.search.call_count == 1
+    # asyncio.run joins outstanding executor threads before returning: both
+    # permits must now be reusable even though the first caller cancelled.
+    assert server._planning_slots.acquire(blocking=False)
+    assert server._planning_slots.acquire(blocking=False)
+    server._planning_slots.release()
+    server._planning_slots.release()
+
+
+def test_provider_checks_staleness_before_status_and_leaves_warning_filters_unchanged(
+    monkeypatch,
+):
+    import warnings
+    from astropy.utils import iers
+
+    original = iers.IERS_Auto.ut1_utc
+    calls = []
+
+    def record(self, *args, **kwargs):
+        calls.append(kwargs.get("return_status", False))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(iers.IERS_Auto, "ut1_utc", record)
+    before = list(warnings.filters)
+    provider = BuiltinEphemeris(NightInput.parse("2026-10-01", "UTC", 0, 0))
+    assert calls[:2] == [False, True]
+    provider.positions(
+        [datetime.fromisoformat("2026-10-01T22:00:00+00:00").timestamp()], ("moon",)
+    )
+    assert warnings.filters == before

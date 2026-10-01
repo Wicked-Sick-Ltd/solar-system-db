@@ -5,7 +5,6 @@ https://docs.astropy.org/en/stable/utils/iers.html
 This is not the future precision JPL-kernel provider. No runtime downloads.
 """
 
-import warnings
 from importlib.metadata import version
 
 import astropy
@@ -46,7 +45,14 @@ class BuiltinEphemeris:
                 503,
             )
         try:
+            # return_status alone skips Astropy's stale-prediction check.
+            # Validate first; no per-request warnings filter is mutated, which
+            # keeps concurrent MCP/REST calculations from racing global state.
+            self.table.ut1_utc(times)
+            self.table.pm_xy(times)
             _, status = self.table.ut1_utc(times, return_status=True)
+            _, _, pole_status = self.table.pm_xy(times, return_status=True)
+            status = np.concatenate([status, pole_status])
         except (ValueError, iers.IERSRangeError) as exc:
             raise PlanningError(
                 "Bundled Earth-orientation predictions are too old for this night.", 503
@@ -75,44 +81,42 @@ class BuiltinEphemeris:
     def positions(self, timestamps, bodies):
         times = Time(timestamps, format="unix", scale="utc")
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("error", iers.IERSWarning)
-                frame = AltAz(obstime=times, location=self.location, pressure=0 * u.hPa)
-                sun = get_body("sun", times, self.location, ephemeris="builtin")
-                moon = get_body("moon", times, self.location, ephemeris="builtin")
-                sun_alt = sun.transform_to(frame).alt.deg
-                moon_alt = moon.transform_to(frame).alt.deg
-                result = {"sun_altitude_deg": sun_alt, "moon_altitude_deg": moon_alt}
-                for body in bodies:
-                    coord = (
-                        moon
-                        if body == "moon"
-                        else get_body(body, times, self.location, ephemeris="builtin")
+            frame = AltAz(obstime=times, location=self.location, pressure=0 * u.hPa)
+            sun = get_body("sun", times, self.location, ephemeris="builtin")
+            moon = get_body("moon", times, self.location, ephemeris="builtin")
+            sun_alt = sun.transform_to(frame).alt.deg
+            moon_alt = moon.transform_to(frame).alt.deg
+            result = {"sun_altitude_deg": sun_alt, "moon_altitude_deg": moon_alt}
+            for body in bodies:
+                coord = (
+                    moon
+                    if body == "moon"
+                    else get_body(body, times, self.location, ephemeris="builtin")
+                )
+                horizontal = coord.transform_to(frame)
+
+                # Same GCRS observer/frame: compute vector angles explicitly,
+                # avoiding Astropy's different-frame separation warning.
+                def separation(other):
+                    left, right = (
+                        coord.cartesian.xyz.value,
+                        other.cartesian.xyz.value,
                     )
-                    horizontal = coord.transform_to(frame)
+                    cos = np.sum(left * right, axis=0) / (
+                        np.linalg.norm(left, axis=0) * np.linalg.norm(right, axis=0)
+                    )
+                    return np.degrees(np.arccos(np.clip(cos, -1, 1)))
 
-                    # Same GCRS observer/frame: compute vector angles explicitly,
-                    # avoiding Astropy's different-frame separation warning.
-                    def separation(other):
-                        left, right = (
-                            coord.cartesian.xyz.value,
-                            other.cartesian.xyz.value,
-                        )
-                        cos = np.sum(left * right, axis=0) / (
-                            np.linalg.norm(left, axis=0) * np.linalg.norm(right, axis=0)
-                        )
-                        return np.degrees(np.arccos(np.clip(cos, -1, 1)))
-
-                    result[body] = {
-                        "altitude_deg": horizontal.alt.deg,
-                        "azimuth_deg": horizontal.az.deg,
-                        "sun_separation_deg": separation(sun),
-                        "moon_separation_deg": np.zeros(len(times))
-                        if body == "moon"
-                        else separation(moon),
-                        "distance_au": coord.distance.au,
-                    }
-                return result
+                result[body] = {
+                    "altitude_deg": horizontal.alt.deg,
+                    "azimuth_deg": horizontal.az.deg,
+                    "sun_separation_deg": separation(sun),
+                    "moon_separation_deg": np.zeros(len(times))
+                    if body == "moon"
+                    else separation(moon),
+                    "distance_au": coord.distance.au,
+                }
+            return result
         except (ValueError, iers.IERSWarning, iers.IERSRangeError) as exc:
             raise PlanningError(
                 "Offline ephemeris data could not support this night.", 503

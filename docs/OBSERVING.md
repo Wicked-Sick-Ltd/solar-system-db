@@ -34,7 +34,10 @@ refraction, extinction, light pollution, limiting magnitude or equipment.
 Malformed, repeated/unknown REST parameters or unsupported values return 422.
 Unavailable ephemeris/Earth-orientation coverage returns 503, not an empty
 success. MCP rejects unknown parameters and booleans used as numbers before
-calculation, with the same core validation. REST responses are `no-store` and
+calculation, with the same core validation. MCP offloads calculations from its
+event loop and permits at most two running/pending plans; overload returns a
+503-style unavailable result immediately. Cancelled callers retain their slot
+until the worker actually finishes. REST responses are `no-store` and
 limited to ten requests per minute. The calculation does not write coordinates
 to catalogue or account data; infrastructure access logs remain a separate policy.
 

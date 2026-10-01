@@ -17,8 +17,10 @@ Run:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import sys
+from threading import BoundedSemaphore
 from pathlib import Path
 
 # Make the parent (solar_db package) importable when run directly.
@@ -349,8 +351,11 @@ def compute_position(name_or_designation: str, date: str) -> dict:
     }
 
 
+_planning_slots = BoundedSemaphore(2)
+
+
 @mcp.tool()
-def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
+async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
                          targets: str = "moon,jupiter,saturn", min_altitude_deg: StrictFloat = 20,
                          sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0) -> dict:
     """Geometric Moon/planet windows for one local noon-to-noon night.
@@ -360,11 +365,28 @@ def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: Strict
     Weather and terrain are not included. Targets are comma-separated supported
     planets or moon; Sun and Earth are excluded. No visibility guarantee.
     """
+    # Reserve before scheduling: at most two running/pending calculations,
+    # with no unbounded expensive queue and no block on the MCP event loop.
+    if not _planning_slots.acquire(blocking=False):
+        return {"error": "Night planning is busy; try again after current calculations finish.", "status": 503}
+
+    def calculate():
+        try:
+            return plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
+                              sun_altitude_deg, min_moon_separation_deg)
+        except PlanningError as exc:
+            return {"error": str(exc), "status": exc.status}
+        finally:
+            _planning_slots.release()
+
     try:
-        return plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
-                          sun_altitude_deg, min_moon_separation_deg)
-    except PlanningError as exc:
-        return {"error": str(exc), "status": exc.status}
+        future = asyncio.get_running_loop().run_in_executor(None, calculate)
+    except BaseException:
+        _planning_slots.release()
+        raise
+    # Cancelling a caller must not release capacity while its thread still runs
+    # or cancel a queued worker before its finally block can release the slot.
+    return await asyncio.shield(future)
 
 
 @mcp.tool()
