@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
-from pydantic import StrictFloat
+from pydantic import StrictFloat, StrictInt
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.observing import PlanningError, plan_night
@@ -78,6 +78,23 @@ def db() -> SolarDB:
     if _db is None:
         _db = SolarDB()
     return _db
+
+
+@mcp.tool()
+def list_starter_targets(family: str | None = None, q: str | None = None,
+                         limit: StrictInt = 50, offset: StrictInt = 0) -> dict:
+    """Bounded bright_star, double_star or deep_sky samples with source licences.
+
+    Static catalogue coordinates, not ephemerides or visibility predictions.
+    Double-star separations have unknown measurement dates; no current companion positions.
+    """
+    return db().list_starter_targets(family=family, q=q, limit=limit, offset=offset)
+
+
+@mcp.tool()
+def get_starter_target(target_id: str) -> dict | None:
+    """Exact source-namespaced starter target identity with original row and provenance."""
+    return db().get_starter_target(target_id)
 
 
 @mcp.tool()
