@@ -397,3 +397,32 @@ def test_many_mask_corners_are_refined_in_vectorized_batches():
     assert len(result["targets"][0]["windows"]) == 1
     assert sum(count > 1 for count in calls) > 5
     assert len(calls) < 200  # scalar bisection per corner would exceed 500 calls
+
+
+def test_actual_mcp_dispatcher_accepts_integer_mask_coordinates(monkeypatch):
+    """StrictFloat accepts JSON ints while excluding bools; keep POST parity."""
+    import json
+
+    path = Path(__file__).resolve().parents[2] / "mcp-server/server.py"
+    spec = importlib.util.spec_from_file_location("integer_constraint_mcp", path)
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    received = []
+
+    def validate_only(*args, **kwargs):
+        request = NightInput.parse(*args, **kwargs)
+        received.append(request.horizon_mask)
+        return {"accepted": True}
+
+    monkeypatch.setattr(server, "plan_night", validate_only)
+    result = asyncio.run(
+        server.mcp.call_tool(
+            "plan_observing_night",
+            {
+                **BASE,
+                "horizon_mask": mask((0, 0), (180, 15)),
+            },
+        )
+    )
+    assert json.loads(result[0].text) == {"accepted": True}
+    assert received == [((0.0, 0.0), (180.0, 15.0))]
