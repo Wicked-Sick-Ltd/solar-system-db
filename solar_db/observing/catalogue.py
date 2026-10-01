@@ -100,6 +100,8 @@ class CatalogueDirection:
                     "source_url",
                     "retrieved_at",
                     "license",
+                    "attribution",
+                    "license_url",
                     "astrometry_evidence",
                 )
             },

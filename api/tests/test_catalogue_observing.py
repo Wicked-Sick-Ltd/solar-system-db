@@ -213,6 +213,9 @@ def assert_catalogue_contract(result):
         )
         assert len(target["catalogue"]["astrometry_evidence"]["response_sha256"]) == 64
         assert target["catalogue"]["license"]
+        original_source = resolve_targets([target["id"]])[target["id"]][1]
+        assert target["catalogue"]["attribution"] == original_source["attribution"]
+        assert target["catalogue"]["license_url"] == original_source["license_url"]
         for window in target["windows"]:
             assert window["start_utc"] >= "2026-10-01T20:00:00Z"
             assert window["end_utc"] <= "2026-10-02T04:00:00Z"
@@ -221,8 +224,8 @@ def assert_catalogue_contract(result):
     json.dumps(result, allow_nan=False)
 
 
-def mixed_plan():
-    return plan_night(
+def mixed_input():
+    return dict(
         **BASE,
         targets="moon," + STAR + "," + DEEP,
         window_start_utc="2026-10-01T20:00:00Z",
@@ -235,11 +238,22 @@ def mixed_plan():
     )
 
 
+def mixed_plan():
+    return plan_night(**mixed_input())
+
+
 def test_builtin_mixed_catalogue_plan_preserves_nulls_provenance_and_constraints(
     monkeypatch,
 ):
     monkeypatch.setenv("OBSERVING_EPHEMERIS", "builtin")
-    assert_catalogue_contract(mixed_plan())
+    from fastapi.testclient import TestClient
+    import api.main as api
+
+    monkeypatch.setattr(api.limiter, "enabled", False)
+    with TestClient(api.app) as client:
+        response = client.post("/api/v1/observing/night", json=mixed_input())
+    assert response.status_code == 200
+    assert_catalogue_contract(response.json())
 
 
 def test_actual_jpl_mixed_plan_isolated_and_identifies_same_pinned_catalogue(

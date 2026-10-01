@@ -262,7 +262,7 @@ request, database mutation, guessed frame, automatic substitution or fallback.
 The planner reads the pinned packaged sample, which can differ from an older
 catalogue database. Each catalogue target adds a `catalogue` object with
 `source`, `snapshot_sha256`, `upstream_sha256`, `source_url`, `retrieved_at`,
-`license`, the complete `astrometry_evidence` identity, and `input_coordinates`
+`license`, `attribution`, `license_url`, the complete `astrometry_evidence` identity, and `input_coordinates`
 (RA/Dec degrees, frame, equinox, Julian reference epoch, unknown observation
 epoch). It also reports `motion_model`, `proper_motion_applied`, both angular
 proper-motion components, `distance_au: null`, refraction conditions and an
