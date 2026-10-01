@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 from unittest.mock import Mock
+from xml.etree.ElementTree import ParseError
 
 from astropy import units as u
 from astropy.coordinates import AltAz, get_body, solar_system_ephemeris
@@ -63,10 +64,14 @@ def test_unknown_unsupported_and_malformed_ids_never_reach_provider(target):
     provider.assert_not_called()
 
 
-def test_source_failure_is_unavailable_and_does_not_break_dynamic_targets(monkeypatch):
-    monkeypatch.setattr(
-        catalogue, "_snapshot", Mock(side_effect=ValueError("private path"))
-    )
+@pytest.mark.parametrize(
+    "failure",
+    [ValueError("private path"), ParseError("private path"), OSError("private path")],
+)
+def test_source_failure_is_unavailable_and_does_not_break_dynamic_targets(
+    monkeypatch, failure
+):
+    monkeypatch.setattr(catalogue, "_snapshot", Mock(side_effect=failure))
     with pytest.raises(PlanningError) as error:
         NightInput.parse(**BASE, targets=STAR)
     assert error.value.status == 503

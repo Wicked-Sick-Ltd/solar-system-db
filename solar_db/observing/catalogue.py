@@ -9,6 +9,7 @@ Only the returned unit-sphere direction survives into apparent transforms.
 from copy import deepcopy
 from functools import lru_cache
 import math
+from xml.etree.ElementTree import ParseError
 
 from astropy import units as u
 from astropy.coordinates import FK5, SkyCoord
@@ -62,7 +63,7 @@ def resolve_targets(selected):
         return result
     except PlanningError:
         raise
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, ParseError) as exc:
         raise PlanningError(
             "Verified packaged catalogue data is unavailable.", 503
         ) from exc
