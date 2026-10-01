@@ -36,7 +36,8 @@ def test_raw_source_provenance_and_measurements(catalogue):
     assert sirius["magnitude"] == -1.46
     assert sirius["components"] == "AB" and sirius["separation_arcsec"] == 11.2
     assert sirius["separation_epoch"] is None and sirius["position_angle_deg"] is None
-    assert sirius["coordinate_epoch"] is None
+    assert "reference epoch" in sirius["coordinate_epoch"]
+    assert sirius["astrometry"]["observation_epoch_jyear"] is None
     assert sirius["provenance"]["upstream_sha256"]
     andromeda = catalogue.get_starter_target("openngc:NGC0224")
     assert andromeda["aliases"] == ["M 31"]
@@ -159,6 +160,8 @@ def test_rest_mcp_contract(catalogue, monkeypatch):
     assert detail.status_code == 200 and detail.json() == server.get_starter_target(
         "openngc:NGC0224"
     )
+    assert detail.json()["astrometry"]["frame"] == "ICRS"
+    assert detail.json()["provenance"]["astrometry_evidence"]["matched_records"] == 107
     assert client.get("/api/v1/starter-targets/M31").status_code == 404
     assert client.get("/api/v1/starter-targets?family=wrong").status_code == 422
     assert client.get("/api/v1/starter-targets?limit=true").status_code == 422

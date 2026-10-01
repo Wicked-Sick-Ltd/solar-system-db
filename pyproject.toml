@@ -53,7 +53,7 @@ build-backend = "setuptools.build_meta"
 packages = ["solar_db", "solar_db.data"]
 
 [tool.setuptools.package-data]
-solar_db = ["data/*.dat", "data/starter/*.json", "data/starter/*.txt", "data/starter/*.md"]
+solar_db = ["data/*.dat", "data/starter/*.json", "data/starter/*.txt", "data/starter/*.md", "data/starter/astrometry/*.xml", "data/starter/astrometry/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["mcp-server/tests", "api/tests"]

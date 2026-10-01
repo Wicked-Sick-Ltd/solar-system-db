@@ -19,3 +19,12 @@ The repository's MIT licence covers software. It does not replace these data ter
 These are bounded historical catalogue samples, not a complete catalogue or current
 astrometric solution. Per-source metadata, source-file hashes and retrieval time are
 inside each JSON file. `manifest.json` pins the reviewed subset bytes.
+
+Coordinate evidence in `astrometry/vizier-v50.xml` is a selected V/50 publication
+from CDS VizieR, crediting Hoffleit and Warren and CDS.
+`astrometry/gavo-openngc.xml` is selected OpenNGC data and metadata distributed by
+the author-linked GAVO Data Center, crediting Mattia Verga and GAVO under the same
+CC BY-SA 4.0 data terms. The response bytes are preserved; separate normalized
+metadata binds exact identifiers and coordinates to the published frames. Query
+URLs and hashes are in `astrometry/manifest.json`; no catalogue coordinates have
+been propagated. See `docs/COORDINATE-FRAME-EVIDENCE.md` for interpretation limits.

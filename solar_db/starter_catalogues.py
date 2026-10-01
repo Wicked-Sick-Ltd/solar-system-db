@@ -8,6 +8,8 @@ import math
 import re
 from importlib.resources import files
 
+from .starter_astrometry import attach_astrometry
+
 FAMILIES = ("bright_star", "double_star", "deep_sky")
 NONSTELLAR_HR = {
     92,
@@ -153,6 +155,7 @@ def load_starter_catalogues() -> tuple[list[dict], dict]:
             or row["dec_deg"] is None
         ):
             raise ValueError("Missing or invalid coordinates")
+    attach_astrometry(records, sources)
     return records, sources
 
 

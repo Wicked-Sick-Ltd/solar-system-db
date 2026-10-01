@@ -24,9 +24,10 @@ Hoffleit and Warren's 1991 fifth revised preliminary catalogue. The downloaded T
 header reports its last modification as 2022-02-03. The reviewed sample and full
 upstream decompressed-byte SHA256 are recorded in `solar_db/data/starter/bsc5p.json`.
 The original HEASARC fields remain strings in `source_data`. RA/Dec are J2000
-catalogue coordinates in degrees. Equinox is recorded; a separate measurement
-epoch is unavailable. Proper motion is retained in original fields but is **not
-applied**. Magnitude codes and uncertainty flags accompany the numerical value;
+catalogue coordinates in degrees. Exact CDS VizieR matches verify FK5, equinox
+J2000.0 and reference epoch 2000.0; individual observation epochs remain unknown.
+Proper motion is retained in original fields and normalized as explicit cosine-
+adjusted RA/Dec components, but is **not applied**. Magnitude codes and uncertainty flags accompany the numerical value;
 photometry is not a promise of present brightness, especially for variable stars.
 
 The [original catalogue field definitions](https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/V/50?format=html&tex=true)
@@ -39,7 +40,9 @@ separations to plot a present companion position or promise instrument resolutio
 [OpenNGC](https://github.com/mattiaverga/OpenNGC/tree/75ca7ff090e1d0081a5b08be70eb3bc45ccd9e06)
 is pinned to that exact commit. Both `database_files/NGC.csv` and `addendum.csv`
 contribute; their hashes are retained. The [author's guide](https://github.com/mattiaverga/OpenNGC/blob/75ca7ff090e1d0081a5b08be70eb3bc45ccd9e06/NGC_guide.txt)
-labels RA/Dec as epoch J2000; the frame/equinox is not independently asserted.
+labels RA/Dec as epoch J2000. Exact matches in the author-linked GAVO publication
+verify ICRS at reference epoch J2000.0 for 107 rows. Mel022 (M45) lacks a matching
+row and remains unsupported for frame-dependent planning.
 Sexagesimal conversion preserves source precision without adding accuracy. Axes
 are arcminutes, apparent V magnitude is V-band, and missing values stay null.
 Dimensions can originate in different bands/surveys; they are not guaranteed visual
@@ -49,6 +52,11 @@ extents. Per-field `Sources` codes remain in every original row: 1 NED, 2 SIMBAD
 retained, including NGC6994's `Other`. M040 lacks pair measurements and is excluded;
 M102 is an upstream duplicate pointing to Messier101 and is excluded. This is not
 a claim to contain all 110 distinct Messier objects.
+
+The additive `astrometry` contract, pinned machine evidence, matching tolerances,
+and reference-versus-observation epoch distinction are documented in
+[COORDINATE-FRAME-EVIDENCE.md](COORDINATE-FRAME-EVIDENCE.md). These additions do not
+propagate positions or establish current observing accuracy.
 
 ## Redistribution decisions
 
