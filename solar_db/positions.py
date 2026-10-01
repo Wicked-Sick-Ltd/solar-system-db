@@ -32,6 +32,8 @@ def date_to_jd(d: date | datetime | str) -> float:
         dt = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
     else:
         raise TypeError(f"Unsupported date input: {d!r}")
+    # ISO inputs can carry an offset; calendar fields below must describe UTC.
+    dt = dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     # Convert to JD (UTC ≈ TT for v1; off by ~70 s, negligible at this fidelity)
     y, m, day = dt.year, dt.month, dt.day + (dt.hour + dt.minute / 60.0 +
                                               dt.second / 3600.0) / 24.0
