@@ -24,3 +24,9 @@ def test_naive_inputs_keep_documented_utc_semantics(value):
 def test_offset_crossing_leap_day_and_date_only():
     assert date_to_jd("2024-03-01T01:00:00+01:00") == date_to_jd(date(2024, 3, 1))
     assert date_to_jd("2024-03-01T00:30:00+01:00") == date_to_jd("2024-02-29T23:30:00Z")
+
+
+@pytest.mark.parametrize("value", ["0001-01-01T00:00:00+01:00", "9999-12-31T23:30:00-01:00"])
+def test_offsets_outside_python_calendar_fail_as_invalid_dates(value):
+    with pytest.raises(ValueError, match="supported UTC calendar range"):
+        date_to_jd(value)
