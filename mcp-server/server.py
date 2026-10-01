@@ -377,14 +377,17 @@ async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: 
                          sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
                          window_start_utc: str | None = None, window_end_utc: str | None = None,
                          horizon_mask: list[dict[str, StrictFloat]] | None = None) -> dict:
-    """Geometric Moon/planet windows for one local noon-to-noon night.
+    """Geometric body/catalogue windows for one local noon-to-noon night.
 
     Uses the configured labelled offline provider (builtin or pinned local JPL).
     UTC event times, timezone/DST boundaries, model and IERS coverage are explicit.
     Optional user-entered horizon is circularly interpolated; it is not surveyed terrain.
     Optional paired exact UTC window times must lie inside the local night.
     Weather is not included. Targets are comma-separated supported
-    planets or moon; Sun and Earth are excluded. No visibility guarantee.
+    planets, moon or exact pinned bsc5p:/openngc: IDs (eight combined).
+    Catalogue directions have no distance/parallax; verified BSC angular proper
+    motion or static OpenNGC ICRS is labelled per target. Sun/Earth excluded.
+    No visibility guarantee.
     """
     # Reserve before scheduling: at most two running/pending calculations,
     # with no unbounded expensive queue and no block on the MCP event loop.

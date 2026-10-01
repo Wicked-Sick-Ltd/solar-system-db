@@ -247,7 +247,10 @@ def _plan(request, provider):
         data = provider.positions(selected, (body,))
         for i, t in enumerate(selected):
             batch_cache[(body, t)] = {
-                **{k: float(v[i]) for k, v in data[body].items()},
+                **{
+                    k: None if v[i] is None else float(v[i])
+                    for k, v in data[body].items()
+                },
                 "sun_altitude_deg": float(data["sun_altitude_deg"][i]),
                 "moon_altitude_deg": float(data["moon_altitude_deg"][i]),
             }
@@ -261,7 +264,7 @@ def _plan(request, provider):
         else:
             i, data = 0, provider.positions([t], (body,))
         return {
-            **{k: float(v[i]) for k, v in data[body].items()},
+            **{k: None if v[i] is None else float(v[i]) for k, v in data[body].items()},
             "sun_altitude_deg": float(data["sun_altitude_deg"][i]),
             "moon_altitude_deg": float(data["moon_altitude_deg"][i]),
         }
@@ -354,7 +357,14 @@ def _plan(request, provider):
         results.append(
             {
                 "id": body,
-                "name": body.title(),
+                "name": getattr(provider, "catalogue", {})[body].row["name"]
+                if body in getattr(provider, "catalogue", {})
+                else body.title(),
+                **(
+                    {"catalogue": provider.catalogue[body].metadata}
+                    if body in getattr(provider, "catalogue", {})
+                    else {}
+                ),
                 "status": "unresolved_grazing"
                 if uncertain
                 else ("windows_found" if windows else "no_matching_window"),

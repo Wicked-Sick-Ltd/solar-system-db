@@ -78,20 +78,29 @@ class NightInput:
             zone = ZoneInfo(timezone)
         except (ValueError, ZoneInfoNotFoundError) as exc:
             raise PlanningError("timezone must be an IANA timezone name.") from exc
-        if not isinstance(targets, str) or len(targets) > 100:
+        if not isinstance(targets, str) or len(targets) > 2048:
             raise PlanningError(
-                "targets must be a comma-separated list of up to eight supported bodies."
+                "targets must be a comma-separated list of up to eight supported bodies or pinned catalogue IDs."
             )
         selected = tuple(targets.split(","))
         if (
             not selected
             or len(selected) > 8
             or len(set(selected)) != len(selected)
-            or any(b not in BODIES for b in selected)
+            or any(
+                b not in BODIES
+                and not re.fullmatch(
+                    r"(?:bsc5p:hr[1-9][0-9]{0,3}|openngc:[A-Za-z0-9]{1,30})", b
+                )
+                for b in selected
+            )
         ):
             raise PlanningError(
-                "targets must be unique supported body names; Earth and the Sun are excluded."
+                "targets must be unique supported body names or exact pinned catalogue IDs; Earth and the Sun are excluded."
             )
+        from .catalogue import resolve_targets
+
+        resolve_targets(selected)
         lat = round(number(lat, "lat", -90, 90), 2)
         lon = round(number(lon, "lon", -180, 180), 2)
         altitude = number(min_altitude_deg, "min_altitude_deg", 0, 90)

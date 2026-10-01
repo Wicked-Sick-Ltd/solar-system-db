@@ -1,0 +1,13 @@
+{
+  "source_url": "https://raw.githubusercontent.com/liberfa/erfa/v2.0.1/src/t_erfa_c.c",
+  "source_sha256": "8a92d0099c48df31ca566bea881c19497dc295dba58dba7136cc2f8443c31f15",
+  "retrieved_at": "2026-10-01",
+  "reference": "Published ERFA v2.0.1 t_fk52h validation values; orientation at J2000 only, not propagation or observed stellar accuracy. ERFA is derived from IAU SOFA.",
+  "fk52h": {
+    "ra_rad": 1.76779433,
+    "dec_rad": -0.2917517103,
+    "expected_icrs_ra_rad": 1.7677942262999475,
+    "expected_icrs_dec_rad": -0.29175160705303915,
+    "comparison_tolerance_rad": 1e-12
+  }
+}

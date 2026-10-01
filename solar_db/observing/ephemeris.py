@@ -19,6 +19,7 @@ from astropy.utils import iers
 import numpy as np
 
 from .inputs import PlanningError
+from .catalogue import CatalogueDirection, resolve_targets
 
 # Process policy: requests must never download Earth orientation/leap seconds.
 # Do not temporarily restore True while another request may be transforming.
@@ -63,6 +64,10 @@ class BuiltinEphemeris:
 
     def __init__(self, request):
         self.request = request
+        self.catalogue = {
+            key: CatalogueDirection(*value)
+            for key, value in resolve_targets(request.targets).items()
+        }
         self.location = EarthLocation.from_geodetic(
             request.lon * u.deg, request.lat * u.deg, 0 * u.m
         )
@@ -103,7 +108,7 @@ class BuiltinEphemeris:
             "erfa_version": erfa.__version__,
             "frame": "apparent topocentric AltAz; azimuth north through east",
             "refraction": "none; geometric body centre",
-            "accuracy_note": "Approximate offline model, not a precision JPL ephemeris. Numerical crossing tolerance is not physical accuracy. No terrain, atmosphere or visibility guarantee.",
+            "accuracy_note": "Approximate offline model, not a precision JPL ephemeris. Numerical crossing tolerance is not physical accuracy. No surveyed terrain or atmospheric model, and no visibility guarantee. A supplied horizon mask is user-entered.",
             "iers": {
                 "start_utc": iso(Time(first, format="mjd")),
                 "end_utc": iso(Time(last, format="mjd")),
@@ -125,8 +130,13 @@ class BuiltinEphemeris:
             moon_alt = moon.transform_to(frame).alt.deg
             result = {"sun_altitude_deg": sun_alt, "moon_altitude_deg": moon_alt}
             for body in bodies:
+                catalogue = self.catalogue.get(body)
                 coord = (
-                    moon
+                    catalogue.direction(times).transform_to(
+                        moon.frame.replicate_without_data()
+                    )
+                    if catalogue is not None
+                    else moon
                     if body == "moon"
                     else get_body(body, times, self.location, ephemeris=self.ephemeris)
                 )
@@ -151,7 +161,9 @@ class BuiltinEphemeris:
                     "moon_separation_deg": np.zeros(len(times))
                     if body == "moon"
                     else separation(moon),
-                    "distance_au": coord.distance.au,
+                    "distance_au": [None] * len(times)
+                    if catalogue is not None
+                    else coord.distance.au,
                 }
             return result
         except (ValueError, iers.IERSWarning, iers.IERSRangeError) as exc:

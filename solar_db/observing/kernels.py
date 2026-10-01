@@ -99,7 +99,7 @@ class JplEphemeris(BuiltinEphemeris):
                         "end_tdb": Time(last, format="jd", scale="tdb").isot,
                     },
                     "refraction": "none; Moon/Mercury/Venus centres, Mars through Neptune system barycentres",
-                    "accuracy_note": "Checksum-pinned JPL DE440s with Astropy apparent coordinate transforms in an isolated worker. Mars through Neptune use system barycentres, not independent planet centres. Numerical crossing tolerance is not physical accuracy. No terrain, atmosphere or visibility guarantee.",
+                    "accuracy_note": "Checksum-pinned JPL DE440s with Astropy apparent coordinate transforms in an isolated worker. Mars through Neptune use system barycentres, not independent planet centres. Numerical crossing tolerance is not physical accuracy. No surveyed terrain or atmospheric model, and no visibility guarantee. A supplied horizon mask is user-entered.",
                 }
             )
         except PlanningError:

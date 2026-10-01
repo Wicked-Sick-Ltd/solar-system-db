@@ -246,3 +246,70 @@ Example (values are illustrative, not an observer's saved location):
   ]
 }
 ```
+
+### Verified catalogue directions
+
+The same GET, bounded POST and MCP tool also accept exact case-sensitive pinned
+IDs, for example `moon,bsc5p:hr2491,openngc:NGC0224`. There are at most eight
+combined targets and the comma-separated input is limited to 2,048 characters.
+Only the packaged, hash-verified starter sample is supported: 50 BSC5P stars and
+107 OpenNGC directions with independently verified source frames. `openngc:Mel022`
+is explicitly unsupported because its frame evidence is incomplete. Unknown,
+duplicate or unsupported IDs fail the entire request with 422; missing/corrupt
+packaged source evidence fails with 503. There is no catalogue lookup network
+request, database mutation, guessed frame, automatic substitution or fallback.
+
+The planner reads the pinned packaged sample, which can differ from an older
+catalogue database. Each catalogue target adds a `catalogue` object with
+`source`, `snapshot_sha256`, `upstream_sha256`, `source_url`, `retrieved_at`,
+`license`, the complete `astrometry_evidence` identity, and `input_coordinates`
+(RA/Dec degrees, frame, equinox, Julian reference epoch, unknown observation
+epoch). It also reports `motion_model`, `proper_motion_applied`, both angular
+proper-motion components, `distance_au: null`, refraction conditions and an
+accuracy note. Every catalogue sample likewise has `distance_au: null`.
+Solar-system targets retain their existing physical-distance contract and do
+not acquire a `catalogue` object. Preserve the returned attribution and licence
+when sharing derived catalogue results, including OpenNGC's CC-BY-SA-4.0 terms.
+
+BSC5P coordinates are FK5 with equinox and reference epoch J2000.0. The planner
+uses Astropy's documented `SkyCoord.apply_space_motion` without supplied distance
+or radial velocity, passing the verified cosine-scaled RA component directly as
+`pm_ra_cosdec` (no second cosine factor). It retains only the resulting unit-sphere
+direction; internal ERFA safe-distance and induced radial-velocity conventions
+are never exposed as measured physical quantities. This is an **angular-only
+linear-motion estimate** with a zero-radial-velocity propagation assumption,
+not a full stellar ephemeris: annual parallax, measured radial motion, perspective
+acceleration, component/binary orbits and their uncertainty are absent. ERFA may
+emit a generic `pmsafe` safe-distance warning because distance is deliberately
+missing; request-time global warning filters are not changed.
+
+The 107 OpenNGC targets remain static ICRS catalogue directions referenced to
+J2000.0; no unknown proper motion is filled with a measured zero. The shared
+apparent-coordinate transforms include the selected solar-system ephemeris,
+Earth orientation and observer position, with zero atmospheric pressure and no
+refraction. Sun/Moon separation is evaluated in the same apparent observer frame.
+The JPL calculation, including all catalogue transforms, remains inside its
+isolated process; common capacity, timeout, output bounds and cleanup are unchanged.
+
+1900–2100 is an input calculation bound, **not a scientifically guaranteed
+accuracy interval** for linear stellar motion. Bundled IERS coverage restricts
+actual calculable nights further. BSC source RA/Dec rounding (four decimal
+degrees in this snapshot), rounded proper motions and catalogue systematics
+remain; no uncertainty propagation or precision guarantee is implied. Static
+extended-object centres do not predict the visibility of the object or its
+outline. Numerical event tolerance is not telescope-pointing accuracy.
+
+Offline validation includes the published ERFA v2.0.1 `t_fk52h` J2000 frame
+orientation values (exact URL, source hash and comparison tolerance recorded in
+`api/tests/fixtures/catalogue-erfa-reference.json`), independent tangent-vector
+motion checks including high declinations, negative motions and genuine zero,
+common-AltAz separation comparisons, and mixed Moon/star/deep-sky plans through
+the actual checksum-pinned JPL child. These are implementation comparisons,
+not an observational accuracy certification. The source-frame evidence and
+catalogue selection limits are documented in
+[COORDINATE-FRAME-EVIDENCE.md](COORDINATE-FRAME-EVIDENCE.md).
+
+Primary implementation/reference sources:
+- [Astropy space motion](https://docs.astropy.org/en/stable/coordinates/apply_space_motion.html)
+- [ERFA v2.0.1 published validation cases](https://github.com/liberfa/erfa/blob/v2.0.1/src/t_erfa_c.c)
+- [IAU SOFA astrometry documentation](https://www.iausofa.org/cookbooks)
