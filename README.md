@@ -278,6 +278,12 @@ above for canned queries.
 The same manifest is served at `GET /api/v1/download` and by the MCP tool
 `get_download_info`. Dated artefacts are kept for 30 days.
 
+New builds expose logical catalogue and build IDs through `GET /api/v1/catalogue`
+and MCP `get_catalogue_identity`; older files explicitly report an unknown ID.
+The download manifest separately checks compressed and uncompressed file bytes.
+See [catalogue identity and provenance](docs/CATALOGUE-IDENTITY.md) for the exact
+hash policy, source-version limits and offline reproducibility checks.
+
 ## What's in it
 
 Everything the public sources publish, refreshed nightly:

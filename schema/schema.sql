@@ -370,6 +370,13 @@ CREATE TABLE IF NOT EXISTS build_meta (
     notes           TEXT
 );
 
+-- One finalized logical identity; builder-installed triggers invalidate it on
+-- any later catalogue table write. Old files without this table remain readable.
+CREATE TABLE IF NOT EXISTS catalogue_identity (
+    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+    payload TEXT NOT NULL
+);
+
 ----------------------------------------------------------------------
 -- Convenience views
 ----------------------------------------------------------------------

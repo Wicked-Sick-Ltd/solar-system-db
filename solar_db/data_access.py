@@ -21,6 +21,7 @@ from typing import Any
 from .positions import solar_longitude_deg
 from .exoplanets import ExoplanetQueries
 from .starter_catalogues import StarterCatalogueQueries
+from .catalogue_identity import read_identity
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -785,12 +786,18 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
                 "SELECT * FROM build_meta ORDER BY id DESC LIMIT 1"
             ).fetchone()
             last_refresh = dict(meta) if meta else None
+            identity = read_identity(conn)
         return {
             "total_objects": total,
             "by_object_type": counts,
             "last_build": last_refresh,
-            "db_path": str(self.db_path),
+            "catalogue_identity": identity,
         }
+
+    def catalogue_identity(self) -> dict:
+        """Finalized identity of this file; explicit unknown for legacy/changed data."""
+        with self._conn() as conn:
+            return read_identity(conn)
 
     def get_orbital_elements(self, name_or_designation: str) -> dict | None:
         """Get just the orbital elements record (for compute_position)."""

@@ -144,11 +144,13 @@ def write_satellites(conn, elements: Iterable[dict[str, Any]], physical: Iterabl
             updated += 1
         conn.executemany(
             "INSERT OR IGNORE INTO designations (object_id, designation, kind, source) VALUES (?, ?, ?, ?)",
-            [(obj_id, d, k, SOURCE_NAME) for d, k in {
+            # The primary name wins if JPL repeats it as an alternate. A set
+            # made this INSERT OR IGNORE result depend on PYTHONHASHSEED.
+            [(obj_id, d, k, SOURCE_NAME) for d, k in (
                 (el["name"], "name" if not el["name"].startswith("S/") else "provisional"),
                 (el["jpl_name"], "alternate"),
                 (f"NAIF {el['code']}", "alternate") if el["code"] else (el["name"], "name"),
-            }],
+            )],
         )
         a_au = el["a_km"] / KM_PER_AU if el["a_km"] else None
         orbital = {

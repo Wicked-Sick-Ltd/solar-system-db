@@ -388,6 +388,12 @@ def next_perihelion(request: Request, name_or_designation: str):
 # --------------------------------------------------------------------------
 # Reference
 # --------------------------------------------------------------------------
+@app.get("/api/v1/catalogue", tags=["reference"], summary="Finalized catalogue identity and recorded source provenance")
+@limiter.limit("60/minute")
+def catalogue_identity(request: Request):
+    return JSONResponse(db.catalogue_identity(), headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/api/v1/object-types", tags=["reference"],
          summary="Object types present in the catalogue and their counts")
 @limiter.limit("60/minute")
