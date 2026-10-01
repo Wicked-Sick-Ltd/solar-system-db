@@ -358,3 +358,42 @@ def test_huge_json_numbers_fail_as_input_errors_instead_of_overflow(monkeypatch)
             ).status_code
             == 422
         )
+
+
+def test_flat_mask_does_not_force_one_scalar_ephemeris_per_chart_interval():
+    calls = []
+
+    class Fixed(Synthetic):
+        def positions(self, timestamps, bodies):
+            calls.append(len(timestamps))
+            result = super().positions(timestamps, bodies)
+            for body in bodies:
+                result[body]["azimuth_deg"][:] = 180
+            return result
+
+    result = plan_night(
+        **BASE, horizon_mask=mask((0, 0), (180, 0)), provider_factory=Fixed
+    )
+    assert result["targets"][0]["status"] == "windows_found"
+    assert len(result["targets"][0]["windows"]) == 1
+    assert len(calls) <= 2  # full-night vectorization, not 288 scalar midpoint calls
+
+
+def test_many_mask_corners_are_refined_in_vectorized_batches():
+    calls = []
+
+    class Measured(Synthetic):
+        def positions(self, timestamps, bodies):
+            calls.append(len(timestamps))
+            return super().positions(timestamps, bodies)
+
+    result = plan_night(
+        **BASE,
+        **WINDOW,
+        horizon_mask=mask(*[(i * 2, 0) for i in range(30)]),
+        provider_factory=Measured,
+    )
+    assert result["targets"][0]["status"] == "windows_found"
+    assert len(result["targets"][0]["windows"]) == 1
+    assert sum(count > 1 for count in calls) > 5
+    assert len(calls) < 200  # scalar bisection per corner would exceed 500 calls

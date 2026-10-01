@@ -106,7 +106,7 @@ def intervals(events, start, end, predicate):
     ]
 
 
-def horizon_event_grid(point, grid, mask, baseline):
+def horizon_event_grid(point, grid, mask, baseline, prefetch=lambda times: None):
     """Split at azimuth extrema and every mask/baseline corner crossing.
 
     Interpolation is circular; nearby angles are unwrapped locally. Zenith
@@ -131,6 +131,7 @@ def horizon_event_grid(point, grid, mask, baseline):
             points.append(bisect_root(derivative, a, b, tolerance=0.001))
     points = sorted(set(points))
     events, ambiguous = list(points), []
+    brackets = []
     knots = knots_with_baseline(mask, baseline)
     for a, b in zip(points, points[1:]):
         left, right = point(a), point(b)
@@ -145,10 +146,23 @@ def horizon_event_grid(point, grid, mask, baseline):
                 else -((left["azimuth_deg"] - knot) % 360)
             )
             if min(0, change) < target < max(0, change):
-                function = lambda t: (
-                    delta(left["azimuth_deg"], point(t)["azimuth_deg"]) - target
-                )
-                events.append(bisect_root(function, a, b, tolerance=0.001))
+                brackets.append([a, b, left["azimuth_deg"], target, -target])
+    # All brackets advance together: one vectorized ephemeris evaluation per
+    # iteration, rather than a separate scalar call per corner per iteration.
+    for _ in range(40):
+        active = [row for row in brackets if row[1] - row[0] > 0.001]
+        if not active:
+            break
+        prefetch([(row[0] + row[1]) / 2 for row in active])
+        for row in active:
+            a, b, origin, target, left_value = row
+            mid = (a + b) / 2
+            value = delta(origin, point(mid)["azimuth_deg"]) - target
+            if (value >= 0) == (left_value >= 0):
+                row[0], row[4] = mid, value
+            else:
+                row[1] = mid
+    events.extend((row[0] + row[1]) / 2 for row in brackets)
     return sorted(set(events)), ambiguous
 
 
@@ -223,8 +237,25 @@ def _plan(request, provider):
     initial = provider.positions(times, bodies)
     index = {t: i for i, t in enumerate(times)}
 
+    batch_cache = {}
+
+    def prefetch(body, timestamps):
+        selected = sorted(set(t for t in timestamps if t not in index))
+        batch_cache.clear()  # bounded to this iteration's corner candidates
+        if not selected:
+            return
+        data = provider.positions(selected, (body,))
+        for i, t in enumerate(selected):
+            batch_cache[(body, t)] = {
+                **{k: float(v[i]) for k, v in data[body].items()},
+                "sun_altitude_deg": float(data["sun_altitude_deg"][i]),
+                "moon_altitude_deg": float(data["moon_altitude_deg"][i]),
+            }
+
     @lru_cache(maxsize=8192)
     def point(body, t):
+        if (body, t) in batch_cache:
+            return batch_cache[(body, t)]
         if t in index:
             i, data = index[t], initial
         else:
@@ -276,12 +307,19 @@ def _plan(request, provider):
                 event_grid,
                 request.horizon_mask,
                 request.min_altitude_deg,
+                prefetch=lambda timestamps: prefetch(body, timestamps),
             )
-            above_events, above_grazing = list(corners), bool(ambiguous)
+            # Grid/corner points partition the smooth root search, but are not
+            # themselves constraint transitions. Carrying all of them into the
+            # final predicate would force thousands of needless scalar midpoint
+            # ephemerides. Actual roots and withheld-band edges suffice.
+            above_events = [edge for band in ambiguous for edge in band]
+            above_grazing = bool(ambiguous)
             for a, b in zip(corners, corners[1:]):
                 if b - a < 0.001:
                     above_grazing = True
                     ambiguous.append((a, b))
+                    above_events.extend((a, b))
                     continue
                 roots, grazing = threshold_events(above, [a, b])
                 above_events.extend(roots)

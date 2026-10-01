@@ -218,7 +218,9 @@ Target samples expose nullable `horizon_altitude_deg` and nonnull
 Mask corners and intersections with the baseline create nonsmooth thresholds.
 The engine first refines azimuth turning points, then crossings of every mask
 and baseline corner, and refines altitude thresholds separately within those
-pieces. Thus a narrow obstruction or clear gap between five-minute chart
+pieces. Corner bisections evaluate their candidate times in vectorized batches;
+chart partition points do not themselves become final interval boundaries.
+Thus a narrow obstruction or clear gap between five-minute chart
 samples is not silently missed. Azimuth bands with a greater-than-90-degree
 step or an endpoint above 89.5-degree altitude are conservatively unresolved
 and excluded when a mask is present, because azimuth near zenith is unstable.
