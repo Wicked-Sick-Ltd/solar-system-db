@@ -3,7 +3,8 @@
 Shared by the REST API and the MCP server for this one lookup. Sharing
 this helper does not pin the rest of the REST/MCP surfaces together. Moons
 have planetocentric elements, so they always report their parent's sky
-position (they sit within a fraction of a degree of it at this precision).
+position as an explicit proxy, not their independent position. Earth's Moon
+cannot use this substitution: Earth seen from Earth is a zero vector.
 """
 from __future__ import annotations
 
@@ -37,6 +38,9 @@ def resolve_and_report(db: SolarDB, name_or_designation: str, date: str | None =
     if not obj:
         raise SkyLookupError(404, f"No object found matching {name_or_designation!r}")
 
+    if obj["id"] == "moon-luna" or (obj.get("object_type") == "moon" and obj.get("parent_id") == "planet-earth"):
+        raise SkyLookupError(404, "Earth's Moon requires a lunar ephemeris; this approximate sky endpoint cannot calculate its position.")
+
     is_sun = obj["id"] == "sun"
     resolved_from = None
     elements = None
@@ -59,6 +63,12 @@ def resolve_and_report(db: SolarDB, name_or_designation: str, date: str | None =
         report = sky_report(elements, earth, jd, lat=lat, lon=lon, is_sun=is_sun)  # type: ignore[arg-type]
     except ValueError as e:
         raise SkyLookupError(422, str(e)) from e
+
+    if resolved_from is not None:
+        report["accuracy_note"] = (
+            f"Parent-body proxy ({resolved_from}), not an independent position of this moon. "
+            + report["accuracy_note"]
+        )
 
     return {
         "name": obj["name"],
