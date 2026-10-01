@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ingest_cad  # noqa: E402
 import ingest_enrichment  # noqa: E402
 import ingest_exoplanets  # noqa: E402
+import ingest_starter_catalogues  # noqa: E402
 import ingest_factsheets  # noqa: E402
 import ingest_mpc  # noqa: E402
 import ingest_sats  # noqa: E402
@@ -220,6 +221,8 @@ def main(argv: list[str] | None = None) -> int:
                                        lambda: stage_showers(conn, offline=offline))
     else:
         totals["showers"] = "skipped"
+    totals["starter_catalogues"] = _run_stage("Reviewed observing starter catalogues",
+                                                 lambda: ingest_starter_catalogues.write_starter_catalogues(conn))
     totals["exoplanets"] = ("skipped" if args.skip_exoplanets else
         _run_stage("Stage 5c: NASA exoplanets", lambda: stage_exoplanets(conn, offline=offline)))
     totals["tiers"] = _run_stage("Stage 6: crawler tiers", lambda: stage_tiers(conn))

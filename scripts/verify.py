@@ -64,6 +64,18 @@ def main() -> int:
         else:
             ok(f"exoplanets: {exo_count}; host coordinates consistent")
 
+    if "starter_targets" in tables:
+        from solar_db.starter_catalogues import load_starter_catalogues
+        expected_rows, expected_sources = load_starter_catalogues()
+        actual_rows = [json.loads(row[0]) for row in conn.execute("SELECT payload FROM starter_targets ORDER BY id")]
+        actual_sources = ({row[0]: json.loads(row[1]) for row in conn.execute("SELECT source,payload FROM starter_sources")}
+                          if "starter_sources" in tables else {})
+        if actual_rows != sorted(expected_rows, key=lambda row: row["id"]) or actual_sources != expected_sources:
+            failures.append("starter catalogue records/provenance differ from reviewed snapshots")
+            fail(failures[-1])
+        else:
+            ok(f"starter catalogues: {len(actual_rows)} records match reviewed source snapshots")
+
     # ---- row counts -------------------------------------------------------
     counts = {r["object_type"]: r["n"] for r in
               conn.execute("SELECT * FROM v_object_counts")}

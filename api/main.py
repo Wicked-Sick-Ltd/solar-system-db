@@ -166,6 +166,29 @@ def close_approaches(request: Request,
             "results": db.close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)}
 
 
+@app.get("/api/v1/starter-targets", tags=["observing catalogues"])
+@limiter.limit("60/minute")
+def list_starter_targets(request: Request, family: Optional[str] = Query(None),
+                         q: Optional[str] = Query(None, max_length=200),
+                         limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=1000)):
+    try:
+        return db.list_starter_targets(family=family, q=q, limit=limit, offset=offset)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/starter-targets/{target_id}", tags=["observing catalogues"])
+@limiter.limit("60/minute")
+def get_starter_target(request: Request, target_id: str):
+    try:
+        result = db.get_starter_target(target_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if result is None:
+        raise HTTPException(status_code=404, detail="Starter target not found")
+    return result
+
+
 @app.get("/api/v1/exoplanets", tags=["exoplanets"])
 @limiter.limit("60/minute")
 def list_exoplanets(request: Request, q: Optional[str] = Query(None, max_length=200),

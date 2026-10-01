@@ -463,3 +463,7 @@ SELECT object_type, COUNT(*) AS n
 FROM objects
 GROUP BY object_type
 ORDER BY n DESC;
+
+-- Separate bounded, licensed observing snapshots; no solar-system object identities.
+CREATE TABLE IF NOT EXISTS starter_targets (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS starter_sources (source TEXT PRIMARY KEY, payload TEXT NOT NULL);

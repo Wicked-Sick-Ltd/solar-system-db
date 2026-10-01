@@ -20,6 +20,7 @@ from typing import Any
 
 from .positions import solar_longitude_deg
 from .exoplanets import ExoplanetQueries
+from .starter_catalogues import StarterCatalogueQueries
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -50,7 +51,7 @@ class UnsupportedCatalogueFilter(ValueError):
     """The loaded catalogue cannot honour a requested filter."""
 
 
-class SolarDB(ExoplanetQueries):
+class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
     """Thin SQLite wrapper, read-only."""
 
     def __init__(self, db_path: str | os.PathLike | None = None) -> None:
