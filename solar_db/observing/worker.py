@@ -8,6 +8,7 @@ import tempfile
 from dataclasses import asdict
 
 from .inputs import PlanningError
+from .horizon import mask_json
 from .kernels import VerifiedKernel
 
 WORKER_TIMEOUT_SECONDS = 35
@@ -28,6 +29,7 @@ def run_jpl_worker(request):
         payload.pop("start")
         payload.pop("end")
         payload["targets"] = ",".join(request.targets)
+        payload["horizon_mask"] = mask_json(request.horizon_mask)
         # Coordinates travel through stdin, not command-line/process listings.
         # stdout is our bounded contract; stderr is suppressed, never relayed.
         with tempfile.TemporaryFile() as output:
@@ -62,8 +64,8 @@ def main():
     from .kernels import JplEphemeris
     from .planner import _plan
 
-    raw = sys.stdin.buffer.read(2049)
-    if len(raw) > 2048 or len(sys.argv) != 2:
+    raw = sys.stdin.buffer.read(16385)
+    if len(raw) > 16384 or len(sys.argv) != 2:
         raise ValueError("Invalid worker input")
     request = NightInput.parse(**json.loads(raw))
     provider = JplEphemeris(request, sys.argv[1])

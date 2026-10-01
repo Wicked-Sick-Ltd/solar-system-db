@@ -74,7 +74,7 @@ def test_local_noon_nights_honour_dst(date, hours):
         ("targets", []),
         ("targets", "x" * 101),
         ("min_altitude_deg", -1),
-        ("min_altitude_deg", 86),
+        ("min_altitude_deg", 91),
         ("min_altitude_deg", True),
         ("sun_altitude_deg", -10),
         ("sun_altitude_deg", float("nan")),
@@ -165,7 +165,11 @@ def test_actual_night_has_bounded_samples_and_independent_moon_position():
     for target in result["targets"]:
         assert len(target["samples"]) == 289
         for point in target["samples"]:
-            assert all(np.isfinite(v) for k, v in point.items() if k != "time_utc")
+            assert all(
+                np.isfinite(v)
+                for k, v in point.items()
+                if k not in ("time_utc", "horizon_altitude_deg")
+            )
             assert -90 <= point["altitude_deg"] <= 90
             assert 0 <= point["azimuth_deg"] < 360
             assert point["distance_au"] > 0
@@ -184,7 +188,7 @@ def test_rest_and_mcp_share_contract_and_report_invalid_or_unavailable(monkeypat
 
     monkeypatch.setattr(api.limiter, "enabled", False)
     fake = {"schema_version": 1, "targets": []}
-    monkeypatch.setattr(api, "plan_night", lambda *a: fake)
+    monkeypatch.setattr(api, "plan_night", lambda *a, **kw: fake)
     with TestClient(api.app) as client:
         r = client.get("/api/v1/observing/night", params=args())
         assert r.status_code == 200 and r.json() == fake
@@ -198,7 +202,7 @@ def test_rest_and_mcp_share_contract_and_report_invalid_or_unavailable(monkeypat
                 == 422
             )
 
-        def unavailable(*a):
+        def unavailable(*a, **kw):
             raise PlanningError("Data unavailable.", 503)
 
         monkeypatch.setattr(api, "plan_night", unavailable)
@@ -209,7 +213,7 @@ def test_rest_and_mcp_share_contract_and_report_invalid_or_unavailable(monkeypat
     )
     server = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(server)
-    monkeypatch.setattr(server, "plan_night", lambda *a: fake)
+    monkeypatch.setattr(server, "plan_night", lambda *a, **kw: fake)
     assert asyncio.run(server.plan_observing_night(**args())) == fake
     monkeypatch.setattr(server, "plan_night", unavailable)
     assert asyncio.run(server.plan_observing_night(**args())) == {
@@ -379,7 +383,7 @@ def test_mcp_planning_does_not_block_other_tools_or_queue_unbounded_work(monkeyp
     counter = []
     lock = threading.Lock()
 
-    def slow_plan(*args):
+    def slow_plan(*args, **kwargs):
         with lock:
             index = len(counter)
             counter.append(index)

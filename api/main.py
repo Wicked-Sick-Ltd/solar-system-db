@@ -11,6 +11,7 @@ OpenAPI spec is served at /openapi.json; Swagger UI at /docs.
 from __future__ import annotations
 
 import os
+import json
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+from starlette.concurrency import run_in_threadpool
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -305,12 +307,12 @@ def search(request: Request,
 # Positions / ephemeris
 # --------------------------------------------------------------------------
 @app.get("/api/v1/observing/night", tags=["positions"],
-         summary="One local night of approximate geometric Moon and planet planning")
+         summary="One local night of labelled geometric Moon and planet planning")
 @limiter.limit("10/minute")
 def observing_night(request: Request, date: str, timezone: str, lat: str, lon: str,
                     targets: str = "moon,jupiter,saturn", min_altitude_deg: str = "20",
                     sun_altitude_deg: str = "-12", min_moon_separation_deg: str = "0"):
-    """Offline builtin ephemerides; no weather, terrain or guaranteed visibility.
+    """Configured offline ephemerides; no weather or guaranteed visibility.
 
     Local noon to the next noon, including timezone transitions. Returns explicit
     model and Earth-orientation coverage; unavailable coverage is HTTP 503.
@@ -326,6 +328,42 @@ def observing_night(request: Request, date: str, timezone: str, lat: str, lon: s
         return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
     except PlanningError as exc:
         return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/v1/observing/night", tags=["positions"],
+          summary="Plan with a bounded UTC observing window and user-entered horizon")
+@limiter.limit("10/minute")
+async def observing_night_post(request: Request):
+    headers = {"Cache-Control": "no-store"}
+    allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+               "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc",
+               "window_end_utc", "horizon_mask"}
+    try:
+        if request.query_params or request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            raise PlanningError("Use an application/json body without query parameters.")
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 16384:
+                raise PlanningError("Observing request exceeds 16 KiB.", 413)
+            body.extend(chunk)
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise PlanningError("JSON fields must not be repeated.")
+                result[key] = value
+            return result
+        def invalid_constant(value):
+            raise PlanningError("JSON numbers must be finite.")
+        payload = json.loads(body, object_pairs_hook=unique, parse_constant=invalid_constant)
+        if not isinstance(payload, dict) or set(payload) - allowed or not {"date", "timezone", "lat", "lon"} <= set(payload):
+            raise PlanningError("Use supported planning fields and include date, timezone, lat and lon.")
+        result = await run_in_threadpool(plan_night, **payload)
+        return JSONResponse(content=result, headers=headers)
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        return JSONResponse(status_code=422, content={"detail": "Observing request must be a valid bounded JSON object."}, headers=headers)
 
 
 @app.get("/api/v1/positions/{name_or_designation:path}", tags=["positions"],

@@ -20,7 +20,7 @@ def number(value, name, lo, hi):
         raise PlanningError(f"{name} must be a finite number between {lo} and {hi}.")
     try:
         parsed = float(value)
-    except ValueError:
+    except (ValueError, OverflowError):
         parsed = math.nan
     if not math.isfinite(parsed) or not lo <= parsed <= hi:
         raise PlanningError(f"{name} must be a finite number between {lo} and {hi}.")
@@ -39,6 +39,9 @@ class NightInput:
     min_moon_separation_deg: float
     start: datetime
     end: datetime
+    window_start_utc: str
+    window_end_utc: str
+    horizon_mask: tuple | None
 
     @classmethod
     def parse(
@@ -51,6 +54,9 @@ class NightInput:
         min_altitude_deg=20,
         sun_altitude_deg=-12,
         min_moon_separation_deg=0,
+        window_start_utc=None,
+        window_end_utc=None,
+        horizon_mask=None,
     ):
         if not isinstance(date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
             raise PlanningError("date must be YYYY-MM-DD.")
@@ -88,7 +94,7 @@ class NightInput:
             )
         lat = round(number(lat, "lat", -90, 90), 2)
         lon = round(number(lon, "lon", -180, 180), 2)
-        altitude = number(min_altitude_deg, "min_altitude_deg", 0, 85)
+        altitude = number(min_altitude_deg, "min_altitude_deg", 0, 90)
         darkness = number(sun_altitude_deg, "sun_altitude_deg", -18, -6)
         if darkness not in (-6, -12, -18):
             raise PlanningError("sun_altitude_deg must be -6, -12 or -18.")
@@ -109,6 +115,51 @@ class NightInput:
             raise PlanningError(
                 "The local-night interval must be between 22 and 26 hours."
             )
+        from .horizon import validate_mask
+
+        mask = validate_mask(horizon_mask)
+        if (window_start_utc is None) != (window_end_utc is None):
+            raise PlanningError(
+                "Provide both window_start_utc and window_end_utc, or neither."
+            )
+        if window_start_utc is None:
+            window_start, window_end = start, end
+        else:
+
+            def instant(raw):
+                if not isinstance(raw, str) or not re.fullmatch(
+                    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", raw
+                ):
+                    raise PlanningError(
+                        "Observing window times must be exact UTC YYYY-MM-DDTHH:MM:SSZ values."
+                    )
+                try:
+                    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                except ValueError as exc:
+                    raise PlanningError(
+                        "Observing window times must be real UTC calendar times."
+                    ) from exc
+
+            window_start, window_end = (
+                instant(window_start_utc),
+                instant(window_end_utc),
+            )
+            if not start <= window_start < window_end <= end:
+                raise PlanningError(
+                    "Observing window must be at least one second, ordered and entirely inside this local night."
+                )
         return cls(
-            date, timezone, lat, lon, selected, altitude, darkness, moon_sep, start, end
+            date,
+            timezone,
+            lat,
+            lon,
+            selected,
+            altitude,
+            darkness,
+            moon_sep,
+            start,
+            end,
+            window_start.isoformat(timespec="seconds").replace("+00:00", "Z"),
+            window_end.isoformat(timespec="seconds").replace("+00:00", "Z"),
+            mask,
         )

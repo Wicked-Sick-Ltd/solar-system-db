@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     # Run the same offline checks while reviewed development PRs are stacked.
-    branches: [ main, codex/public-universe-data-integrity, codex/sky-time-correctness, codex/observing-engine ]
+    branches: [ main, codex/public-universe-data-integrity, codex/sky-time-correctness, codex/observing-engine, codex/jpl-observing-provider ]
   workflow_dispatch: {}
 
 permissions:

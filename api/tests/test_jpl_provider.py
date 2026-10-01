@@ -241,3 +241,39 @@ def test_jpl_date_outside_iers_coverage_does_not_return_builtin(
     with pytest.raises(PlanningError) as error:
         plan_night("2100-01-01", "UTC", 0, 0, targets="moon")
     assert error.value.status == 503
+
+
+def test_real_worker_preserves_selected_window_and_canonical_horizon(
+    kernel_path, monkeypatch
+):
+    monkeypatch.setenv("OBSERVING_EPHEMERIS", "jpl-de440s")
+    monkeypatch.setenv("OBSERVING_JPL_KERNEL", kernel_path)
+    result = plan_night(
+        "2026-10-01",
+        "UTC",
+        51.5,
+        -0.12,
+        targets="moon",
+        window_start_utc="2026-10-01T23:00:00Z",
+        window_end_utc="2026-10-02T04:00:00Z",
+        horizon_mask=[
+            {"azimuth_deg": 180, "min_altitude_deg": 0},
+            {"azimuth_deg": 360, "min_altitude_deg": 0},
+        ],
+    )
+    constraints = result["constraints"]
+    assert constraints["window_start_utc"] == "2026-10-01T23:00:00Z"
+    assert constraints["horizon_mask"] == [
+        {"azimuth_deg": 0.0, "min_altitude_deg": 0.0},
+        {"azimuth_deg": 180.0, "min_altitude_deg": 0.0},
+    ]
+    assert result["targets"][0]["windows"]
+    assert all(
+        constraints["window_start_utc"]
+        <= row["start_utc"]
+        < row["end_utc"]
+        <= constraints["window_end_utc"]
+        for row in result["targets"][0]["windows"]
+    )
+    assert result["targets"][0]["samples"][0]["horizon_altitude_deg"] == 0
+    assert len(result["targets"][0]["samples"]) == 289

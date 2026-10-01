@@ -14,6 +14,7 @@ from .worker import run_jpl_worker, configured_provider
 
 PLANNING_CAPACITY = BoundedSemaphore(2)
 from .inputs import NightInput
+from .horizon import altitude_at, mask_json, knots_with_baseline
 
 SAMPLE_SECONDS = 300
 ROOT_TOLERANCE_SECONDS = 1
@@ -51,12 +52,18 @@ def threshold_events(function, grid):
     """
     start, end = grid[0], grid[-1]
 
+    epsilon = min(1, (end - start) / 4)
+
     def derivative(t):
         if t <= start:
-            return (-3 * function(t) + 4 * function(t + 1) - function(t + 2)) / 2
+            return (
+                -3 * function(t) + 4 * function(t + epsilon) - function(t + 2 * epsilon)
+            ) / (2 * epsilon)
         if t >= end:
-            return (3 * function(t) - 4 * function(t - 1) + function(t - 2)) / 2
-        a, b = max(start, t - 1), min(end, t + 1)
+            return (
+                3 * function(t) - 4 * function(t - epsilon) + function(t - 2 * epsilon)
+            ) / (2 * epsilon)
+        a, b = max(start, t - epsilon), min(end, t + epsilon)
         return (function(b) - function(a)) / (b - a)
 
     slopes = [derivative(t) for t in grid]
@@ -99,6 +106,52 @@ def intervals(events, start, end, predicate):
     ]
 
 
+def horizon_event_grid(point, grid, mask, baseline):
+    """Split at azimuth extrema and every mask/baseline corner crossing.
+
+    Interpolation is circular; nearby angles are unwrapped locally. Zenith
+    passages can make azimuth discontinuous, so those bands are withheld and
+    explicitly unresolved instead of inventing an obstruction crossing.
+    """
+
+    def delta(a, b):
+        return (b - a + 180) % 360 - 180
+
+    start, end = grid[0], grid[-1]
+    epsilon = min(1, (end - start) / 4)
+
+    def derivative(t):
+        a, b = max(start, t - epsilon), min(end, t + epsilon)
+        return delta(point(a)["azimuth_deg"], point(b)["azimuth_deg"]) / (b - a)
+
+    points = list(grid)
+    slopes = [derivative(t) for t in grid]
+    for i, (a, b) in enumerate(zip(grid, grid[1:])):
+        if slopes[i] * slopes[i + 1] < 0:
+            points.append(bisect_root(derivative, a, b, tolerance=0.001))
+    points = sorted(set(points))
+    events, ambiguous = list(points), []
+    knots = knots_with_baseline(mask, baseline)
+    for a, b in zip(points, points[1:]):
+        left, right = point(a), point(b)
+        change = delta(left["azimuth_deg"], right["azimuth_deg"])
+        if abs(change) > 90 or max(left["altitude_deg"], right["altitude_deg"]) > 89.5:
+            ambiguous.append((a, b))
+            continue
+        for knot in knots:
+            target = (
+                (knot - left["azimuth_deg"]) % 360
+                if change > 0
+                else -((left["azimuth_deg"] - knot) % 360)
+            )
+            if min(0, change) < target < max(0, change):
+                function = lambda t: (
+                    delta(left["azimuth_deg"], point(t)["azimuth_deg"]) - target
+                )
+                events.append(bisect_root(function, a, b, tolerance=0.001))
+    return sorted(set(events)), ambiguous
+
+
 def plan_night(
     date,
     timezone,
@@ -109,6 +162,9 @@ def plan_night(
     sun_altitude_deg=-12,
     min_moon_separation_deg=0,
     *,
+    window_start_utc=None,
+    window_end_utc=None,
+    horizon_mask=None,
     provider_factory=None,
 ):
     request = NightInput.parse(
@@ -120,6 +176,9 @@ def plan_night(
         min_altitude_deg,
         sun_altitude_deg,
         min_moon_separation_deg,
+        window_start_utc,
+        window_end_utc,
+        horizon_mask,
     )
     if not PLANNING_CAPACITY.acquire(blocking=False):
         raise PlanningError("Observing planner is busy; try again later.", 503)
@@ -149,7 +208,15 @@ def _plan(request, provider):
     # Seed all derivatives in one vectorized request; refine only event brackets.
     times = sorted(
         set(
-            t for base in grid for t in (max(start, base - 1), base, min(end, base + 1))
+            t
+            for base in grid
+            for t in (
+                max(start, base - 2),
+                max(start, base - 1),
+                base,
+                min(end, base + 1),
+                min(end, base + 2),
+            )
         )
     )
     bodies = tuple(dict.fromkeys(("moon", *request.targets)))
@@ -168,17 +235,59 @@ def _plan(request, provider):
             "moon_altitude_deg": float(data["moon_altitude_deg"][i]),
         }
 
+    selected_start = datetime.fromisoformat(
+        request.window_start_utc.replace("Z", "+00:00")
+    ).timestamp()
+    selected_end = datetime.fromisoformat(
+        request.window_end_utc.replace("Z", "+00:00")
+    ).timestamp()
+    event_grid = sorted(
+        {
+            selected_start,
+            selected_end,
+            *(t for t in grid if selected_start < t < selected_end),
+        }
+    )
     dark = lambda t: request.sun_altitude_deg - point("moon", t)["sun_altitude_deg"]
-    dark_events, dark_grazing = threshold_events(dark, grid)
-    dark_windows = intervals(dark_events, start, end, lambda t: dark(t) >= 0)
+    dark_events, dark_grazing = threshold_events(dark, event_grid)
+    dark_windows = intervals(
+        dark_events, selected_start, selected_end, lambda t: dark(t) >= 0
+    )
     moon_horizon = lambda t: point("moon", t)["moon_altitude_deg"]
-    moon_events, moon_grazing = threshold_events(moon_horizon, grid)
+    moon_events, moon_grazing = threshold_events(moon_horizon, event_grid)
     results = []
     for body in request.targets:
-        above = lambda t: point(body, t)["altitude_deg"] - request.min_altitude_deg
+
+        def required(t):
+            horizon = altitude_at(request.horizon_mask, point(body, t)["azimuth_deg"])
+            return max(
+                request.min_altitude_deg,
+                horizon if horizon is not None else request.min_altitude_deg,
+            )
+
+        above = lambda t: point(body, t)["altitude_deg"] - required(t)
         safe_angle = lambda t: point(body, t)["sun_separation_deg"] - 30
-        above_events, above_grazing = threshold_events(above, grid)
-        sun_events, sun_grazing = threshold_events(safe_angle, grid)
+        ambiguous = []
+        if request.horizon_mask is None:
+            above_events, above_grazing = threshold_events(above, event_grid)
+        else:
+            corners, ambiguous = horizon_event_grid(
+                lambda t: point(body, t),
+                event_grid,
+                request.horizon_mask,
+                request.min_altitude_deg,
+            )
+            above_events, above_grazing = list(corners), bool(ambiguous)
+            for a, b in zip(corners, corners[1:]):
+                if b - a < 0.001:
+                    above_grazing = True
+                    ambiguous.append((a, b))
+                    continue
+                roots, grazing = threshold_events(above, [a, b])
+                above_events.extend(roots)
+                above_grazing = above_grazing or grazing
+            above_grazing = above_grazing or any(abs(above(t)) < 1e-5 for t in corners)
+        sun_events, sun_grazing = threshold_events(safe_angle, event_grid)
         events = [*dark_events, *above_events, *sun_events]
         uncertain = dark_grazing or above_grazing or sun_grazing
         moon_clear = lambda t: True
@@ -186,16 +295,22 @@ def _plan(request, provider):
             separation = lambda t: (
                 point(body, t)["moon_separation_deg"] - request.min_moon_separation_deg
             )
-            separation_events, separation_grazing = threshold_events(separation, grid)
+            separation_events, separation_grazing = threshold_events(
+                separation, event_grid
+            )
             events.extend([*moon_events, *separation_events])
             uncertain = uncertain or moon_grazing or separation_grazing
             moon_clear = lambda t: moon_horizon(t) <= 0 or separation(t) >= 0
         windows = intervals(
             events,
-            start,
-            end,
+            selected_start,
+            selected_end,
             lambda t: (
-                dark(t) >= 0 and above(t) >= 0 and safe_angle(t) >= 0 and moon_clear(t)
+                dark(t) >= 0
+                and above(t) >= 0
+                and safe_angle(t) >= 0
+                and moon_clear(t)
+                and not any(a <= t <= b for a, b in ambiguous)
             ),
         )
         results.append(
@@ -206,7 +321,17 @@ def _plan(request, provider):
                 if uncertain
                 else ("windows_found" if windows else "no_matching_window"),
                 "windows": windows,
-                "samples": [{"time_utc": utc(t), **point(body, t)} for t in grid],
+                "samples": [
+                    {
+                        "time_utc": utc(t),
+                        **point(body, t),
+                        "horizon_altitude_deg": altitude_at(
+                            request.horizon_mask, point(body, t)["azimuth_deg"]
+                        ),
+                        "required_min_altitude_deg": required(t),
+                    }
+                    for t in grid
+                ],
             }
         )
     return {
@@ -225,16 +350,20 @@ def _plan(request, provider):
         },
         "constraints": {
             "min_altitude_deg": request.min_altitude_deg,
+            "window_start_utc": request.window_start_utc,
+            "window_end_utc": request.window_end_utc,
+            "horizon_mask": mask_json(request.horizon_mask),
+            "horizon_rule": "Maximum of baseline and circular linear user-entered horizon; unknown mask is not a surveyed clear horizon. Zenith ambiguity is unresolved and omitted.",
             "sun_altitude_deg": request.sun_altitude_deg,
             "min_sun_separation_deg": 30,
             "min_moon_separation_deg": request.min_moon_separation_deg,
-            "moon_separation_rule": "For targets other than Moon, apply only while Moon's geometric centre is above 0 degrees.",
+            "moon_separation_rule": "For targets other than Moon, apply only while Moon's geometric centre is above 0 degrees, independent of the target horizon mask.",
         },
         "method": {
             **provider.metadata,
             "sample_minutes": SAMPLE_SECONDS / 60,
             "root_tolerance_seconds": ROOT_TOLERANCE_SECONDS,
-            "window_note": "Geometric model windows, not visibility or eye-safety advice. Near-tangent crossings are marked unresolved; sub-second intervals are omitted.",
+            "window_note": "Geometric model windows, not visibility or eye-safety advice. Near-tangent crossings and horizon azimuth ambiguity are marked unresolved; ambiguous bands and sub-second intervals are omitted. Returned windows use the selected UTC interval; chart samples cover the whole local night.",
         },
         "darkness": {
             "intervals": dark_windows,

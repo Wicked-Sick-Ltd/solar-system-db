@@ -42,7 +42,7 @@ class CatalogueMCP(FastMCP):
     async def call_tool(self, name, arguments):
         if name == "plan_observing_night":
             allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
-                       "sun_altitude_deg", "min_moon_separation_deg"}
+                       "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc", "window_end_utc", "horizon_mask"}
             if not isinstance(arguments, dict) or set(arguments)-allowed:
                 raise ToolError("Use only the supported night-planning parameters.")
         return await super().call_tool(name, arguments)
@@ -357,12 +357,16 @@ _planning_slots = BoundedSemaphore(2)
 @mcp.tool()
 async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
                          targets: str = "moon,jupiter,saturn", min_altitude_deg: StrictFloat = 20,
-                         sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0) -> dict:
+                         sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
+                         window_start_utc: str | None = None, window_end_utc: str | None = None,
+                         horizon_mask: list[dict[str, StrictFloat]] | None = None) -> dict:
     """Geometric Moon/planet windows for one local noon-to-noon night.
 
-    Uses labelled offline builtin ephemerides, not precision JPL calculations.
+    Uses the configured labelled offline provider (builtin or pinned local JPL).
     UTC event times, timezone/DST boundaries, model and IERS coverage are explicit.
-    Weather and terrain are not included. Targets are comma-separated supported
+    Optional user-entered horizon is circularly interpolated; it is not surveyed terrain.
+    Optional paired exact UTC window times must lie inside the local night.
+    Weather is not included. Targets are comma-separated supported
     planets or moon; Sun and Earth are excluded. No visibility guarantee.
     """
     # Reserve before scheduling: at most two running/pending calculations,
@@ -373,7 +377,9 @@ async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: 
     def calculate():
         try:
             return plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
-                              sun_altitude_deg, min_moon_separation_deg)
+                              sun_altitude_deg, min_moon_separation_deg,
+                              window_start_utc=window_start_utc, window_end_utc=window_end_utc,
+                              horizon_mask=horizon_mask)
         except PlanningError as exc:
             return {"error": str(exc), "status": exc.status}
         finally:

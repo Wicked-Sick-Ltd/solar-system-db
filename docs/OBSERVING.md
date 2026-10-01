@@ -20,7 +20,7 @@ Optional fields:
 
 - `targets`: unique comma-separated names from `moon,mercury,venus,mars,jupiter,saturn,uranus,neptune`;
   default `moon,jupiter,saturn`, at most eight. The Sun and Earth are not targets.
-- `min_altitude_deg`: 0–85, default 20, geometric body centre.
+- `min_altitude_deg`: 0–90, default 20, geometric body centre.
 - `sun_altitude_deg`: -6, -12 or -18, default -12 (civil/nautical/astronomical
   twilight thresholds). These are explicit altitude constraints, not a universal
   definition of suitability for a particular instrument or target.
@@ -184,3 +184,63 @@ fixture-specific regression thresholds, not universal physical error bounds;
 outer-planet references are centre positions and retain the documented barycentre
 difference. Integrity, source replacement, no-download, common-capacity, timeout,
 crash, malformed output and unavailable-IERS cases also run locally.
+
+## Selected hours and user-entered horizons
+
+`POST /api/v1/observing/night` accepts a JSON object with the same required
+`date`, `timezone`, `lat` and `lon` and optional scalar fields as GET. The existing
+GET endpoint remains compatible; structured constraints use POST or MCP.
+The body is limited to 16 KiB, must use `application/json`, and must not contain
+query parameters, duplicate JSON keys, unknown keys or nonfinite numbers.
+The POST calculation runs off the event loop behind the common planning gate.
+
+Two new optional fields, `window_start_utc` and `window_end_utc`, must both be
+omitted/null or both be exact `YYYY-MM-DDTHH:MM:SSZ` strings. They must define an
+ordered interval of at least one second wholly inside the local noon-to-noon
+night. Explicit UTC times distinguish the repeated local hour at a DST change.
+The response includes the effective bounds in `constraints`, including the
+resolved full-night bounds when no narrower interval was supplied. Target and
+darkness windows, and their status, apply to that selected interval. Chart
+samples still cover the full local night; the lunar phase retains its explicit
+full-night midpoint reference time.
+
+`horizon_mask` is null/omitted for unknown, or 2–72 points of exactly
+`{"azimuth_deg": 0, "min_altitude_deg": 10}`. Values must be finite JSON numbers,
+with azimuth 0–360 and altitude −90–90 degrees. Points sort by azimuth; 360
+canonicalizes to 0 and duplicate directions are rejected. Linear interpolation
+wraps across north. A user-entered zero-degree horizon is distinct from unknown.
+The required target altitude is the greater of the independent baseline and
+interpolated horizon. Baseline now accepts 0–90 degrees, matching saved site
+preferences; a zenith tangency is unresolved, not a finite observing window.
+Target samples expose nullable `horizon_altitude_deg` and nonnull
+`required_min_altitude_deg` for explaining the two constraints.
+
+Mask corners and intersections with the baseline create nonsmooth thresholds.
+The engine first refines azimuth turning points, then crossings of every mask
+and baseline corner, and refines altitude thresholds separately within those
+pieces. Thus a narrow obstruction or clear gap between five-minute chart
+samples is not silently missed. Azimuth bands with a greater-than-90-degree
+step or an endpoint above 89.5-degree altitude are conservatively unresolved
+and excluded when a mask is present, because azimuth near zenith is unstable.
+The existing `unresolved_grazing` status also covers this explicitly explained
+geometry uncertainty. Coarse masks can still miss real obstacles; no terrain
+survey or guaranteed view is claimed. Moon interference continues to use the
+Moon's geometric centre above 0 degrees independently of the target's horizon
+mask, and never excludes the Moon target itself.
+
+Example (values are illustrative, not an observer's saved location):
+
+```json
+{
+  "date": "2026-10-01", "timezone": "Europe/London", "lat": 51.5, "lon": -0.12,
+  "targets": "moon,saturn", "min_altitude_deg": 20,
+  "window_start_utc": "2026-10-01T20:00:00Z",
+  "window_end_utc": "2026-10-02T04:00:00Z",
+  "horizon_mask": [
+    {"azimuth_deg": 0, "min_altitude_deg": 10},
+    {"azimuth_deg": 90, "min_altitude_deg": 30},
+    {"azimuth_deg": 180, "min_altitude_deg": 5},
+    {"azimuth_deg": 270, "min_altitude_deg": 15}
+  ]
+}
+```
