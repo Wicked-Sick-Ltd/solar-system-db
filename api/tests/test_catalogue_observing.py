@@ -220,6 +220,9 @@ def assert_catalogue_contract(result):
             assert window["start_utc"] >= "2026-10-01T20:00:00Z"
             assert window["end_utc"] <= "2026-10-02T04:00:00Z"
     assert star["catalogue"]["proper_motion_applied"] is True
+    assert "frame-spin correction not applied" in star["catalogue"]["frame_transform"]
+    assert "frame-spin correction is not applied" in star["catalogue"]["accuracy_note"]
+    assert "no source-frame rotation" in deep["catalogue"]["frame_transform"]
     assert deep["catalogue"]["proper_motion_applied"] is False
     json.dumps(result, allow_nan=False)
 

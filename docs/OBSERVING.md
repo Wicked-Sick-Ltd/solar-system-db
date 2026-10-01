@@ -264,7 +264,7 @@ catalogue database. Each catalogue target adds a `catalogue` object with
 `source`, `snapshot_sha256`, `upstream_sha256`, `source_url`, `retrieved_at`,
 `license`, `attribution`, `license_url`, the complete `astrometry_evidence` identity, and `input_coordinates`
 (RA/Dec degrees, frame, equinox, Julian reference epoch, unknown observation
-epoch). It also reports `motion_model`, `proper_motion_applied`, both angular
+epoch). It also reports `motion_model`, `proper_motion_applied`, `frame_transform`, both angular
 proper-motion components, `distance_au: null`, refraction conditions and an
 accuracy note. Every catalogue sample likewise has `distance_au: null`.
 Solar-system targets retain their existing physical-distance contract and do
@@ -278,7 +278,11 @@ or radial velocity, passing the verified cosine-scaled RA component directly as
 direction; internal ERFA safe-distance and induced radial-velocity conventions
 are never exposed as measured physical quantities. This is an **angular-only
 linear-motion estimate** with a zero-radial-velocity propagation assumption,
-not a full stellar ephemeris: annual parallax, measured radial motion, perspective
+not a full stellar ephemeris. Astropy applies the FK5 J2000 orientation rotation
+to ICRS but does not apply the empirical FK5/Hipparcos frame-spin correction;
+`frame_transform` and the per-target accuracy note state this approximation.
+The published orientation fixture does not certify a spin-corrected proper-motion
+model. Annual parallax, measured radial motion, perspective
 acceleration, component/binary orbits and their uncertainty are absent. ERFA may
 emit a generic `pmsafe` safe-distance warning because distance is deliberately
 missing; request-time global warning filters are not changed.
@@ -313,3 +317,7 @@ Primary implementation/reference sources:
 - [Astropy space motion](https://docs.astropy.org/en/stable/coordinates/apply_space_motion.html)
 - [ERFA v2.0.1 published validation cases](https://github.com/liberfa/erfa/blob/v2.0.1/src/t_erfa_c.c)
 - [IAU SOFA astrometry documentation](https://www.iausofa.org/cookbooks)
+
+The distinction between orientation and empirical frame spin is explicit in
+[Astropy’s FK5 transform](https://github.com/astropy/astropy/blob/v8.0.1/astropy/coordinates/builtin_frames/icrs_fk5_transforms.py)
+and [ERFA’s rotation-plus-spin transform](https://github.com/liberfa/erfa/blob/v2.0.1/src/fk52h.c).

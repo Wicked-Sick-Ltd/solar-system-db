@@ -120,6 +120,11 @@ class CatalogueDirection:
             },
             "motion_model": astrometry["motion_model"],
             "proper_motion_applied": moving,
+            "frame_transform": (
+                "Astropy FK5 J2000 orientation rotation to ICRS; empirical FK5/Hipparcos frame-spin correction not applied"
+                if moving
+                else "ICRS source direction; no source-frame rotation needed"
+            ),
             "pm_ra_cosdec_arcsec_per_year": astrometry["pm_ra_cosdec_arcsec_per_year"],
             "pm_dec_arcsec_per_year": astrometry["pm_dec_arcsec_per_year"],
             "distance_au": None,
@@ -127,7 +132,7 @@ class CatalogueDirection:
             "accuracy_note": (
                 "Angular-only estimate: no measured distance, annual parallax, radial velocity, perspective acceleration or binary orbit. "
                 + (
-                    "Linear angular proper motion from Julian reference epoch 2000.0; missing radial velocity is treated as zero by the propagation model. "
+                    "Linear angular proper motion from Julian reference epoch 2000.0; missing radial velocity is treated as zero by the propagation model. Empirical FK5/Hipparcos frame-spin correction is not applied. "
                     if moving
                     else "Static ICRS catalogue direction; no proper motion applied. "
                 )
