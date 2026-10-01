@@ -127,7 +127,6 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
             "min_diameter_radius": None if min_diameter_km is None else min_diameter_km / 2,
             "max_condition_code": max_condition_code,
             "discovered_after": discovered_after or None,
-            "keyset": 1 if after is not None else 0,
             "after": after if after is not None else "",
             "object_type": object_type or None,
             "parent_id": parent_id,
@@ -136,99 +135,71 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
             "max_eccentricity": max_eccentricity,
             "min_semi_major_axis_au": min_semi_major_axis_au,
             "max_semi_major_axis_au": max_semi_major_axis_au,
-            "neo": 1 if neo else 0,
-            "pha": 1 if pha else 0,
-            "named_only": 1 if named_only else 0,
             "limit": self._lim(limit, 1000),
             "offset": 0 if after is not None else max(0, int(offset or 0)),
         }
-        with self._conn() as probe:
-            v2 = self._has_table(probe, "designations")
-        if not v2 and (orbit_class or max_moid_au is not None or max_condition_code is not None):
-            raise UnsupportedCatalogueFilter(
-                "Orbit class, Earth MOID and orbit uncertainty filters require a schema v2 or newer catalogue."
-            )
         with self._conn() as conn:
+            v2 = self._has_table(conn, "designations")
+            if not v2 and (orbit_class or max_moid_au is not None or max_condition_code is not None):
+                raise UnsupportedCatalogueFilter(
+                    "Orbit class, Earth MOID and orbit uncertainty filters require a schema v2 or newer catalogue."
+                )
+            # Only these fixed clauses enter SQL; caller values remain bound.
+            # Parameter-guarded ORs and CASE ordering prevent indexed range seeks.
+            filters = {
+                "min_diameter_radius": "p.radius_km >= :min_diameter_radius",
+                "discovered_after": "o.discovery_date >= :discovered_after",
+                "object_type": "o.object_type = :object_type",
+                "parent_id": "o.parent_id = :parent_id",
+                "min_radius_km": "p.radius_km >= :min_radius_km",
+                "max_radius_km": "p.radius_km <= :max_radius_km",
+                "max_eccentricity": "oe.eccentricity <= :max_eccentricity",
+                "min_semi_major_axis_au": "oe.semi_major_axis_au >= :min_semi_major_axis_au",
+                "max_semi_major_axis_au": "oe.semi_major_axis_au <= :max_semi_major_axis_au",
+            }
             if v2:
-                rows = conn.execute(
-                    """
-                    SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
-                           o.discoverer, o.discovery_date, o.wikipedia_url,
-                           p.radius_km, p.mass_kg,
-                           oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
-                           oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
-                           oe.orbit_class_code, oe.moid_au, oe.condition_code,
-                           v.geometric_albedo, v.absolute_magnitude_h
-                    FROM objects o
-                    LEFT JOIN physical_properties p  ON p.object_id  = o.id
-                    LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
-                    LEFT JOIN visual_properties   v  ON v.object_id  = o.id
-                    WHERE (:orbit_class IS NULL OR oe.orbit_class_code = :orbit_class)
-                      AND (:max_moid_au IS NULL OR oe.moid_au <= :max_moid_au)
-                      AND (:min_diameter_radius IS NULL OR p.radius_km >= :min_diameter_radius)
-                      AND (:max_condition_code IS NULL OR oe.condition_code <= :max_condition_code)
-                      AND (:discovered_after IS NULL OR o.discovery_date >= :discovered_after)
-                      AND (NOT :keyset OR o.id > :after)
-                      AND (:object_type IS NULL OR o.object_type = :object_type)
-                      AND (:parent_id IS NULL OR o.parent_id = :parent_id)
-                      AND (:min_radius_km IS NULL OR p.radius_km >= :min_radius_km)
-                      AND (:max_radius_km IS NULL OR p.radius_km <= :max_radius_km)
-                      AND (:max_eccentricity IS NULL OR oe.eccentricity <= :max_eccentricity)
-                      AND (:min_semi_major_axis_au IS NULL OR oe.semi_major_axis_au >= :min_semi_major_axis_au)
-                      AND (:max_semi_major_axis_au IS NULL OR oe.semi_major_axis_au <= :max_semi_major_axis_au)
-                      AND (NOT :neo OR EXISTS (
-                            SELECT 1 FROM classifications c
-                            WHERE c.object_id=o.id AND c.label='NEO'))
-                      AND (NOT :pha OR EXISTS (
-                            SELECT 1 FROM classifications c
-                            WHERE c.object_id=o.id AND c.label='PHA'))
-                      AND (NOT :named_only OR (o.name IS NOT NULL AND o.name <> ''))
-                    ORDER BY CASE WHEN :keyset THEN o.id END,
-                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au IS NULL END,
-                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au END,
-                             CASE WHEN NOT :keyset THEN o.id END
-                    LIMIT :limit OFFSET :offset
-                    """,
-                    params,
-                )
-            else:
-                rows = conn.execute(
-                    """
-                    SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
-                           o.discoverer, o.discovery_date, o.wikipedia_url,
-                           p.radius_km, p.mass_kg,
-                           oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
-                           oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
-                           v.geometric_albedo, v.absolute_magnitude_h
-                    FROM objects o
-                    LEFT JOIN physical_properties p  ON p.object_id  = o.id
-                    LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
-                    LEFT JOIN visual_properties   v  ON v.object_id  = o.id
-                    WHERE (:min_diameter_radius IS NULL OR p.radius_km >= :min_diameter_radius)
-                      AND (:discovered_after IS NULL OR o.discovery_date >= :discovered_after)
-                      AND (NOT :keyset OR o.id > :after)
-                      AND (:object_type IS NULL OR o.object_type = :object_type)
-                      AND (:parent_id IS NULL OR o.parent_id = :parent_id)
-                      AND (:min_radius_km IS NULL OR p.radius_km >= :min_radius_km)
-                      AND (:max_radius_km IS NULL OR p.radius_km <= :max_radius_km)
-                      AND (:max_eccentricity IS NULL OR oe.eccentricity <= :max_eccentricity)
-                      AND (:min_semi_major_axis_au IS NULL OR oe.semi_major_axis_au >= :min_semi_major_axis_au)
-                      AND (:max_semi_major_axis_au IS NULL OR oe.semi_major_axis_au <= :max_semi_major_axis_au)
-                      AND (NOT :neo OR EXISTS (
-                            SELECT 1 FROM classifications c
-                            WHERE c.object_id=o.id AND c.label='NEO'))
-                      AND (NOT :pha OR EXISTS (
-                            SELECT 1 FROM classifications c
-                            WHERE c.object_id=o.id AND c.label='PHA'))
-                      AND (NOT :named_only OR (o.name IS NOT NULL AND o.name <> ''))
-                    ORDER BY CASE WHEN :keyset THEN o.id END,
-                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au IS NULL END,
-                             CASE WHEN NOT :keyset THEN oe.semi_major_axis_au END,
-                             CASE WHEN NOT :keyset THEN o.id END
-                    LIMIT :limit OFFSET :offset
-                    """,
-                    params,
-                )
+                filters.update({
+                    "orbit_class": "oe.orbit_class_code = :orbit_class",
+                    "max_moid_au": "oe.moid_au <= :max_moid_au",
+                    "max_condition_code": "oe.condition_code <= :max_condition_code",
+                })
+            # sqlite3 binds float NaN as SQL NULL. Preserve the existing omitted-
+            # filter behavior here; this performance change does not redefine validation.
+            for name in filters:
+                value = params[name]
+                if isinstance(value, float) and value != value:
+                    params[name] = None
+            clauses = [clause for name, clause in filters.items() if params[name] is not None]
+            if after is not None:
+                clauses.append("o.id > :after")
+            if neo:
+                clauses.append("EXISTS (SELECT 1 FROM classifications c WHERE c.object_id=o.id AND c.label='NEO')")
+            if pha:
+                clauses.append("EXISTS (SELECT 1 FROM classifications c WHERE c.object_id=o.id AND c.label='PHA')")
+            if named_only:
+                clauses.append("(o.name IS NOT NULL AND o.name <> '')")
+            where = " AND ".join(clauses) or "1"
+            order = "o.id" if after is not None else "oe.semi_major_axis_au IS NULL, oe.semi_major_axis_au, o.id"
+            extra = "oe.orbit_class_code, oe.moid_au, oe.condition_code," if v2 else ""
+            rows = conn.execute(
+                f"""
+                SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
+                       o.discoverer, o.discovery_date, o.wikipedia_url,
+                       p.radius_km, p.mass_kg,
+                       oe.semi_major_axis_au, oe.eccentricity, oe.inclination_deg,
+                       oe.orbital_period_days, oe.perihelion_au, oe.aphelion_au,
+                       {extra}
+                       v.geometric_albedo, v.absolute_magnitude_h
+                FROM objects o
+                LEFT JOIN physical_properties p  ON p.object_id  = o.id
+                LEFT JOIN orbital_elements    oe ON oe.object_id = o.id
+                LEFT JOIN visual_properties   v  ON v.object_id  = o.id
+                WHERE {where}
+                ORDER BY {order}
+                LIMIT :limit OFFSET :offset
+                """,
+                params,
+            )
             return [dict(r) for r in rows]
 
     def get_object(self, name_or_designation: str) -> dict[str, Any] | None:
