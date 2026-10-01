@@ -29,6 +29,8 @@ import ingest_sbdb  # noqa: E402
 import ingest_seed  # noqa: E402
 import ingest_showers  # noqa: E402
 from common import DB_PATH, ROOT, connect, publish  # noqa: E402
+from catalogue_provenance import build_provenance  # noqa: E402
+from solar_db.catalogue_identity import finalize  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures"
 
@@ -194,6 +196,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.fresh:
         _fresh_db()
     conn = connect(create=True)
+    conn.execute("DELETE FROM catalogue_identity")
+    conn.commit()
     conn.execute("PRAGMA synchronous = OFF")
     conn.execute("PRAGMA journal_mode = OFF")
     conn.execute("PRAGMA temp_store = MEMORY")
@@ -232,8 +236,9 @@ def main(argv: list[str] | None = None) -> int:
                                      lambda: stage_fts(conn))
 
     row_count = conn.execute("SELECT COUNT(*) FROM objects").fetchone()[0]
+    finished = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     conn.execute("UPDATE build_meta SET finished_at = ?, row_count = ?, notes = ? WHERE id = ?",
-                 (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), row_count, json.dumps(totals), build_id))
+                 (finished, row_count, json.dumps(totals), build_id))
     conn.commit()
 
     def _analyze_vacuum() -> None:
@@ -241,6 +246,11 @@ def main(argv: list[str] | None = None) -> int:
         if not args.no_vacuum:
             conn.execute("VACUUM")
     _run_stage("Stage 9: ANALYZE + VACUUM", _analyze_vacuum)
+    inputs, builder = build_provenance(ROOT, args)
+    identity = _run_stage("Stage 10: finalize logical catalogue identity", lambda: finalize(
+        conn, build={"started_at": started, "finished_at": finished, "mode": "full-offline" if offline else "full"},
+        inputs=inputs, builder=builder))
+    print(f"Catalogue identity: {identity['catalogue_id']}")
     conn.close()
 
     published = publish()

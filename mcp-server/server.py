@@ -465,6 +465,16 @@ def next_perihelion(name_or_designation: str) -> dict:
 
 # Reference / discovery
 @mcp.tool()
+def get_catalogue_identity() -> dict:
+    """Return finalized logical/build identifiers and recorded source provenance.
+
+    Unknown for older, partially built or modified files. An ID does not promise
+    that historical snapshots remain hosted; keep a verified exported file.
+    """
+    return db().catalogue_identity()
+
+
+@mcp.tool()
 def list_object_types() -> list[dict]:
     """List the object_type values present in the catalogue and how many rows
     each has. Useful as a sanity-check on coverage."""

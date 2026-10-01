@@ -76,6 +76,20 @@ def main() -> int:
         else:
             ok(f"starter catalogues: {len(actual_rows)} records match reviewed source snapshots")
 
+    # Known snapshots can be explicitly checked offline; serving requests never
+    # perform this full scan. Legacy files remain valid with unknown identity.
+    from solar_db.catalogue_identity import logical_hash, read_identity
+    catalogue = read_identity(conn)
+    if catalogue["status"] == "known":
+        digest, row_counts = logical_hash(conn)
+        if catalogue["catalogue_id"] != "sha256:" + digest or catalogue["row_counts"] != row_counts:
+            failures.append("catalogue identity differs from logical data")
+            fail(failures[-1])
+        else:
+            ok(f"catalogue identity matches {len(row_counts)} logical tables")
+    else:
+        print(f"INFO  catalogue identity unknown: {catalogue['reason']}")
+
     # ---- row counts -------------------------------------------------------
     counts = {r["object_type"]: r["n"] for r in
               conn.execute("SELECT * FROM v_object_counts")}
