@@ -6,7 +6,13 @@ import math
 
 import numpy as np
 
+from threading import BoundedSemaphore
+
 from .ephemeris import BuiltinEphemeris
+from .inputs import PlanningError
+from .worker import run_jpl_worker, configured_provider
+
+PLANNING_CAPACITY = BoundedSemaphore(2)
 from .inputs import NightInput
 
 SAMPLE_SECONDS = 300
@@ -103,7 +109,7 @@ def plan_night(
     sun_altitude_deg=-12,
     min_moon_separation_deg=0,
     *,
-    provider_factory=BuiltinEphemeris,
+    provider_factory=None,
 ):
     request = NightInput.parse(
         date,
@@ -115,7 +121,27 @@ def plan_night(
         sun_altitude_deg,
         min_moon_separation_deg,
     )
-    provider = provider_factory(request)
+    if not PLANNING_CAPACITY.acquire(blocking=False):
+        raise PlanningError("Observing planner is busy; try again later.", 503)
+    provider = None
+    try:
+        if provider_factory is None:
+            name = configured_provider()
+            if name == "jpl-de440s":
+                return run_jpl_worker(request)
+            provider_factory = BuiltinEphemeris
+        provider = provider_factory(request)
+        return _plan(request, provider)
+    finally:
+        close = getattr(provider, "close", None)
+        try:
+            if close is not None:
+                close()
+        finally:
+            PLANNING_CAPACITY.release()
+
+
+def _plan(request, provider):
     start, end = request.start.timestamp(), request.end.timestamp()
     grid = np.linspace(
         start, end, math.ceil((end - start) / SAMPLE_SECONDS) + 1

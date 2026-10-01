@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     # Run the same offline checks while reviewed development PRs are stacked.
-    branches: [ main, codex/public-universe-data-integrity, codex/sky-time-correctness ]
+    branches: [ main, codex/public-universe-data-integrity, codex/sky-time-correctness, codex/observing-engine ]
   workflow_dispatch: {}
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes zstd
           python -m pip install --upgrade pip
-          pip install -e '.[dev,publish]' -e ./mcp-server -e ./api
+          pip install -e '.[dev,publish,observing-jpl]' -e ./mcp-server -e ./api
 
       - name: Check API imports
         run: python -m ruff check --select F401 api/main.py
@@ -37,5 +37,14 @@ jobs:
       - name: Verify DB
         run: python scripts/verify.py
 
+      - name: Provision pinned JPL acceptance kernel
+        run: |
+          curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 --max-filesize 32726016 \
+            --output "$RUNNER_TEMP/de440s.bsp" \
+            https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp
+          echo 'c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2  '"$RUNNER_TEMP/de440s.bsp" | sha256sum --check --strict
+
       - name: Smoke tests — MCP server + REST API
+        env:
+          JPL_TEST_KERNEL: ${{ runner.temp }}/de440s.bsp
         run: pytest mcp-server/tests/ api/tests/ -v --import-mode=importlib

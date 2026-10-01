@@ -38,3 +38,6 @@ data/.pull.*
 
 # superpowers SDD scratch (ledgers, briefs, review packages)
 .superpowers/
+
+# Local ephemeris kernels: downloaded separately, checksum verified at runtime.
+*.bsp

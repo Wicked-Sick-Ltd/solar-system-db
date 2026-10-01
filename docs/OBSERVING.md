@@ -103,3 +103,84 @@ Run `pytest api/tests/test_observing_engine.py --import-mode=importlib`. The sui
 also exercises 23/25-hour DST boundaries, missing civil days, polar seasons,
 Moon-above-horizon logic, solar exclusion, strict REST/MCP inputs, unavailable
 coverage and synthetic grazing tracks whose windows lie between samples.
+
+## Optional checksum-pinned JPL provider
+
+The default remains `OBSERVING_EPHEMERIS=builtin`. To opt into the independently
+labelled JPL provider, install `pip install -e '.[observing-jpl]'` (jplephem 2.24 is
+pinned), provision the unmodified kernel separately, then configure
+`OBSERVING_EPHEMERIS=jpl-de440s` and `OBSERVING_JPL_KERNEL=/absolute/path/de440s.bsp`.
+These are operator settings; clients cannot select a path, URL or checksum.
+No production setting is changed by installing this feature. Both REST and MCP
+use the same configured provider. Unknown configuration, missing dependency,
+wrong size/hash, expired IERS coverage or worker failure returns 503; there is no
+silent fallback or runtime download.
+
+The accepted artifact is [NAIF's DE440s](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp),
+32,726,016 bytes, SHA256
+`c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2`.
+Retrieved 2026-10-01; its MD5 `3917ee56769db332790c751e2168843d` matched
+[NAIF's published checksum list](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/aa_checksums.txt).
+The SHA256 is calculated locally from those verified bytes, not represented as a
+JPL-published SHA256. The binary is ignored by git and is not redistributed in
+this repository. [NAIF's rules](https://naif.jpl.nasa.gov/naif/rules.html) permit
+kernel download/use and unmodified redistribution; this data is not relicensed
+under the application's MIT license. Credit NASA/JPL's Solar System Dynamics
+team, NAIF and Park et al. (2021),
+[The JPL Planetary and Lunar Ephemerides DE440 and DE441](https://ssd.jpl.nasa.gov/doc/de440_de441.html).
+
+Kernel segments cover 1849-12-26 through 2150-01-22 TDB. The service also requires
+one day of preceding kernel coverage for retarded light time, 1900–2100 input
+bounds and valid bundled IERS coverage: the kernel's long span does not imply
+Earth-orientation support for all those dates. Moon, Mercury and Venus use body
+centres; Mars through Neptune use their system barycentres. DE440s does not
+include independent outer-planet centre segments. This distinction appears in
+the response. Topocentric apparent positions retain the same no-refraction,
+sea-level and IAU/Astropy transformation conventions as the builtin contract.
+
+Astropy's explicit `get_body(ephemeris=...)` argument alone does not select that
+kernel for every subsequent coordinate transform. Therefore the complete JPL
+plan runs in a disposable child process with the documented
+`solar_system_ephemeris` context set to the verified local snapshot. The parent
+never changes its global ephemeris state. Two shared planning slots per server
+process bound simultaneous REST/MCP calculations before allocating private
+kernel copies. MCP also retains its existing no-queue dispatch guard. A parent
+copies and SHA256-verifies at most 32,726,017 bytes into a private temporary file;
+source replacement cannot alter a running plan. It owns cleanup even if the
+worker crashes or exceeds 35 seconds. Child input travels over stdin, not argv;
+stderr is never returned or logged, and JSON output is capped at 1.5 MB. The
+context's cached SPK descriptor is explicitly closed. Multi-process deployments
+multiply the two-slot limit. Consumers should allow at least 40 seconds when this
+provider is enabled.
+
+Responses identify the kernel hash, byte size, TDB segment coverage and
+Astropy/ERFA/jplephem versions. Both providers identify the effective IERS table:
+`effective-iers-columns-le-f64-v1` hashes the ordered MJD, UT1_UTC, PM_x, PM_y,
+UT1Flag and PolPMFlag columns. Each column is prefixed by compact JSON of its
+name and unit. Numerical columns use little-endian float64 values with canonical
+NaNs followed by uint8 mask bytes; flags use compact JSON strings. This identifies
+the actual UT1/polar-motion/status inputs, not merely the package release label.
+Dependency versions, IERS identity and kernel identity must match when reproducing
+an output; one-second crossing tolerance is not an astronomical accuracy claim.
+
+### Offline acceptance
+
+Provision the official artifact outside tests (curl timeout/size bounds and a
+SHA256 check are required), then run:
+
+```sh
+JPL_TEST_KERNEL=/absolute/path/de440s.bsp pytest api/tests/test_jpl_provider.py
+```
+
+Tests never download data. Without this explicit path, ordinary local unit runs
+skip real-kernel cases; CI provisions the pinned file first and runs them.
+The 16 previously recorded Horizons point/phase cases cover lunar positions at
+four sites, the seven planets, the Sun and four lunar phases. Two additional
+recorded minute-bracket cases independently bound the Moon-altitude and solar
+twilight crossings of a complete isolated-worker plan. JPL acceptance
+requires angular differences below 0.002 degrees, relative distance differences
+below 0.00002 and lunar illuminated-fraction differences below 0.00002. These are
+fixture-specific regression thresholds, not universal physical error bounds;
+outer-planet references are centre positions and retain the documented barycentre
+difference. Integrity, source replacement, no-download, common-capacity, timeout,
+crash, malformed output and unavailable-IERS cases also run locally.

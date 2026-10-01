@@ -2,10 +2,14 @@
 
 https://docs.astropy.org/en/stable/coordinates/solarsystem.html
 https://docs.astropy.org/en/stable/utils/iers.html
-This is not the future precision JPL-kernel provider. No runtime downloads.
+Provider selection and kernel verification live in kernels.py. No runtime downloads.
 """
 
 from importlib.metadata import version
+import hashlib
+import json
+
+import erfa
 
 import astropy
 from astropy import units as u
@@ -21,11 +25,42 @@ from .inputs import PlanningError
 iers.conf.auto_download = False
 
 
+def iers_identity(table):
+    """Canonical effective table columns used for UT1, polar motion and status."""
+    columns = ("MJD", "UT1_UTC", "PM_x", "PM_y", "UT1Flag", "PolPMFlag")
+    digest = hashlib.sha256()
+    for name in columns:
+        col = table[name]
+        digest.update(
+            json.dumps(
+                [name, str(getattr(col, "unit", ""))], separators=(",", ":")
+            ).encode()
+        )
+        if name.endswith("Flag"):
+            digest.update(
+                json.dumps(
+                    [str(value) for value in col], separators=(",", ":")
+                ).encode()
+            )
+        else:
+            values = np.array(col, dtype="<f8")
+            values[np.isnan(values)] = np.nan
+            digest.update(values.tobytes())
+            digest.update(np.ma.getmaskarray(col).astype("u1").tobytes())
+    return {
+        "sha256": digest.hexdigest(),
+        "algorithm": "effective-iers-columns-le-f64-v1",
+        "columns": list(columns),
+    }
+
+
 def iso(value):
     return value.utc.isot.split(".")[0] + "Z"
 
 
 class BuiltinEphemeris:
+    ephemeris = "builtin"
+
     def __init__(self, request):
         self.request = request
         self.location = EarthLocation.from_geodetic(
@@ -65,6 +100,7 @@ class BuiltinEphemeris:
             "provider": "astropy-builtin",
             "ephemeris": "ERFA builtin",
             "astropy_version": astropy.__version__,
+            "erfa_version": erfa.__version__,
             "frame": "apparent topocentric AltAz; azimuth north through east",
             "refraction": "none; geometric body centre",
             "accuracy_note": "Approximate offline model, not a precision JPL ephemeris. Numerical crossing tolerance is not physical accuracy. No terrain, atmosphere or visibility guarantee.",
@@ -72,6 +108,7 @@ class BuiltinEphemeris:
                 "start_utc": iso(Time(first, format="mjd")),
                 "end_utc": iso(Time(last, format="mjd")),
                 "data_version": version("astropy-iers-data"),
+                "snapshot": iers_identity(self.table),
                 "status": "predicted"
                 if np.any(status == iers.FROM_IERS_A_PREDICTION)
                 else "measured",
@@ -82,8 +119,8 @@ class BuiltinEphemeris:
         times = Time(timestamps, format="unix", scale="utc")
         try:
             frame = AltAz(obstime=times, location=self.location, pressure=0 * u.hPa)
-            sun = get_body("sun", times, self.location, ephemeris="builtin")
-            moon = get_body("moon", times, self.location, ephemeris="builtin")
+            sun = get_body("sun", times, self.location, ephemeris=self.ephemeris)
+            moon = get_body("moon", times, self.location, ephemeris=self.ephemeris)
             sun_alt = sun.transform_to(frame).alt.deg
             moon_alt = moon.transform_to(frame).alt.deg
             result = {"sun_altitude_deg": sun_alt, "moon_altitude_deg": moon_alt}
@@ -91,7 +128,7 @@ class BuiltinEphemeris:
                 coord = (
                     moon
                     if body == "moon"
-                    else get_body(body, times, self.location, ephemeris="builtin")
+                    else get_body(body, times, self.location, ephemeris=self.ephemeris)
                 )
                 horizontal = coord.transform_to(frame)
 
@@ -124,8 +161,8 @@ class BuiltinEphemeris:
 
     def lunar_phase(self, timestamp):
         t = Time(timestamp, format="unix", scale="utc")
-        sun = get_body("sun", t, ephemeris="builtin")
-        moon = get_body("moon", t, ephemeris="builtin")
+        sun = get_body("sun", t, ephemeris=self.ephemeris)
+        moon = get_body("moon", t, ephemeris=self.ephemeris)
         a, b = sun.cartesian.xyz.value, moon.cartesian.xyz.value
         elongation = np.arccos(
             np.clip(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)), -1, 1)
