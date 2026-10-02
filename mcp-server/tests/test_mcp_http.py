@@ -99,7 +99,8 @@ def test_http_session_lists_and_calls_tools(http_server, proxy_headers):
     }))["result"]
     assert not result.get("isError", False)
     assert result["content"]
-    assert http_server.delete("/mcp", headers=headers).status_code == 200
+    response = http_server.delete("/mcp", headers=headers)
+    assert response.status_code == 200
 
 
 @pytest.mark.parametrize("headers,status", [
