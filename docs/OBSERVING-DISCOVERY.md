@@ -115,12 +115,12 @@ The exact top-level members are `schema_version` (1), `request`, `discovery`,
   carries actual provider/kernel/IERS identity. Its window note explicitly says
   the five-minute/one-second refinement configuration was **not executed**;
   discovery's twenty-minute cadence is the actual screening method.
-- `source_snapshots` retains both pinned catalogue source hashes, retrieval,
+- `discovery.source_snapshots` retains both pinned catalogue source hashes, retrieval,
   attribution and licences. This service never reads the SQLite catalogue and
   never attaches a separately observed global database ID.
 - `discovery.calculation` hashes the two bounded discovery source files using
   compact sorted-key JSON manifest entries plus a trailing newline, alongside
-  `planner_calculation` for the existing astronomical modules/runtime identity.
+  `discovery.planner_calculation` for the existing astronomical modules/runtime identity.
   These source hashes are reproducibility context, not execution attestation.
 
 ## Bounds, failures and validation
