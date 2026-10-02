@@ -125,3 +125,48 @@ export checksums under a concurrent source edit. These tests never publish to a
 remote destination or mutate a retained catalogue. The identity-specific test
 also prevents name/alternate classification from depending on set iteration in
 satellite ingestion.
+
+## Atomic association for an exoplanet result page
+
+`GET /api/v1/exoplanets` and the shared MCP `list_exoplanets` result now add
+`catalogue_snapshot`. It contains exactly `schema_version` (1), `association`
+(`same-read-transaction`), `status`, `reason`, `catalogue_id`, `build_identifier`
+and `hash_policy`. Known metadata has null reason, SHA-256-prefixed IDs and
+`catalogue-logical-v1`; unknown metadata has null IDs/policy and the existing
+explicit reason. A missing member on an older backend is **unassociated**, which
+is distinct from an associated read whose identity is unknown.
+
+The identity metadata, filtered result rows and filtered count are read using one
+connection and one explicit SQLite read transaction. The compact descriptor uses
+only existing stored identity/schema verification; it never recalculates the
+logical catalogue hash during a request. A normal `mode=ro` connection is used
+for this scoped route, retaining SQLite locking/change detection with a two-second
+lock wait. URI filenames are escaped and the connection closes on every path.
+The older `immutable=1` connection is intentionally not reused: SQLite documents
+that immutable mode bypasses locking and change detection and is unsafe if another
+connection modifies the file. Other routes do not gain an atomic association by
+implication.
+
+[SQLite's URI documentation](https://www.sqlite.org/uri.html) defines these mode
+semantics; [SQLite's isolation documentation](https://www.sqlite.org/isolation.html)
+explains how a read transaction retains its original snapshot while a WAL writer
+commits. Tests exercise a committed WAL deletion (which invalidates the writer's
+identity through the existing triggers) and atomic replacement with another
+finalized catalogue between metadata and row reads. The in-flight page keeps
+its old rows/count/ID; the next request observes the changed or unknown identity.
+Read-only WAL access still requires the usual SQLite auxiliary-file permissions;
+an inaccessible/locked/corrupt catalogue fails unavailable, never a false empty
+successful page. No API request rebuilds metadata or writes catalogue data.
+
+A locked/corrupt query or unreadable original measurement JSON returns a generic
+REST 503 with `Cache-Control: no-store`, and a generic MCP tool error. Private paths,
+SQL and source payload fragments are not returned. A legacy missing exoplanet
+table retains `available: false` and is not treated as a genuine empty result.
+
+This association covers **one result page**, including its total/count semantics.
+It does not hold a database open across page requests, guarantee that a later page
+uses the same catalogue, pin detail/map routes, or promise historical artifact
+retention. Cached pages may describe an older valid snapshot and must keep their
+own metadata; a separately observed current ID cannot replace it. NASA composite
+measurements can still combine references and epochs: a logical database snapshot
+is not a claim that all upstream measurements were acquired simultaneously.

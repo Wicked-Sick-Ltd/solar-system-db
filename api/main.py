@@ -29,6 +29,7 @@ from slowapi.util import get_remote_address
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.data_access import UnsupportedCatalogueFilter
+from solar_db.response_snapshot import CatalogueReadError
 from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
@@ -59,6 +60,12 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(CatalogueReadError)
+async def unavailable_catalogue_read(request: Request, exc: CatalogueReadError):
+    return JSONResponse(status_code=503, content={"detail": "Exoplanet catalogue is temporarily unavailable."},
+                        headers={"Cache-Control": "no-store"})
 
 
 @app.exception_handler(UnsupportedCatalogueFilter)

@@ -49,7 +49,10 @@ def test_synthetic_copy_preserves_input_and_original_aliases(tmp_path):
     assert len(report["cases"]) == 13
     assert report["cases"]["objects_keyset_first"]["connections"] == 1
     assert report["cases"]["objects_keyset_first"]["result_rows"] == 50
-    assert report["cases"]["exoplanets_filtered_total"]["select_statements"] == 2
+    # Synthetic writes invalidate identity: metadata existence/payload, current
+    # table capability, rows and count all remain on one read transaction.
+    assert report["cases"]["exoplanets_filtered_total"]["select_statements"] == 5
+    assert report["cases"]["exoplanets_filtered_total"]["connections"] == 1
 
 
 @pytest.mark.parametrize("alias", ["same", "symlink", "hardlink"])

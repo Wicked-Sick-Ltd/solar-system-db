@@ -104,6 +104,8 @@ def list_exoplanets(q: str | None = None, discovery_method: str | None = None,
 
     Separate from solar-system find_objects. Composite measurements may mix references;
     source_data preserves errors, limits, references and mass provenance.
+    catalogue_snapshot associates this page and its count with identity metadata
+    from one SQLite read transaction; it does not pin subsequent pages.
     """
     return db().list_exoplanets(q=q, discovery_method=discovery_method, max_distance_pc=max_distance_pc,
                                 limit=limit, offset=offset)

@@ -22,6 +22,7 @@ from .positions import solar_longitude_deg
 from .exoplanets import ExoplanetQueries
 from .starter_catalogues import StarterCatalogueQueries
 from .catalogue_identity import read_identity
+from .response_snapshot import CatalogueReadError
 
 DEFAULT_DB_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "solar_system.sqlite"
@@ -82,6 +83,22 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
             yield conn
         finally:
             conn.close()
+
+    @contextmanager
+    def _snapshot_conn(self) -> Iterator[sqlite3.Connection]:
+        # immutable=1 disables locking/change detection and is unsuitable for
+        # certifying a read alongside possible WAL writers. This scoped context
+        # keeps read-only mode, proper URI escaping and normal SQLite isolation.
+        try:
+            conn = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)
+            conn.row_factory = sqlite3.Row
+            try:
+                conn.execute("BEGIN")
+                yield conn
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            raise CatalogueReadError("Exoplanet catalogue is temporarily unavailable.") from exc
 
     # ----------------------------------------------------------------------
     # Catalog

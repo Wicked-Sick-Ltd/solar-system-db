@@ -134,6 +134,15 @@ class ProfileDB(SolarDB):
                 conn.set_progress_handler(self.progress, 1000)
             yield conn
 
+    @contextmanager
+    def _snapshot_conn(self):
+        with super()._snapshot_conn() as conn:
+            if self.capture:
+                self.connections += 1
+                conn.set_trace_callback(self.statements.append)
+                conn.set_progress_handler(self.progress, 1000)
+            yield conn
+
     def progress(self):
         self.steps += 1000
         return 0
