@@ -1,0 +1,24 @@
+# Proposed php01 service. Install only as part of the reviewed MCP rollout.
+[Unit]
+Description=Public Universe catalogue MCP (Streamable HTTP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wizzo
+Group=wizzo
+WorkingDirectory=/home/wizzo/solar-system-db
+Environment=SOLAR_DB_PATH=/home/wizzo/solar-data/solar_system.sqlite
+Environment=MCP_ALLOWED_HOSTS=api.sol.wickedsick.com,api.sol.wickedsick.com:443
+Environment=MCP_ALLOWED_ORIGINS=https://api.sol.wickedsick.com
+ExecStart=/home/wizzo/solar-system-db/.venv/bin/python /home/wizzo/solar-system-db/mcp-server/server.py --transport http --host 127.0.0.1 --port 8002
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadOnlyPaths=/home/wizzo/solar-data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

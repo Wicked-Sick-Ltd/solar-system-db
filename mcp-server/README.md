@@ -54,6 +54,12 @@ python mcp-server/server.py --transport http --port 8002
 python mcp-server/server.py --transport sse
 ```
 
+For public reverse proxies, configure comma-separated `MCP_ALLOWED_HOSTS` and
+`MCP_ALLOWED_ORIGINS` with the actual host and HTTPS origin. Only loopback is
+allowed by default; DNS-rebinding checks stay enabled. The proposed php01
+service/proxy and refresh procedure is in
+[the MCP rollout runbook](../deploy/php01/MCP-ROLLOUT.md).
+
 ## Claude Desktop config
 
 Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`

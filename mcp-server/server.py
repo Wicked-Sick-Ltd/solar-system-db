@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import StrictFloat, StrictInt
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
@@ -58,8 +59,24 @@ class CatalogueMCP(FastMCP):
         return tools
 
 
+def transport_security() -> TransportSecuritySettings:
+    """Allow explicitly configured reverse-proxy hosts without disabling checks."""
+    def entries(variable: str) -> list[str]:
+        return [value.strip() for value in os.environ.get(variable, "").split(",")
+                if value.strip()]
+
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*",
+                       *entries("MCP_ALLOWED_HOSTS")],
+        allowed_origins=["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*",
+                         *entries("MCP_ALLOWED_ORIGINS")],
+    )
+
+
 mcp = CatalogueMCP(
     name="solar-system-db",
+    transport_security=transport_security(),
     instructions=(
         "Queryable catalogue of known solar-system objects for astronomy and "
         "science-education use. Bodies: planets, moons, dwarf planets, "
