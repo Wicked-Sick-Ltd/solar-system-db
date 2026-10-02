@@ -1,0 +1,46 @@
+{
+ "artefact": "solar_system-20261002.sqlite.zst",
+ "url": "https://download.sol.wickedsick.com/solar_system-20261002.sqlite.zst",
+ "size_bytes": 979070977,
+ "sha256": "0bfb3d1cbc79f7fc8cb7d0dc827dd86e307add0f21a25d4cfde5ca16e9ecd09b",
+ "format": "sqlite3, zstd-compressed",
+ "uncompressed_bytes": 3912310784,
+ "built_at": "2026-10-02T04:22:28Z",
+ "build_id": 1,
+ "build_mode": "full",
+ "schema_version": 3,
+ "schema_url": "https://github.com/Wicked-Sick-Ltd/solar-system-db/blob/main/schema/schema.sql",
+ "total_objects": 1574019,
+ "counts_by_type": {
+  "asteroid": 1561095,
+  "tno": 7285,
+  "comet": 4077,
+  "centaur": 1051,
+  "moon": 492,
+  "planet": 8,
+  "dwarf_planet": 5,
+  "dwarf_planet_candidate": 5,
+  "star": 1
+ },
+ "row_counts": {
+  "objects": 1574019,
+  "orbital_elements": 1574017,
+  "close_approaches": 3092363,
+  "discoveries": 896109,
+  "designations": 4530758,
+  "atmospheres": 9,
+  "rings": 32
+ },
+ "enrichment_coverage": {
+  "tier1_total": 74975,
+  "tier1_fresh_within_7d": 74754,
+  "tier1_fresh_fraction": 0.9970523507835946,
+  "tier2_total": 1498357,
+  "tier2_enriched": 927017,
+  "tier2_enriched_fraction": 0.6186890040224059
+ },
+ "licence": "Compilation: MIT (Wicked Sick Ltd). Underlying data: NASA/JPL (public domain), IAU Minor Planet Center (free use with attribution), CDS VI/42 (public domain). Please credit the sources; see /api/v1/sources.",
+ "how_to_open": "zstd -d solar_system-YYYYMMDD.sqlite.zst && sqlite3 solar_system-YYYYMMDD.sqlite",
+ "published_at": "2026-10-02T04:24:09Z",
+ "compress_seconds": 19.7
+}
