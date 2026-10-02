@@ -30,6 +30,7 @@ from slowapi.util import get_remote_address
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.data_access import UnsupportedCatalogueFilter
 from solar_db.response_snapshot import CatalogueReadError
+from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
 from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
@@ -394,6 +395,39 @@ async def observing_night_post(request: Request):
         return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
     except (ValueError, UnicodeDecodeError, RecursionError):
         return JSONResponse(status_code=422, content={"detail": "Observing request must be a valid bounded JSON object."}, headers=headers)
+
+
+@app.post("/api/v1/observing/discover", tags=["positions"],
+          summary="Opt-in bounded geometric shortlist with explained equipment preferences")
+@limiter.limit("5/minute")
+async def observing_discover_post(request: Request):
+    headers = {"Cache-Control": "no-store"}
+    try:
+        if request.query_params or request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            raise PlanningError("Use an application/json body without query parameters.")
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 16384:
+                raise PlanningError("Discovery request exceeds 16 KiB.", 413)
+            body.extend(chunk)
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise PlanningError("JSON fields must not be repeated.")
+                result[key] = value
+            return result
+        def invalid_constant(value):
+            raise PlanningError("JSON numbers must be finite.")
+        payload = json.loads(body, object_pairs_hook=unique, parse_constant=invalid_constant)
+        if not isinstance(payload, dict) or set(payload) - DISCOVERY_FIELDS:
+            raise PlanningError("Use supported discovery fields.")
+        result = await run_in_threadpool(discover_targets, **payload)
+        return JSONResponse(content=result, headers=headers)
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        return JSONResponse(status_code=422, content={"detail": "Discovery request must be a valid bounded JSON object."}, headers=headers)
 
 
 @app.get("/api/v1/positions/{name_or_designation:path}", tags=["positions"],

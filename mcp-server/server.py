@@ -32,6 +32,7 @@ from pydantic import StrictFloat, StrictInt
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.observing import PlanningError, plan_night
+from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
@@ -45,12 +46,14 @@ class CatalogueMCP(FastMCP):
                        "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc", "window_end_utc", "horizon_mask"}
             if not isinstance(arguments, dict) or set(arguments)-allowed:
                 raise ToolError("Use only the supported night-planning parameters.")
+        if name == "discover_observing_targets" and (not isinstance(arguments, dict) or set(arguments) - DISCOVERY_FIELDS):
+            raise ToolError("Use only the supported discovery parameters.")
         return await super().call_tool(name, arguments)
 
     async def list_tools(self):
         tools = await super().list_tools()
         for tool in tools:
-            if tool.name == "plan_observing_night":
+            if tool.name in ("plan_observing_night", "discover_observing_targets"):
                 tool.inputSchema["additionalProperties"] = False
         return tools
 
@@ -414,6 +417,47 @@ async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: 
         raise
     # Cancelling a caller must not release capacity while its thread still runs
     # or cancel a queued worker before its finally block can release the slot.
+    return await asyncio.shield(future)
+
+
+@mcp.tool()
+async def discover_observing_targets(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
+                                    equipment_mode: str, preference: str = "balanced",
+                                    true_field_deg: StrictFloat | None = None,
+                                    max_catalogue_v_magnitude: StrictFloat | None = None,
+                                    shortlist_limit: StrictInt = 6, min_altitude_deg: StrictFloat = 20,
+                                    sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
+                                    window_start_utc: str | None = None, window_end_utc: str | None = None,
+                                    horizon_mask: list[dict[str, StrictFloat]] | None = None) -> dict:
+    """Explicit bounded target discovery, not all-sky or guaranteed visibility.
+
+    Chooses from the reviewed packaged starter sample plus Moon/seven planets.
+    Equipment naked_eye/binocular/telescope changes explained editorial family
+    preferences; no aperture/detection limit is inferred. Optional catalogue V
+    cut excludes unknown/non-V values explicitly. Twenty-minute screening can
+    miss short windows; only up to eight selections receive refined planning.
+    No weather or storage writes. Exact source/provider identities are retained.
+    """
+    payload = dict(date=date, timezone=timezone, lat=lat, lon=lon, equipment_mode=equipment_mode,
+                   preference=preference, true_field_deg=true_field_deg,
+                   max_catalogue_v_magnitude=max_catalogue_v_magnitude, shortlist_limit=shortlist_limit,
+                   min_altitude_deg=min_altitude_deg, sun_altitude_deg=sun_altitude_deg,
+                   min_moon_separation_deg=min_moon_separation_deg, window_start_utc=window_start_utc,
+                   window_end_utc=window_end_utc, horizon_mask=horizon_mask)
+    if not _planning_slots.acquire(blocking=False):
+        return {"error": "Night planning is busy; try again after current calculations finish.", "status": 503}
+    def calculate():
+        try:
+            return discover_targets(**payload)
+        except PlanningError as exc:
+            return {"error": str(exc), "status": exc.status}
+        finally:
+            _planning_slots.release()
+    try:
+        future = asyncio.get_running_loop().run_in_executor(None, calculate)
+    except BaseException:
+        _planning_slots.release()
+        raise
     return await asyncio.shield(future)
 
 
