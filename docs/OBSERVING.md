@@ -337,3 +337,31 @@ as unavailable. When present, validate it before rendering or exporting. A recor
 major axis supports only an approximate angular field comparison, not an eyepiece
 image, limiting magnitude or observing-success score. Extended-object integrated
 magnitudes, bands and source quality flags must remain distinguishable.
+
+### Selected-interval constraint explanations
+
+Each target additionally returns `constraint_coverage` with exactly `scope:
+"selected_interval"`, `start_utc`, `end_utc`, `altitude` and `darkness`. The bounds
+match the effective selected observing interval. Both states are one of:
+
+- `always_satisfied`: the refined model satisfies this constraint throughout
+  that interval;
+- `never_satisfied`: the refined model satisfies it in no resolved segment;
+- `partial`: both satisfied and unsatisfied refined segments occur;
+- `unresolved`: a grazing threshold, ambiguous horizon direction or segment
+  shorter than the one-second numerical root tolerance prevents that claim.
+
+Altitude means the maximum of the independent minimum-altitude baseline and any
+supplied circular horizon mask. An absent mask remains unknown terrain. Darkness
+uses the chosen solar-altitude threshold and is shared by all targets. These
+classifications reuse refined crossing/extremum segments, including mask corners;
+they are not inferred from chart samples or rounded window timestamps.
+
+The states apply only to the selected interval, not permanent circumpolarity,
+visibility or detection. They are independent: satisfied altitude and darkness
+can still have no combined window or an unresolved result because of solar/Moon
+separation. An unresolved coverage state may reflect a sub-second segment even
+when the existing overall status is not `unresolved_grazing`. Existing statuses,
+windows and samples are unchanged. Older responses may omit this additive
+member; consumers must not invent equivalent states from samples. Retained
+replay includes the new explanation and new calculation-source identity.

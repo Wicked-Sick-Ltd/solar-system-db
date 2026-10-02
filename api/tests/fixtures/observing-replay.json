@@ -64,7 +64,7 @@
             },
             "calculation": {
               "algorithm": "observing-source-files-sha256-v1",
-              "source_sha256": "5b3e57e5af867d109ae850f7b4fda35fd1279c07c170b40009a59d2de02dc9ed",
+              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
               "files": [
                 "observing/__init__.py",
                 "observing/catalogue.py",
@@ -257,6 +257,13 @@
                   "end_utc": "2026-10-02T04:50:34Z"
                 }
               ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-01T11:00:00Z",
@@ -301,6 +308,13 @@
               "name": "HR 2491",
               "status": "no_matching_window",
               "windows": [],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-01T11:00:00Z",
@@ -350,6 +364,13 @@
                   "end_utc": "2026-10-02T04:50:34Z"
                 }
               ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-01T11:00:00Z",
@@ -457,7 +478,7 @@
             },
             "calculation": {
               "algorithm": "observing-source-files-sha256-v1",
-              "source_sha256": "5b3e57e5af867d109ae850f7b4fda35fd1279c07c170b40009a59d2de02dc9ed",
+              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
               "files": [
                 "observing/__init__.py",
                 "observing/catalogue.py",
@@ -650,6 +671,13 @@
                   "end_utc": "2026-10-25T03:25:59Z"
                 }
               ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-24T11:00:00Z",
@@ -699,6 +727,13 @@
                   "end_utc": "2026-10-25T05:28:06Z"
                 }
               ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-24T11:00:00Z",
@@ -748,6 +783,13 @@
                   "end_utc": "2026-10-25T05:28:06Z"
                 }
               ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
               "samples": [
                 {
                   "time_utc": "2026-10-24T11:00:00Z",

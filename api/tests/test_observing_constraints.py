@@ -68,6 +68,13 @@ def test_selected_hours_clip_windows_and_darkness_but_preserve_full_night_sample
     assert result["targets"][0]["samples"][-1]["time_utc"] == result["night"]["end_utc"]
     assert result["constraints"]["horizon_mask"] is None
     assert result["targets"][0]["samples"][0]["horizon_altitude_deg"] is None
+    assert result["targets"][0]["constraint_coverage"] == {
+        "scope": "selected_interval",
+        "start_utc": WINDOW["window_start_utc"],
+        "end_utc": WINDOW["window_end_utc"],
+        "altitude": "always_satisfied",
+        "darkness": "always_satisfied",
+    }
 
 
 def test_sub_grid_narrow_obstacle_splits_windows_at_refined_corners():
@@ -109,6 +116,7 @@ def test_obstruction_cannot_lower_independent_baseline():
     assert result["targets"][0]["windows"] == []
     assert result["targets"][0]["status"] == "no_matching_window"
     assert result["targets"][0]["samples"][0]["required_min_altitude_deg"] == 30
+    assert result["targets"][0]["constraint_coverage"]["altitude"] == "never_satisfied"
 
 
 def test_zenith_ambiguity_is_unresolved_and_band_is_withheld():
@@ -124,6 +132,7 @@ def test_zenith_ambiguity_is_unresolved_and_band_is_withheld():
     )
     assert result["targets"][0]["status"] == "unresolved_grazing"
     assert result["targets"][0]["windows"] == []
+    assert result["targets"][0]["constraint_coverage"]["altitude"] == "unresolved"
 
 
 def test_ninety_degree_saved_baseline_accepts_zenith_tangent_honestly():
@@ -141,6 +150,7 @@ def test_ninety_degree_saved_baseline_accepts_zenith_tangent_honestly():
     )
     assert result["targets"][0]["status"] == "unresolved_grazing"
     assert result["targets"][0]["windows"] == []
+    assert result["targets"][0]["constraint_coverage"]["altitude"] == "unresolved"
 
 
 @pytest.mark.parametrize(
@@ -259,6 +269,14 @@ def test_narrow_clear_gap_is_found_between_obstructed_chart_samples():
     )
     windows = result["targets"][0]["windows"]
     assert len(windows) == 1
+    assert result["targets"][0]["constraint_coverage"]["altitude"] == "partial"
+    # Every plotted point inside the selection is obstructed; the refined
+    # circular-mask crossings, not those samples, establish partial coverage.
+    assert all(
+        row["altitude_deg"] < row["required_min_altitude_deg"]
+        for row in result["targets"][0]["samples"]
+        if row["time_utc"] <= WINDOW["window_end_utc"]
+    )
     assert windows[0]["start_utc"] in ("2026-10-01T12:01:12Z", "2026-10-01T12:01:13Z")
     assert windows[0]["end_utc"] in ("2026-10-01T12:01:17Z", "2026-10-01T12:01:18Z")
 
@@ -327,6 +345,7 @@ def test_selected_window_status_does_not_inherit_tangency_outside_selection():
         provider_factory=Tangent,
     )
     assert result["targets"][0]["status"] == "no_matching_window"
+    assert result["targets"][0]["constraint_coverage"]["altitude"] == "never_satisfied"
 
 
 def test_huge_json_numbers_fail_as_input_errors_instead_of_overflow(monkeypatch):
@@ -426,3 +445,96 @@ def test_actual_mcp_dispatcher_accepts_integer_mask_coordinates(monkeypatch):
     )
     assert json.loads(result[0].text) == {"accepted": True}
     assert received == [((0.0, 0.0), (180.0, 15.0))]
+
+
+@pytest.mark.parametrize(
+    ("sun", "expected"),
+    [(-20, "always_satisfied"), (10, "never_satisfied"), (-12, "unresolved")],
+)
+def test_darkness_coverage_is_independent_shared_and_honest_at_a_tangent(sun, expected):
+    class FixedSun(Synthetic):
+        def positions(self, timestamps, bodies):
+            result = super().positions(timestamps, bodies)
+            result["sun_altitude_deg"][:] = sun
+            return result
+
+    result = plan_night(
+        **{**BASE, "targets": "moon,jupiter"}, **WINDOW, provider_factory=FixedSun
+    )
+    for target in result["targets"]:
+        assert target["constraint_coverage"]["darkness"] == expected
+        assert target["constraint_coverage"]["altitude"] == "always_satisfied"
+        if expected == "never_satisfied":
+            assert target["windows"] == []
+    if expected == "never_satisfied":
+        assert result["darkness"]["intervals"] == []
+
+
+def test_darkness_partial_coverage_and_selected_scope_do_not_claim_permanent_states():
+    class Sunrise(Synthetic):
+        def positions(self, timestamps, bodies):
+            result = super().positions(timestamps, bodies)
+            result["sun_altitude_deg"] = -20 + (np.array(timestamps) - self.start) / 20
+            return result
+
+    full = plan_night(**BASE, **WINDOW, provider_factory=Sunrise)
+    assert full["targets"][0]["constraint_coverage"]["darkness"] == "partial"
+    selected = plan_night(
+        **BASE,
+        **{**WINDOW, "window_start_utc": "2026-10-01T12:05:00Z"},
+        provider_factory=Sunrise,
+    )
+    coverage = selected["targets"][0]["constraint_coverage"]
+    assert coverage["darkness"] == "never_satisfied"
+    assert coverage["start_utc"] == "2026-10-01T12:05:00Z"
+    assert coverage["scope"] == "selected_interval"
+
+
+def test_known_coverage_does_not_override_other_unresolved_constraints():
+    class SolarTangent(Synthetic):
+        def positions(self, timestamps, bodies):
+            result = super().positions(timestamps, bodies)
+            for body in bodies:
+                result[body]["sun_separation_deg"][:] = 30
+            return result
+
+    target = plan_night(**BASE, **WINDOW, provider_factory=SolarTangent)["targets"][0]
+    assert target["status"] == "unresolved_grazing"
+    assert target["constraint_coverage"]["altitude"] == "always_satisfied"
+    assert target["constraint_coverage"]["darkness"] == "always_satisfied"
+
+
+def test_sub_tolerance_segments_cannot_claim_always_or_never_from_rounded_windows():
+    from solar_db.observing.planner import constraint_coverage
+
+    assert constraint_coverage([0.4], 0, 600, lambda t: t > 0.4, False) == "unresolved"
+    assert (
+        constraint_coverage([599.6], 0, 600, lambda t: t > 599.6, False) == "unresolved"
+    )
+    assert constraint_coverage([], 0, 1, lambda t: True, False) == "always_satisfied"
+    assert constraint_coverage([], 0, 600, lambda t: False, True) == "unresolved"
+
+
+def test_rest_and_actual_mcp_dispatcher_retain_same_refined_coverage(monkeypatch):
+    import json
+    import api.main as api
+
+    def synthetic_plan(*args, **values):
+        return plan_night(*args, **values, provider_factory=Synthetic)
+
+    expected = synthetic_plan(**BASE, **WINDOW)["targets"][0]["constraint_coverage"]
+    monkeypatch.setattr(api.limiter, "enabled", False)
+    monkeypatch.setattr(api, "plan_night", synthetic_plan)
+    with TestClient(api.app) as client:
+        response = client.post("/api/v1/observing/night", json={**BASE, **WINDOW})
+        assert response.status_code == 200
+        assert response.json()["targets"][0]["constraint_coverage"] == expected
+    path = Path(__file__).resolve().parents[2] / "mcp-server/server.py"
+    spec = importlib.util.spec_from_file_location("coverage_mcp", path)
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    monkeypatch.setattr(server, "plan_night", synthetic_plan)
+    blocks = asyncio.run(
+        server.mcp.call_tool("plan_observing_night", {**BASE, **WINDOW})
+    )
+    assert json.loads(blocks[0].text)["targets"][0]["constraint_coverage"] == expected

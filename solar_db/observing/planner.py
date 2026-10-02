@@ -107,6 +107,28 @@ def intervals(events, start, end, predicate):
     ]
 
 
+def constraint_coverage(events, start, end, predicate, unresolved):
+    """Classify refined segments only within the selected interval.
+
+    Reuse the crossing/extremum solution, not the chart samples or rounded UTC
+    windows. A sub-tolerance segment cannot establish continuous coverage.
+    These states describe this model interval, never permanent circumpolarity.
+    """
+    if unresolved:
+        return "unresolved"
+    points = sorted(set([start, end, *events]))
+    states = set()
+    for a, b in zip(points, points[1:]):
+        if b - a < ROOT_TOLERANCE_SECONDS:
+            return "unresolved"
+        states.add(bool(predicate((a + b) / 2)))
+    if states == {True}:
+        return "always_satisfied"
+    if states == {False}:
+        return "never_satisfied"
+    return "partial" if states else "unresolved"
+
+
 def horizon_event_grid(point, grid, mask, baseline, prefetch=lambda times: None):
     """Split at azimuth extrema and every mask/baseline corner crossing.
 
@@ -288,6 +310,13 @@ def _plan(request, provider):
     dark_windows = intervals(
         dark_events, selected_start, selected_end, lambda t: dark(t) >= 0
     )
+    darkness_coverage = constraint_coverage(
+        dark_events,
+        selected_start,
+        selected_end,
+        lambda t: dark(t) >= 0,
+        dark_grazing,
+    )
     moon_horizon = lambda t: point("moon", t)["moon_altitude_deg"]
     moon_events, moon_grazing = threshold_events(moon_horizon, event_grid)
     results = []
@@ -370,6 +399,19 @@ def _plan(request, provider):
                 if uncertain
                 else ("windows_found" if windows else "no_matching_window"),
                 "windows": windows,
+                "constraint_coverage": {
+                    "scope": "selected_interval",
+                    "start_utc": request.window_start_utc,
+                    "end_utc": request.window_end_utc,
+                    "altitude": constraint_coverage(
+                        above_events,
+                        selected_start,
+                        selected_end,
+                        lambda t: above(t) >= 0,
+                        above_grazing,
+                    ),
+                    "darkness": darkness_coverage,
+                },
                 "samples": [
                     {
                         "time_utc": utc(t),
