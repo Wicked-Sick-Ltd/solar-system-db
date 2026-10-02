@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import ToolAnnotations
 from pydantic import StrictFloat, StrictInt
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
@@ -74,6 +75,12 @@ def transport_security() -> TransportSecuritySettings:
     )
 
 
+# Opt in at each audited tool: catalogue/local-manifest reads and offline maths.
+# New tools must choose their own annotations; do not default future writes to read-only.
+CATALOGUE_READ = ToolAnnotations(
+    readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False,
+)
+
 mcp = CatalogueMCP(
     name="solar-system-db",
     transport_security=transport_security(),
@@ -100,7 +107,7 @@ def db() -> SolarDB:
     return _db
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_starter_targets(family: str | None = None, q: str | None = None,
                          limit: StrictInt = 50, offset: StrictInt = 0) -> dict:
     """Bounded bright_star, double_star or deep_sky samples with source licences.
@@ -111,13 +118,13 @@ def list_starter_targets(family: str | None = None, q: str | None = None,
     return db().list_starter_targets(family=family, q=q, limit=limit, offset=offset)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_starter_target(target_id: str) -> dict | None:
     """Exact source-namespaced starter target identity with original row and provenance."""
     return db().get_starter_target(target_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_exoplanets(q: str | None = None, discovery_method: str | None = None,
                     max_distance_pc: float | None = None, limit: int = 50, offset: int = 0) -> dict:
     """Search NASA confirmed exoplanets by planet/host name, discovery method and distance in parsecs.
@@ -131,19 +138,19 @@ def list_exoplanets(q: str | None = None, discovery_method: str | None = None,
                                 limit=limit, offset=offset)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_exoplanet(name: str) -> dict | None:
     """Get an exoplanet by name or stable id, with original archive measurements and references."""
     return db().get_exoplanet(name)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_exoplanet_host(name: str) -> dict | None:
     """Get host astrometry, coordinate-frame metadata and its confirmed planets."""
     return db().get_exoplanet_host(name)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def galaxy_map(max_distance_pc: float | None = None, limit: int = 10000) -> dict:
     """Measured host-system positions, in parsecs; missing distances are omitted, never guessed.
 
@@ -158,7 +165,7 @@ def _bounded_limit(limit: int, maximum: int) -> int:
     return max(1, min(limit, maximum))
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def find_objects(
     object_type: str | None = None,
     parent: str | None = None,
@@ -214,7 +221,7 @@ def find_objects(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_object(name_or_designation: str) -> dict | None:
     """Return the full record for one object — orbital + physical + visual
     properties, classifications, and provenance.
@@ -229,14 +236,14 @@ def get_object(name_or_designation: str) -> dict | None:
     return obj
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_moons(planet_name: str) -> list[dict]:
     """List all moons of a given planet (or dwarf planet), ordered by orbital
     distance. Example: list_moons("Saturn") returns ~146 moons."""
     return db().list_moons(planet_name)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_dwarf_planets(include_candidates: bool = False) -> list[dict]:
     """List the IAU-recognised dwarf planets (Ceres, Pluto, Eris, Makemake,
     Haumea). Set include_candidates=True to also include leading candidates
@@ -244,7 +251,7 @@ def list_dwarf_planets(include_candidates: bool = False) -> list[dict]:
     return db().list_dwarf_planets(include_candidates=include_candidates)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_neos(min_diameter_km: float | None = None,
               max_diameter_km: float | None = None) -> list[dict]:
     """List Near-Earth Objects, ordered by absolute magnitude H (brightest first).
@@ -253,7 +260,7 @@ def list_neos(min_diameter_km: float | None = None,
                            max_diameter_km=max_diameter_km)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_periodic_comets(limit: int = 500) -> list[dict]:
     """List numbered / periodic comets (orbital period < 200 years), ordered by
     period. Includes 1P/Halley, 67P/Churyumov-Gerasimenko, 109P/Swift-Tuttle,
@@ -261,7 +268,7 @@ def list_periodic_comets(limit: int = 500) -> list[dict]:
     return db().list_periodic_comets(limit=_bounded_limit(limit, 2000))
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_tnos(limit: int = 500) -> list[dict]:
     """List trans-Neptunian objects and centaurs, ordered by semi-major axis.
     Includes Pluto's KBO cousins, Sedna, Eris, Quaoar, Chiron, Chariklo, etc.
@@ -269,7 +276,7 @@ def list_tnos(limit: int = 500) -> list[dict]:
     return db().list_tnos(limit=_bounded_limit(limit, 2000))
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_rings(planet_name: str) -> list[dict]:
     """List the rings of a given planet or dwarf planet, ordered by inner
     radius. Example: get_rings("Saturn") returns all known Saturn ring components
@@ -277,7 +284,7 @@ def get_rings(planet_name: str) -> list[dict]:
     return db().get_rings(planet_name)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def search(query: str, limit: int = 20) -> list[dict]:
     """Free-text search across object names, designations, and discoverers.
     Use this when you don't know the exact name — e.g. search("Halley")
@@ -286,7 +293,7 @@ def search(query: str, limit: int = 20) -> list[dict]:
 
 
 # Position / ephemeris tools
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_close_approaches(name_or_designation: str, date_min: str | None = None, date_max: str | None = None,
                          body: str | None = None, limit: int = 100) -> dict:
     """Close approaches of one body to the planets or the Moon (JPL CAD + SBDB).
@@ -297,7 +304,7 @@ def get_close_approaches(name_or_designation: str, date_min: str | None = None, 
     return {"object": name_or_designation, "results": rows}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def find_close_approaches(date_min: str, date_max: str, body: str = "Earth",
                           max_dist_au: float = 0.05, limit: int = 200) -> list[dict]:
     """Every catalogued close approach to `body` between two ISO dates, nearest
@@ -305,7 +312,7 @@ def find_close_approaches(date_min: str, date_max: str, body: str = "Earth",
     return db().close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_discovery(name_or_designation: str) -> dict:
     """Discovery circumstances: date, discoverer(s), site, and the naming
     citation where one exists (MPC numbered list + SBDB)."""
@@ -313,7 +320,7 @@ def get_discovery(name_or_designation: str) -> dict:
     return d if d is not None else {"error": f"No object found matching {name_or_designation!r}."}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_designations(name_or_designation: str) -> list[dict] | dict:
     """Every identifier a body has carried: permanent number, name, provisional
     and alternate designations, legacy ids."""
@@ -321,7 +328,7 @@ def get_designations(name_or_designation: str) -> list[dict] | dict:
     return d if d is not None else {"error": f"No object found matching {name_or_designation!r}."}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_meteor_showers(established_only: bool = False, active_on: str | None = None,
                         limit: int = 200) -> list[dict]:
     """List IAU Meteor Data Center showers — one entry per parameter set (a
@@ -334,7 +341,7 @@ def list_meteor_showers(established_only: bool = False, active_on: str | None = 
     return db().list_meteor_showers(established_only=established_only, active_on=active_on, limit=limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_meteor_shower(code_or_name: str) -> dict:
     """One IAU Meteor Data Center shower by 3-letter code (e.g. "GEM") or name
     (e.g. "Geminids"), case-insensitively — all its parameter sets, plus its
@@ -343,7 +350,7 @@ def get_meteor_shower(code_or_name: str) -> dict:
     return s if s is not None else {"error": f"No meteor shower found matching {code_or_name!r}."}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_atmosphere(planet: str) -> dict:
     """Atmosphere of a planet, Pluto or Titan-class body from the NASA fact
     sheets: surface pressure, temperature, density, scale height, winds and
@@ -352,7 +359,7 @@ def get_atmosphere(planet: str) -> dict:
     return a if a is not None else {"error": f"No object found matching {planet!r}."}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_download_info() -> dict:
     """How to download the entire catalogue as one SQLite file: URL, size,
     SHA-256, build date, row counts, enrichment coverage and licence."""
@@ -360,7 +367,7 @@ def get_download_info() -> dict:
     return m if m is not None else {"error": "No published artefact yet."}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def compute_position(name_or_designation: str, date: str) -> dict:
     """Compute the heliocentric ecliptic position (J2000) of an object at a
     given date by Keplerian two-body propagation.
@@ -393,7 +400,7 @@ def compute_position(name_or_designation: str, date: str) -> dict:
 _planning_slots = BoundedSemaphore(2)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
                          targets: str = "moon,jupiter,saturn", min_altitude_deg: StrictFloat = 20,
                          sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
@@ -437,7 +444,7 @@ async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: 
     return await asyncio.shield(future)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 async def discover_observing_targets(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
                                     equipment_mode: str, preference: str = "balanced",
                                     true_field_deg: StrictFloat | None = None,
@@ -478,7 +485,7 @@ async def discover_observing_targets(date: str, timezone: str, lat: StrictFloat,
     return await asyncio.shield(future)
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_sky_position(name_or_designation: str, date: str | None = None,
                      lat: float | None = None, lon: float | None = None) -> dict:
     """Where an object appears in Earth's sky: RA/Dec (J2000), constellation,
@@ -502,7 +509,7 @@ def get_sky_position(name_or_designation: str, date: str | None = None,
         return {"error": e.detail}
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def next_perihelion(name_or_designation: str) -> dict:
     """Return the next perihelion passage (closest approach to the Sun) of an
     object as a Julian Date.
@@ -527,7 +534,7 @@ def next_perihelion(name_or_designation: str) -> dict:
 
 
 # Reference / discovery
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_catalogue_identity() -> dict:
     """Return finalized logical/build identifiers and recorded source provenance.
 
@@ -537,14 +544,14 @@ def get_catalogue_identity() -> dict:
     return db().catalogue_identity()
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def list_object_types() -> list[dict]:
     """List the object_type values present in the catalogue and how many rows
     each has. Useful as a sanity-check on coverage."""
     return db().list_object_types()
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_sources() -> list[dict]:
     """Return the upstream data sources used to populate the catalogue,
     summarised by source name and last-retrieved timestamp. Sources are NASA
@@ -553,7 +560,7 @@ def get_sources() -> list[dict]:
     return db().get_sources()
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_schema() -> str:
     """Return the SQLite schema (DDL) for the catalogue, including views.
     Useful if you want to write your own queries against a local copy of
@@ -561,7 +568,7 @@ def get_schema() -> str:
     return db().get_schema()
 
 
-@mcp.tool()
+@mcp.tool(annotations=CATALOGUE_READ)
 def get_stats() -> dict:
     """Catalogue statistics: total objects, counts by object_type, and the
     timestamp of the most recent build."""

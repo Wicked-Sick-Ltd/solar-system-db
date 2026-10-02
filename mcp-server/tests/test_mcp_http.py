@@ -85,7 +85,14 @@ def test_http_session_lists_and_calls_tools(http_server, proxy_headers):
     tools = payload(http_server.post("/mcp", headers=headers, json={
         "jsonrpc": "2.0", "id": 2, "method": "tools/list",
     }))
-    assert "get_stats" in {tool["name"] for tool in tools["result"]["tools"]}
+    registered = {tool["name"]: tool for tool in tools["result"]["tools"]}
+    assert {"get_stats", "get_download_info", "plan_observing_night"} <= registered.keys()
+    for name, tool in registered.items():
+        annotations = tool["annotations"]
+        assert annotations["readOnlyHint"] is True, name
+        assert annotations["destructiveHint"] is False, name
+        assert annotations["idempotentHint"] is True, name
+        assert annotations["openWorldHint"] is False, name
     result = payload(http_server.post("/mcp", headers=headers, json={
         "jsonrpc": "2.0", "id": 3, "method": "tools/call",
         "params": {"name": "get_stats", "arguments": {}},

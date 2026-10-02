@@ -83,6 +83,14 @@ Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 
 ## Tools
 
+Each current tool explicitly advertises read-only, non-destructive, idempotent,
+closed-world annotations. Calls read the local catalogue/manifest or perform
+offline calculations; `get_download_info` reads the local `latest.json` and
+returns download metadata without fetching it. Annotations are client-facing
+hints, not a permission bypass, and future tools must be classified individually.
+Idempotence describes absence of extra side effects; live catalogue refreshes
+and time-dependent defaults can still change returned results.
+
 ### Catalog (data-first)
 
 | Tool | One-liner |
