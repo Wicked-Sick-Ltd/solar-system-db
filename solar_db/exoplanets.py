@@ -5,6 +5,7 @@ import json
 import math
 
 from .galactic import FRAME
+from .response_snapshot import CatalogueReadError, catalogue_snapshot
 
 
 def positive_distance(value: float | None) -> float | None:
@@ -27,9 +28,12 @@ class ExoplanetQueries:
         # instr treats %, _ and quotes literally; all user input is bound.
         params = {"q": (q or "").strip(), "method": discovery_method, "distance": distance,
                   "limit": limit, "offset": offset}
-        with self._conn() as conn:
-            if not self._has_table(conn, "exoplanets"):
-                return {"available": False, "results": [], "total": 0, "limit": limit, "offset": offset, "has_more": False}
+        with self._snapshot_conn() as conn:
+            snapshot = catalogue_snapshot(conn)
+            # A process-wide schema cache may describe a replaced catalogue.
+            # Capability and identity must belong to this same read snapshot.
+            if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='exoplanets'").fetchone():
+                return {"available": False, "results": [], "total": 0, "limit": limit, "offset": offset, "has_more": False, "catalogue_snapshot": snapshot}
             rows = conn.execute("""SELECT p.*, h.name AS host_name, h.distance_pc
                 FROM exoplanets p JOIN exoplanet_hosts h ON h.id=p.host_id
                 WHERE (:q='' OR instr(lower(p.name),lower(:q))>0 OR instr(lower(h.name),lower(:q))>0)
@@ -40,8 +44,12 @@ class ExoplanetQueries:
                 WHERE (:q='' OR instr(lower(p.name),lower(:q))>0 OR instr(lower(h.name),lower(:q))>0)
                 AND (:method IS NULL OR p.discovery_method=:method)
                 AND (:distance IS NULL OR h.distance_pc<=:distance)""", params).fetchone()[0]
-        return {"available": True, "results": [planet_record(r) for r in rows], "total": total,
-                "limit": limit, "offset": offset, "has_more": offset + len(rows) < total}
+        try:
+            results = [planet_record(row) for row in rows]
+        except (ValueError, TypeError) as exc:
+            raise CatalogueReadError("Exoplanet catalogue is temporarily unavailable.") from exc
+        return {"available": True, "results": results, "total": total,
+                "limit": limit, "offset": offset, "has_more": offset + len(rows) < total, "catalogue_snapshot": snapshot}
 
     def get_exoplanet(self, name_or_id: str) -> dict | None:
         with self._conn() as conn:

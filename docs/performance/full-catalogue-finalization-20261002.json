@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-10-02T08:09:00.243503+00:00",
+  "code_revision": "e6093c315a8b71ad3f4792c46049c52b0f78fc8c",
+  "code_sha256": {
+    "solar_db/catalogue_identity.py": "ad464f89e21c7a583402b5772ee24957033c920de00c3e854d7b2ddc41635514",
+    "scripts/benchmark_catalogue_finalization.py": "3018d21db9d74b6e5588c14edaa2f7d786d28fd9fce3344d86932488e8573295"
+  },
+  "source_bytes": 3912310784,
+  "source_sha256": "d7cd507318365ca2362a6fa286e15943cabde2838e804db980034c573c728b33",
+  "source_unchanged": true,
+  "source_schema": {
+    "user_version": 3,
+    "schema_sha256": "424ce2b6fe13a0710692e7aac46f204af05c2a3821a332a9ccc86f22df6650ec",
+    "logical_tables": [
+      "atmospheres",
+      "classifications",
+      "close_approaches",
+      "designations",
+      "discoveries",
+      "impact_monitoring",
+      "meteor_showers",
+      "objects",
+      "orbital_elements",
+      "physical_properties",
+      "radar_observations",
+      "rings",
+      "sources",
+      "visual_properties"
+    ],
+    "objects": 1574019
+  },
+  "python": "3.12.14",
+  "platform": "Darwin",
+  "machine": "arm64",
+  "sqlite_version": "3.53.1",
+  "method": "Frozen standalone source, read-only SQLite backup; three sequential disposable copies and fresh interpreters. Elapsed measures finalize only, excluding imports/copy/verification; peak RSS covers the whole child including imports/verification. OS caches are not flushed. No downloads or source writes.",
+  "limits": {
+    "runs": 3,
+    "timeout_seconds_per_backup_or_child": 1800,
+    "max_source_bytes": 8589934592,
+    "scratch_allowance_bytes": 12005367808,
+    "scratch_allowance_is_hard_quota": false
+  },
+  "runs": [
+    {
+      "seconds": 143.89176008400682,
+      "finalize_cpu_seconds": 143.440342,
+      "process_peak_rss_bytes": 34095104,
+      "catalogue_id": "sha256:f0dd8f32bac601567c6256e130f409bb9b322b3a9e9bd685456cbdc176c0f661",
+      "hash_policy": "catalogue-logical-v1",
+      "logical_rows": {
+        "atmospheres": 9,
+        "classifications": 1645107,
+        "close_approaches": 3092363,
+        "designations": 4530758,
+        "discoveries": 896109,
+        "impact_monitoring": 1001929,
+        "meteor_showers": 1497,
+        "objects": 1574019,
+        "orbital_elements": 1574017,
+        "physical_properties": 1574019,
+        "radar_observations": 4714,
+        "rings": 32,
+        "sources": 2880407,
+        "visual_properties": 1574012
+      },
+      "output_bytes": 3912327168
+    },
+    {
+      "seconds": 144.09589633300493,
+      "finalize_cpu_seconds": 143.230685,
+      "process_peak_rss_bytes": 38092800,
+      "catalogue_id": "sha256:f0dd8f32bac601567c6256e130f409bb9b322b3a9e9bd685456cbdc176c0f661",
+      "hash_policy": "catalogue-logical-v1",
+      "logical_rows": {
+        "atmospheres": 9,
+        "classifications": 1645107,
+        "close_approaches": 3092363,
+        "designations": 4530758,
+        "discoveries": 896109,
+        "impact_monitoring": 1001929,
+        "meteor_showers": 1497,
+        "objects": 1574019,
+        "orbital_elements": 1574017,
+        "physical_properties": 1574019,
+        "radar_observations": 4714,
+        "rings": 32,
+        "sources": 2880407,
+        "visual_properties": 1574012
+      },
+      "output_bytes": 3912327168
+    },
+    {
+      "seconds": 143.80778512501274,
+      "finalize_cpu_seconds": 143.341364,
+      "process_peak_rss_bytes": 37994496,
+      "catalogue_id": "sha256:f0dd8f32bac601567c6256e130f409bb9b322b3a9e9bd685456cbdc176c0f661",
+      "hash_policy": "catalogue-logical-v1",
+      "logical_rows": {
+        "atmospheres": 9,
+        "classifications": 1645107,
+        "close_approaches": 3092363,
+        "designations": 4530758,
+        "discoveries": 896109,
+        "impact_monitoring": 1001929,
+        "meteor_showers": 1497,
+        "objects": 1574019,
+        "orbital_elements": 1574017,
+        "physical_properties": 1574019,
+        "radar_observations": 4714,
+        "rings": 32,
+        "sources": 2880407,
+        "visual_properties": 1574012
+      },
+      "output_bytes": 3912327168
+    }
+  ]
+}

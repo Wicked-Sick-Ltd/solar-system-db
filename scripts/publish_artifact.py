@@ -19,6 +19,7 @@ import os
 import shutil
 import sqlite3
 import sys
+import tempfile
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -27,10 +28,12 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import canonicalize_confined  # noqa: E402
+from solar_db.catalogue_identity import read_identity  # noqa: E402
 
-LICENCE = ("Compilation: MIT (Wicked Sick Ltd). Underlying data: NASA/JPL (public domain), "
-           "IAU Minor Planet Center (free use with attribution), CDS VI/42 (public domain), IAU MDC (attribution), NASA Exoplanet Archive PSCompPars (doi:10.26133/NEA13). "
-           "Please credit the sources; see /api/v1/sources.")
+LICENCE = ("Software: MIT (Wicked Sick Ltd). Catalogue data has source-specific terms; the software licence does not replace them. "
+           "OpenNGC-derived records: copyright 2023 Mattia Verga, CC BY-SA 4.0; subset and unit conversions by Public Universe. "
+           "BSC5P: Hoffleit/Warren, NASA/GSFC HEASARC. Other sources include NASA/JPL, IAU Minor Planet Center, CDS VI/42, IAU MDC, "
+           "and NASA Exoplanet Archive PSCompPars (doi:10.26133/NEA13). Preserve attribution and consult recorded source terms.")
 SCHEMA_DOC = "https://github.com/Wicked-Sick-Ltd/solar-system-db/blob/main/schema/schema.sql"
 
 
@@ -76,6 +79,7 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
     counts = {r["object_type"]: r["n"] for r in conn.execute("SELECT * FROM v_object_counts")}
     meta = conn.execute("SELECT * FROM build_meta ORDER BY id DESC LIMIT 1").fetchone()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
+    identity = read_identity(conn)
     # Row counts per table. A v1 file lacks the v2 tables; report those as absent
     # rather than failing the publish, but let any other SQLite error surface.
     present = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
@@ -99,14 +103,17 @@ def build_manifest(db_path: Path, *, artefact_name: str, url: str, size_bytes: i
     if enrichment_store and Path(enrichment_store).exists():
         from enrich_crawler import coverage as _cov, open_store
         coverage = _cov(open_store(enrichment_store))
+    conn.close()
     return {
         "artefact": artefact_name,
         "url": url,
         "size_bytes": size_bytes,
         "sha256": sha256,
+        "sqlite_sha256": sha256_of(db_path),
+        "catalogue_identity": identity,
         "format": "sqlite3, zstd-compressed",
         "uncompressed_bytes": db_path.stat().st_size,
-        "built_at": (meta["finished_at"] if meta else None) or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "built_at": meta["finished_at"] if meta else None,
         "build_id": meta["id"] if meta else None,
         "build_mode": meta["mode"] if meta else None,
         "schema_version": schema_version,
@@ -196,6 +203,23 @@ def prune(dest, keep_days: int, today: datetime) -> list[str]:
 
 
 def publish(db: Path, dest, *, enrichment_store: Path | None, keep_days: int, level: int, stamp: str | None = None) -> dict[str, Any]:
+    # SQLite's backup API takes one consistent snapshot, including committed WAL
+    # state. Hash, metadata and compression all use that private fixed copy.
+    # Never checkpoint, vacuum or otherwise mutate the retained source file.
+    with tempfile.TemporaryDirectory(prefix="catalogue-publish-") as directory:
+        snapshot = Path(directory) / "catalogue.sqlite"
+        source = sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True)
+        target = sqlite3.connect(snapshot)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+            source.close()
+        return _publish_snapshot(snapshot, dest, enrichment_store=enrichment_store,
+                                 keep_days=keep_days, level=level, stamp=stamp)
+
+
+def _publish_snapshot(db: Path, dest, *, enrichment_store: Path | None, keep_days: int, level: int, stamp: str | None = None) -> dict[str, Any]:
     stamp = stamp or datetime.now(timezone.utc).strftime("%Y%m%d")
     name = f"solar_system-{stamp}.sqlite.zst"
     work = db.parent / name

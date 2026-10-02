@@ -64,6 +64,32 @@ def main() -> int:
         else:
             ok(f"exoplanets: {exo_count}; host coordinates consistent")
 
+    if "starter_targets" in tables:
+        from solar_db.starter_catalogues import load_starter_catalogues
+        expected_rows, expected_sources = load_starter_catalogues()
+        actual_rows = [json.loads(row[0]) for row in conn.execute("SELECT payload FROM starter_targets ORDER BY id")]
+        actual_sources = ({row[0]: json.loads(row[1]) for row in conn.execute("SELECT source,payload FROM starter_sources")}
+                          if "starter_sources" in tables else {})
+        if actual_rows != sorted(expected_rows, key=lambda row: row["id"]) or actual_sources != expected_sources:
+            failures.append("starter catalogue records/provenance differ from reviewed snapshots")
+            fail(failures[-1])
+        else:
+            ok(f"starter catalogues: {len(actual_rows)} records match reviewed source snapshots")
+
+    # Known snapshots can be explicitly checked offline; serving requests never
+    # perform this full scan. Legacy files remain valid with unknown identity.
+    from solar_db.catalogue_identity import logical_hash, read_identity
+    catalogue = read_identity(conn)
+    if catalogue["status"] == "known":
+        digest, row_counts = logical_hash(conn)
+        if catalogue["catalogue_id"] != "sha256:" + digest or catalogue["row_counts"] != row_counts:
+            failures.append("catalogue identity differs from logical data")
+            fail(failures[-1])
+        else:
+            ok(f"catalogue identity matches {len(row_counts)} logical tables")
+    else:
+        print(f"INFO  catalogue identity unknown: {catalogue['reason']}")
+
     # ---- row counts -------------------------------------------------------
     counts = {r["object_type"]: r["n"] for r in
               conn.execute("SELECT * FROM v_object_counts")}

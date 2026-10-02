@@ -17,20 +17,48 @@ Run:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import sys
+from threading import BoundedSemaphore
 from pathlib import Path
 
 # Make the parent (solar_db package) importable when run directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
+from pydantic import StrictFloat, StrictInt
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
+from solar_db.observing import PlanningError, plan_night
+from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
-mcp = FastMCP(
+
+class CatalogueMCP(FastMCP):
+    """Do not silently discard constraints on the new planning tool."""
+
+    async def call_tool(self, name, arguments):
+        if name == "plan_observing_night":
+            allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+                       "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc", "window_end_utc", "horizon_mask"}
+            if not isinstance(arguments, dict) or set(arguments)-allowed:
+                raise ToolError("Use only the supported night-planning parameters.")
+        if name == "discover_observing_targets" and (not isinstance(arguments, dict) or set(arguments) - DISCOVERY_FIELDS):
+            raise ToolError("Use only the supported discovery parameters.")
+        return await super().call_tool(name, arguments)
+
+    async def list_tools(self):
+        tools = await super().list_tools()
+        for tool in tools:
+            if tool.name in ("plan_observing_night", "discover_observing_targets"):
+                tool.inputSchema["additionalProperties"] = False
+        return tools
+
+
+mcp = CatalogueMCP(
     name="solar-system-db",
     instructions=(
         "Queryable catalogue of known solar-system objects for astronomy and "
@@ -56,12 +84,31 @@ def db() -> SolarDB:
 
 
 @mcp.tool()
+def list_starter_targets(family: str | None = None, q: str | None = None,
+                         limit: StrictInt = 50, offset: StrictInt = 0) -> dict:
+    """Bounded bright_star, double_star or deep_sky samples with source licences.
+
+    Static catalogue coordinates, not ephemerides or visibility predictions.
+    Double-star separations have unknown measurement dates; no current companion positions.
+    """
+    return db().list_starter_targets(family=family, q=q, limit=limit, offset=offset)
+
+
+@mcp.tool()
+def get_starter_target(target_id: str) -> dict | None:
+    """Exact source-namespaced starter target identity with original row and provenance."""
+    return db().get_starter_target(target_id)
+
+
+@mcp.tool()
 def list_exoplanets(q: str | None = None, discovery_method: str | None = None,
                     max_distance_pc: float | None = None, limit: int = 50, offset: int = 0) -> dict:
     """Search NASA confirmed exoplanets by planet/host name, discovery method and distance in parsecs.
 
     Separate from solar-system find_objects. Composite measurements may mix references;
     source_data preserves errors, limits, references and mass provenance.
+    catalogue_snapshot associates this page and its count with identity metadata
+    from one SQLite read transaction; it does not pin subsequent pages.
     """
     return db().list_exoplanets(q=q, discovery_method=discovery_method, max_distance_pc=max_distance_pc,
                                 limit=limit, offset=offset)
@@ -326,6 +373,94 @@ def compute_position(name_or_designation: str, date: str) -> dict:
     }
 
 
+_planning_slots = BoundedSemaphore(2)
+
+
+@mcp.tool()
+async def plan_observing_night(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
+                         targets: str = "moon,jupiter,saturn", min_altitude_deg: StrictFloat = 20,
+                         sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
+                         window_start_utc: str | None = None, window_end_utc: str | None = None,
+                         horizon_mask: list[dict[str, StrictFloat]] | None = None) -> dict:
+    """Geometric body/catalogue windows for one local noon-to-noon night.
+
+    Uses the configured labelled offline provider (builtin or pinned local JPL).
+    UTC event times, timezone/DST boundaries, model and IERS coverage are explicit.
+    Optional user-entered horizon is circularly interpolated; it is not surveyed terrain.
+    Optional paired exact UTC window times must lie inside the local night.
+    Weather is not included. Targets are comma-separated supported
+    planets, moon or exact pinned bsc5p:/openngc: IDs (eight combined).
+    Catalogue directions have no distance/parallax; verified BSC angular proper
+    motion or static OpenNGC ICRS is labelled per target. Sun/Earth excluded.
+    No visibility guarantee.
+    """
+    # Reserve before scheduling: at most two running/pending calculations,
+    # with no unbounded expensive queue and no block on the MCP event loop.
+    if not _planning_slots.acquire(blocking=False):
+        return {"error": "Night planning is busy; try again after current calculations finish.", "status": 503}
+
+    def calculate():
+        try:
+            return plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
+                              sun_altitude_deg, min_moon_separation_deg,
+                              window_start_utc=window_start_utc, window_end_utc=window_end_utc,
+                              horizon_mask=horizon_mask)
+        except PlanningError as exc:
+            return {"error": str(exc), "status": exc.status}
+        finally:
+            _planning_slots.release()
+
+    try:
+        future = asyncio.get_running_loop().run_in_executor(None, calculate)
+    except BaseException:
+        _planning_slots.release()
+        raise
+    # Cancelling a caller must not release capacity while its thread still runs
+    # or cancel a queued worker before its finally block can release the slot.
+    return await asyncio.shield(future)
+
+
+@mcp.tool()
+async def discover_observing_targets(date: str, timezone: str, lat: StrictFloat, lon: StrictFloat,
+                                    equipment_mode: str, preference: str = "balanced",
+                                    true_field_deg: StrictFloat | None = None,
+                                    max_catalogue_v_magnitude: StrictFloat | None = None,
+                                    shortlist_limit: StrictInt = 6, min_altitude_deg: StrictFloat = 20,
+                                    sun_altitude_deg: StrictFloat = -12, min_moon_separation_deg: StrictFloat = 0,
+                                    window_start_utc: str | None = None, window_end_utc: str | None = None,
+                                    horizon_mask: list[dict[str, StrictFloat]] | None = None) -> dict:
+    """Explicit bounded target discovery, not all-sky or guaranteed visibility.
+
+    Chooses from the reviewed packaged starter sample plus Moon/seven planets.
+    Equipment naked_eye/binocular/telescope changes explained editorial family
+    preferences; no aperture/detection limit is inferred. Optional catalogue V
+    cut excludes unknown/non-V values explicitly. Twenty-minute screening can
+    miss short windows; only up to eight selections receive refined planning.
+    No weather or storage writes. Exact source/provider identities are retained.
+    """
+    payload = dict(date=date, timezone=timezone, lat=lat, lon=lon, equipment_mode=equipment_mode,
+                   preference=preference, true_field_deg=true_field_deg,
+                   max_catalogue_v_magnitude=max_catalogue_v_magnitude, shortlist_limit=shortlist_limit,
+                   min_altitude_deg=min_altitude_deg, sun_altitude_deg=sun_altitude_deg,
+                   min_moon_separation_deg=min_moon_separation_deg, window_start_utc=window_start_utc,
+                   window_end_utc=window_end_utc, horizon_mask=horizon_mask)
+    if not _planning_slots.acquire(blocking=False):
+        return {"error": "Night planning is busy; try again after current calculations finish.", "status": 503}
+    def calculate():
+        try:
+            return discover_targets(**payload)
+        except PlanningError as exc:
+            return {"error": str(exc), "status": exc.status}
+        finally:
+            _planning_slots.release()
+    try:
+        future = asyncio.get_running_loop().run_in_executor(None, calculate)
+    except BaseException:
+        _planning_slots.release()
+        raise
+    return await asyncio.shield(future)
+
+
 @mcp.tool()
 def get_sky_position(name_or_designation: str, date: str | None = None,
                      lat: float | None = None, lon: float | None = None) -> dict:
@@ -334,7 +469,8 @@ def get_sky_position(name_or_designation: str, date: str | None = None,
 
     Args:
       name_or_designation: any planet, dwarf planet, asteroid, comet or moon
-        (moons report their parent planet's position), or "sun".
+        (other moons report a parent-body proxy; Earth's Moon is unavailable
+        in this legacy endpoint), or "sun".
       date: ISO 8601 date or datetime, UTC. Defaults to now.
       lat, lon: observer's latitude (north-positive) and longitude
         (east-positive) in degrees. Give both to add altitude/azimuth, whether
@@ -374,6 +510,16 @@ def next_perihelion(name_or_designation: str) -> dict:
 
 
 # Reference / discovery
+@mcp.tool()
+def get_catalogue_identity() -> dict:
+    """Return finalized logical/build identifiers and recorded source provenance.
+
+    Unknown for older, partially built or modified files. An ID does not promise
+    that historical snapshots remain hosted; keep a verified exported file.
+    """
+    return db().catalogue_identity()
+
+
 @mcp.tool()
 def list_object_types() -> list[dict]:
     """List the object_type values present in the catalogue and how many rows

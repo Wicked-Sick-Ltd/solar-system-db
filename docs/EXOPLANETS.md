@@ -82,3 +82,20 @@ landmarks, host tuple selection, injection-safe filtering, pagination and REST/M
 consistency. Website tests cover filters, missing/unavailable responses, escaped
 source text, uncertainty/limit formatting, map payload delivery and coordinate
 conversion. Browser review uses the complete measured-host snapshot locally.
+
+## Rename and withdrawal limits
+
+The current ingestion hashes the exact archive name for each planet/host ID and
+replaces these tables on refresh. A changed name can therefore change its URL.
+The selected upstream columns do not supply a durable planet identity or an
+explicit name-equivalence relationship. `gaia_dr3_id` identifies a star; it is
+not evidence that two planet names describe the same planet. Host names can
+also distinguish members of multiple-star systems.
+
+Do not infer aliases from similar names, shared hosts, suffixes or orbital
+measurements. A future alias registry must persist outside replaceable nightly
+catalogues, carry an authoritative citation for every old-ID/current-ID mapping,
+validate collisions/cycles and planet-versus-host kind, and survive fresh builds.
+Ambiguous mappings stay unresolved. A missing row alone cannot establish a
+withdrawal: retain historical identity and explicit source evidence before
+labeling it withdrawn. The current API does not claim this historical continuity.

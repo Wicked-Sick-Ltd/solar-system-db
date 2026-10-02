@@ -11,6 +11,7 @@ OpenAPI spec is served at /openapi.json; Swagger UI at /docs.
 from __future__ import annotations
 
 import os
+import json
 import sys
 from pathlib import Path
 
@@ -20,12 +21,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
+from starlette.concurrency import run_in_threadpool
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
+from solar_db.data_access import UnsupportedCatalogueFilter
+from solar_db.response_snapshot import CatalogueReadError
+from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
+from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
@@ -55,6 +61,17 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(CatalogueReadError)
+async def unavailable_catalogue_read(request: Request, exc: CatalogueReadError):
+    return JSONResponse(status_code=503, content={"detail": "Exoplanet catalogue is temporarily unavailable."},
+                        headers={"Cache-Control": "no-store"})
+
+
+@app.exception_handler(UnsupportedCatalogueFilter)
+async def unsupported_catalogue_filter(request: Request, exc: UnsupportedCatalogueFilter):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 # --------------------------------------------------------------------------
@@ -158,6 +175,29 @@ def close_approaches(request: Request,
                      limit: int = Query(200, ge=1, le=1000)):
     return {"from": date_min, "to": date_max, "body": body, "max_dist_au": max_dist_au,
             "results": db.close_approaches_between(date_min, date_max, body=body, max_dist_au=max_dist_au, limit=limit)}
+
+
+@app.get("/api/v1/starter-targets", tags=["observing catalogues"])
+@limiter.limit("60/minute")
+def list_starter_targets(request: Request, family: Optional[str] = Query(None),
+                         q: Optional[str] = Query(None, max_length=200),
+                         limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=1000)):
+    try:
+        return db.list_starter_targets(family=family, q=q, limit=limit, offset=offset)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/starter-targets/{target_id}", tags=["observing catalogues"])
+@limiter.limit("60/minute")
+def get_starter_target(request: Request, target_id: str):
+    try:
+        result = db.get_starter_target(target_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if result is None:
+        raise HTTPException(status_code=404, detail="Starter target not found")
+    return result
 
 
 @app.get("/api/v1/exoplanets", tags=["exoplanets"])
@@ -297,6 +337,99 @@ def search(request: Request,
 # --------------------------------------------------------------------------
 # Positions / ephemeris
 # --------------------------------------------------------------------------
+@app.get("/api/v1/observing/night", tags=["positions"],
+         summary="One local night of labelled geometric Moon and planet planning")
+@limiter.limit("10/minute")
+def observing_night(request: Request, date: str, timezone: str, lat: str, lon: str,
+                    targets: str = "moon,jupiter,saturn", min_altitude_deg: str = "20",
+                    sun_altitude_deg: str = "-12", min_moon_separation_deg: str = "0"):
+    """Configured offline ephemerides; no weather or guaranteed visibility.
+
+    Local noon to the next noon, including timezone transitions. Returns explicit
+    model and Earth-orientation coverage; unavailable coverage is HTTP 503.
+    """
+    allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+               "sun_altitude_deg", "min_moon_separation_deg"}
+    if any(key not in allowed or len(request.query_params.getlist(key)) != 1 for key in request.query_params):
+        return JSONResponse(status_code=422, content={"detail": "Use each supported scalar query parameter once."},
+                            headers={"Cache-Control": "no-store"})
+    try:
+        result = plan_night(date, timezone, lat, lon, targets, min_altitude_deg,
+                            sun_altitude_deg, min_moon_separation_deg)
+        return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/v1/observing/night", tags=["positions"],
+          summary="Plan with a bounded UTC observing window and user-entered horizon")
+@limiter.limit("10/minute")
+async def observing_night_post(request: Request):
+    headers = {"Cache-Control": "no-store"}
+    allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
+               "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc",
+               "window_end_utc", "horizon_mask"}
+    try:
+        if request.query_params or request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            raise PlanningError("Use an application/json body without query parameters.")
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 16384:
+                raise PlanningError("Observing request exceeds 16 KiB.", 413)
+            body.extend(chunk)
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise PlanningError("JSON fields must not be repeated.")
+                result[key] = value
+            return result
+        def invalid_constant(value):
+            raise PlanningError("JSON numbers must be finite.")
+        payload = json.loads(body, object_pairs_hook=unique, parse_constant=invalid_constant)
+        if not isinstance(payload, dict) or set(payload) - allowed or not {"date", "timezone", "lat", "lon"} <= set(payload):
+            raise PlanningError("Use supported planning fields and include date, timezone, lat and lon.")
+        result = await run_in_threadpool(plan_night, **payload)
+        return JSONResponse(content=result, headers=headers)
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        return JSONResponse(status_code=422, content={"detail": "Observing request must be a valid bounded JSON object."}, headers=headers)
+
+
+@app.post("/api/v1/observing/discover", tags=["positions"],
+          summary="Opt-in bounded geometric shortlist with explained equipment preferences")
+@limiter.limit("5/minute")
+async def observing_discover_post(request: Request):
+    headers = {"Cache-Control": "no-store"}
+    try:
+        if request.query_params or request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            raise PlanningError("Use an application/json body without query parameters.")
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 16384:
+                raise PlanningError("Discovery request exceeds 16 KiB.", 413)
+            body.extend(chunk)
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise PlanningError("JSON fields must not be repeated.")
+                result[key] = value
+            return result
+        def invalid_constant(value):
+            raise PlanningError("JSON numbers must be finite.")
+        payload = json.loads(body, object_pairs_hook=unique, parse_constant=invalid_constant)
+        if not isinstance(payload, dict) or set(payload) - DISCOVERY_FIELDS:
+            raise PlanningError("Use supported discovery fields.")
+        result = await run_in_threadpool(discover_targets, **payload)
+        return JSONResponse(content=result, headers=headers)
+    except PlanningError as exc:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        return JSONResponse(status_code=422, content={"detail": "Discovery request must be a valid bounded JSON object."}, headers=headers)
+
+
 @app.get("/api/v1/positions/{name_or_designation:path}", tags=["positions"],
          summary="Heliocentric position by two-body Kepler propagation")
 @limiter.limit("60/minute")
@@ -330,7 +463,8 @@ def sky_position(request: Request, name_or_designation: str,
     """Geocentric RA/Dec (J2000), constellation, hemisphere, distance from
     Earth and elongation from the Sun. Supply `lat` and `lon` together to add
     altitude/azimuth, whether it is up after dark, and rise/transit/set for
-    that UT day. Moons report their parent's position. Two-body accuracy (~1°)."""
+    that UT day. Other moons report an explicit parent-body proxy; Earth's Moon
+    is unavailable here. Two-body accuracy (~1°)."""
     try:
         return resolve_and_report(db, name_or_designation, date, lat, lon)
     except SkyLookupError as e:
@@ -359,6 +493,12 @@ def next_perihelion(request: Request, name_or_designation: str):
 # --------------------------------------------------------------------------
 # Reference
 # --------------------------------------------------------------------------
+@app.get("/api/v1/catalogue", tags=["reference"], summary="Finalized catalogue identity and recorded source provenance")
+@limiter.limit("60/minute")
+def catalogue_identity(request: Request):
+    return JSONResponse(db.catalogue_identity(), headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/api/v1/object-types", tags=["reference"],
          summary="Object types present in the catalogue and their counts")
 @limiter.limit("60/minute")

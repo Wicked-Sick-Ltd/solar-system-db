@@ -1,0 +1,837 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-01T23:36:29.257328+00:00",
+  "purpose": "Retained offline model replay checkpoints, not independent observations or an astronomical accuracy guarantee. Three representative samples per track; all event windows retained. Requires same identities and inputs.",
+  "tolerances": {
+    "angle_degrees": 1e-08,
+    "distance_au": 1e-10,
+    "fraction": 1e-12,
+    "event_seconds": 2
+  },
+  "cases": [
+    {
+      "name": "builtin-london-2026-10-01",
+      "provider": "builtin",
+      "reference": {
+        "request": {
+          "date": "2026-10-01",
+          "timezone": "Europe/London",
+          "lat": 51.5,
+          "lon": -0.12,
+          "targets": "moon,bsc5p:hr2491,openngc:NGC0224",
+          "min_altitude_deg": 20.0,
+          "sun_altitude_deg": -12.0,
+          "min_moon_separation_deg": 30.0,
+          "window_start_utc": "2026-10-01T11:00:00Z",
+          "window_end_utc": "2026-10-02T11:00:00Z",
+          "horizon_mask": [
+            {
+              "azimuth_deg": 0.0,
+              "min_altitude_deg": 5.0
+            },
+            {
+              "azimuth_deg": 180.0,
+              "min_altitude_deg": 15.0
+            }
+          ]
+        },
+        "identity": {
+          "method": {
+            "provider": "astropy-builtin",
+            "ephemeris": "ERFA builtin",
+            "astropy_version": "8.0.1",
+            "erfa_version": "2.0.1.5",
+            "frame": "apparent topocentric AltAz; azimuth north through east",
+            "refraction": "none; geometric body centre",
+            "accuracy_note": "Approximate offline model, not a precision JPL ephemeris. Numerical crossing tolerance is not physical accuracy. No surveyed terrain or atmospheric model, and no visibility guarantee. A supplied horizon mask is user-entered.",
+            "iers": {
+              "start_utc": "1973-01-02T00:00:00Z",
+              "end_utc": "2027-09-18T00:00:00Z",
+              "data_version": "0.2026.9.21.0.56.25",
+              "snapshot": {
+                "sha256": "3108b111e5a805d3140fd8707620ab6aeacdd4753a138743ad0b2366fcf7760f",
+                "algorithm": "effective-iers-columns-le-f64-v1",
+                "columns": [
+                  "MJD",
+                  "UT1_UTC",
+                  "PM_x",
+                  "PM_y",
+                  "UT1Flag",
+                  "PolPMFlag"
+                ]
+              },
+              "status": "predicted"
+            },
+            "calculation": {
+              "algorithm": "observing-source-files-sha256-v1",
+              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
+              "files": [
+                "observing/__init__.py",
+                "observing/catalogue.py",
+                "observing/ephemeris.py",
+                "observing/horizon.py",
+                "observing/identity.py",
+                "observing/inputs.py",
+                "observing/kernels.py",
+                "observing/planner.py",
+                "observing/worker.py",
+                "starter_astrometry.py",
+                "starter_catalogues.py"
+              ],
+              "python_version": "3.12.14",
+              "numpy_version": "2.5.3",
+              "catalogue_scope": "packaged-target-snapshots; SQLite catalogue not consulted"
+            },
+            "sample_minutes": 5.0,
+            "root_tolerance_seconds": 1,
+            "window_note": "Geometric model windows, not visibility or eye-safety advice. Near-tangent crossings and horizon azimuth ambiguity are marked unresolved; ambiguous bands and sub-second intervals are omitted. Returned windows use the selected UTC interval; chart samples cover the whole local night."
+          },
+          "catalogues": {
+            "bsc5p:hr2491": {
+              "source": "bsc5p",
+              "snapshot_sha256": "7fe926d80b535f9422ca81f8f3fee1d6422de29adaecfbd2f14b1a93fe5134b9",
+              "upstream_sha256": {
+                "bsc5p.tdat": "e2b2f8e9d615426f9478f88061235976143d49d8b25c6c15df3f3661c7095b53"
+              },
+              "source_url": "https://heasarc.gsfc.nasa.gov/FTP/heasarc/dbase/tdat_files/heasarc_bsc5p.tdat.gz",
+              "retrieved_at": "2026-10-01T21:40:09.869946+00:00",
+              "license": "NASA government-works; HEASARC free-use policy",
+              "attribution": "Hoffleit and Warren (1991), Bright Star Catalog, 5th revised preliminary edition; NASA/GSFC HEASARC",
+              "license_url": "https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html",
+              "astrometry_evidence": {
+                "file": "vizier-v50.xml",
+                "authority": "CDS VizieR",
+                "dataset": "V/50/catalog",
+                "query_url": "https://vizier.cds.unistra.fr/viz-bin/votable?-source=V%2F50%2Fcatalog&HR=472%2C617%2C1017%2C1457%2C1708%2C1713%2C1790%2C1791%2C1903%2C2061%2C2088%2C2294%2C2326%2C2421%2C2491%2C2618%2C2693%2C2891%2C2943%2C2990%2C3207%2C3307%2C3485%2C3685%2C3748%2C3982%2C4301%2C4730%2C4731%2C4763%2C4853%2C4905%2C5056%2C5191%2C5267%2C5340%2C5459%2C5460%2C5958%2C6134%2C6217%2C6527%2C6553%2C6879%2C7001%2C7557%2C7790%2C7924%2C8425%2C8728&-out=HR%2CRAJ2000%2CDEJ2000%2CpmRA%2CpmDE&-out.max=100",
+                "response_sha256": "a3f83273ccaecf913a0d8e077413062c20ce1fc01ce890c80615a9572d5f1be9",
+                "matched_records": 50,
+                "unsupported_identifiers": [],
+                "retrieved_at": "2026-10-01"
+              },
+              "appearance": {
+                "families": [
+                  "bright_star",
+                  "double_star"
+                ],
+                "magnitude": -1.46,
+                "magnitude_band": "V (BSC5P; retain code/uncertainty flags)",
+                "magnitude_flag": null,
+                "magnitude_code": null,
+                "major_axis_arcmin": null,
+                "minor_axis_arcmin": null
+              },
+              "input_coordinates": {
+                "ra_deg": 101.2871,
+                "dec_deg": -16.7161,
+                "frame": "FK5",
+                "equinox": "J2000.0",
+                "reference_epoch_jyear": 2000.0,
+                "observation_epoch_jyear": null
+              },
+              "motion_model": "linear_angular_proper_motion",
+              "proper_motion_applied": true,
+              "frame_transform": "Astropy FK5 J2000 orientation rotation to ICRS; empirical FK5/Hipparcos frame-spin correction not applied",
+              "pm_ra_cosdec_arcsec_per_year": -0.553,
+              "pm_dec_arcsec_per_year": -1.205,
+              "distance_au": null,
+              "refraction": "none; zero atmospheric pressure; angular catalogue direction",
+              "accuracy_note": "Angular-only estimate: no measured distance, annual parallax, radial velocity, perspective acceleration or binary orbit. Linear angular proper motion from Julian reference epoch 2000.0; missing radial velocity is treated as zero by the propagation model. Empirical FK5/Hipparcos frame-spin correction is not applied. 1900\u20132100 is a calculation bound, not an accuracy guarantee; bundled Earth-orientation coverage further restricts dates. Source rounding and catalogue systematics remain; no precision, component position, extended-object visibility or telescope-pointing guarantee."
+            },
+            "openngc:NGC0224": {
+              "source": "openngc",
+              "snapshot_sha256": "d8517e8d195ce69700645b60f8d6603d2aebba0e8e21f47603a4d6a31fe667a1",
+              "upstream_sha256": {
+                "NGC.csv": "d3cd7f1ab83122e81b3453d765d93b6dbbb15c910716c9e4ff99c7e916cb2218",
+                "addendum.csv": "1d8f0914e643ada325a5a94d88d8fefad6a4937a2f77cc34f21483af22b11983"
+              },
+              "source_url": "https://github.com/mattiaverga/OpenNGC/tree/75ca7ff090e1d0081a5b08be70eb3bc45ccd9e06",
+              "retrieved_at": "2026-10-01T21:40:09.873502+00:00",
+              "license": "CC-BY-SA-4.0",
+              "attribution": "OpenNGC, copyright 2023 Mattia Verga; adapted by Public Universe: bounded selection and unit conversions; source row strings retained",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "astrometry_evidence": {
+                "file": "gavo-openngc.xml",
+                "authority": "GAVO Data Center (author-linked OpenNGC publication)",
+                "dataset": "openngc.data",
+                "query_url": "https://dc.g-vo.org/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=votable%2Ftd&QUERY=SELECT+name%2Craj2000%2Cdej2000%2Csources+FROM+openngc.data+WHERE+name+IN+%28%27IC4715%27%2C%27IC4725%27%2C%27Mel022%27%2C%27NGC0205%27%2C%27NGC0221%27%2C%27NGC0224%27%2C%27NGC0581%27%2C%27NGC0598%27%2C%27NGC0628%27%2C%27NGC0650%27%2C%27NGC1039%27%2C%27NGC1068%27%2C%27NGC1904%27%2C%27NGC1912%27%2C%27NGC1952%27%2C%27NGC1960%27%2C%27NGC1976%27%2C%27NGC1982%27%2C%27NGC2068%27%2C%27NGC2099%27%2C%27NGC2168%27%2C%27NGC2287%27%2C%27NGC2323%27%2C%27NGC2422%27%2C%27NGC2437%27%2C%27NGC2447%27%2C%27NGC2548%27%2C%27NGC2632%27%2C%27NGC2682%27%2C%27NGC3031%27%2C%27NGC3034%27%2C%27NGC3351%27%2C%27NGC3368%27%2C%27NGC3379%27%2C%27NGC3556%27%2C%27NGC3587%27%2C%27NGC3623%27%2C%27NGC3627%27%2C%27NGC3992%27%2C%27NGC4192%27%2C%27NGC4254%27%2C%27NGC4258%27%2C%27NGC4303%27%2C%27NGC4321%27%2C%27NGC4374%27%2C%27NGC4382%27%2C%27NGC4406%27%2C%27NGC4472%27%2C%27NGC4486%27%2C%27NGC4501%27%2C%27NGC4548%27%2C%27NGC4552%27%2C%27NGC4569%27%2C%27NGC4579%27%2C%27NGC4590%27%2C%27NGC4594%27%2C%27NGC4621%27%2C%27NGC4649%27%2C%27NGC4736%27%2C%27NGC4826%27%2C%27NGC5024%27%2C%27NGC5055%27%2C%27NGC5194%27%2C%27NGC5236%27%2C%27NGC5272%27%2C%27NGC5457%27%2C%27NGC5904%27%2C%27NGC6093%27%2C%27NGC6121%27%2C%27NGC6171%27%2C%27NGC6205%27%2C%27NGC6218%27%2C%27NGC6254%27%2C%27NGC6266%27%2C%27NGC6273%27%2C%27NGC6333%27%2C%27NGC6341%27%2C%27NGC6402%27%2C%27NGC6405%27%2C%27NGC6475%27%2C%27NGC6494%27%2C%27NGC6514%27%2C%27NGC6523%27%2C%27NGC6531%27%2C%27NGC6611%27%2C%27NGC6613%27%2C%27NGC6618%27%2C%27NGC6626%27%2C%27NGC6637%27%2C%27NGC6656%27%2C%27NGC6681%27%2C%27NGC6694%27%2C%27NGC6705%27%2C%27NGC6715%27%2C%27NGC6720%27%2C%27NGC6779%27%2C%27NGC6809%27%2C%27NGC6838%27%2C%27NGC6853%27%2C%27NGC6864%27%2C%27NGC6913%27%2C%27NGC6981%27%2C%27NGC6994%27%2C%27NGC7078%27%2C%27NGC7089%27%2C%27NGC7092%27%2C%27NGC7099%27%2C%27NGC7654%27%29",
+                "response_sha256": "bb872b3b8759508d0bf714eabcd1bfed1796be95046506dd0802819a846535dd",
+                "matched_records": 107,
+                "unsupported_identifiers": [
+                  "Mel022"
+                ],
+                "retrieved_at": "2026-10-01"
+              },
+              "appearance": {
+                "families": [
+                  "deep_sky"
+                ],
+                "magnitude": 3.44,
+                "magnitude_band": "V",
+                "magnitude_flag": null,
+                "magnitude_code": null,
+                "major_axis_arcmin": 177.83,
+                "minor_axis_arcmin": 69.66
+              },
+              "input_coordinates": {
+                "ra_deg": 10.684791666666666,
+                "dec_deg": 41.26905555555555,
+                "frame": "ICRS",
+                "equinox": null,
+                "reference_epoch_jyear": 2000.0,
+                "observation_epoch_jyear": null
+              },
+              "motion_model": "static_catalogue_direction",
+              "proper_motion_applied": false,
+              "frame_transform": "ICRS source direction; no source-frame rotation needed",
+              "pm_ra_cosdec_arcsec_per_year": null,
+              "pm_dec_arcsec_per_year": null,
+              "distance_au": null,
+              "refraction": "none; zero atmospheric pressure; angular catalogue direction",
+              "accuracy_note": "Angular-only estimate: no measured distance, annual parallax, radial velocity, perspective acceleration or binary orbit. Static ICRS catalogue direction; no proper motion applied. 1900\u20132100 is a calculation bound, not an accuracy guarantee; bundled Earth-orientation coverage further restricts dates. Source rounding and catalogue systematics remain; no precision, component position, extended-object visibility or telescope-pointing guarantee."
+            }
+          }
+        },
+        "night": {
+          "date": "2026-10-01",
+          "start_utc": "2026-10-01T11:00:00Z",
+          "end_utc": "2026-10-02T11:00:00Z",
+          "duration_hours": 24.0
+        },
+        "results": {
+          "darkness": {
+            "intervals": [
+              {
+                "start_utc": "2026-10-01T18:50:12Z",
+                "end_utc": "2026-10-02T04:50:34Z"
+              }
+            ],
+            "status": "intervals_found"
+          },
+          "moon": {
+            "reference_utc": "2026-10-01T23:00:00Z",
+            "definition": "geocentric geometric illuminated fraction; no surface/libration model",
+            "illumination_fraction": 0.6811373907896352,
+            "phase_angle_deg": 68.76003596850522,
+            "elongation_deg": 111.10826775234878,
+            "samples": [
+              {
+                "time_utc": "2026-10-01T11:00:00Z",
+                "altitude_deg": 10.159339976537407,
+                "azimuth_deg": 299.7777938439719,
+                "sun_separation_deg": 118.44874974808255,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.002461228900142832,
+                "sun_altitude_deg": 34.17794724624342,
+                "moon_altitude_deg": 10.159339976537407
+              },
+              {
+                "time_utc": "2026-10-01T23:00:00Z",
+                "altitude_deg": 26.233788960346388,
+                "azimuth_deg": 78.68194688547158,
+                "sun_separation_deg": 110.58162953754544,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.0024495791549870955,
+                "sun_altitude_deg": -40.85790324584401,
+                "moon_altitude_deg": 26.233788960346388
+              },
+              {
+                "time_utc": "2026-10-02T11:00:00Z",
+                "altitude_deg": 19.42721693319675,
+                "azimuth_deg": 289.7378149617333,
+                "sun_separation_deg": 105.16578463330889,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.00245489112497832,
+                "sun_altitude_deg": 33.808839321904024,
+                "moon_altitude_deg": 19.42721693319675
+              }
+            ]
+          },
+          "targets": [
+            {
+              "id": "moon",
+              "name": "Moon",
+              "status": "windows_found",
+              "windows": [
+                {
+                  "start_utc": "2026-10-01T22:17:08Z",
+                  "end_utc": "2026-10-02T04:50:34Z"
+                }
+              ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-01T11:00:00Z",
+                  "altitude_deg": 10.159339976537407,
+                  "azimuth_deg": 299.7777938439719,
+                  "sun_separation_deg": 118.44874974808255,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.002461228900142832,
+                  "sun_altitude_deg": 34.17794724624342,
+                  "moon_altitude_deg": 10.159339976537407,
+                  "horizon_altitude_deg": 8.34567811977934,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-01T23:00:00Z",
+                  "altitude_deg": 26.233788960346388,
+                  "azimuth_deg": 78.68194688547158,
+                  "sun_separation_deg": 110.58162953754544,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.0024495791549870955,
+                  "sun_altitude_deg": -40.85790324584401,
+                  "moon_altitude_deg": 26.233788960346388,
+                  "horizon_altitude_deg": 9.371219271415088,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-02T11:00:00Z",
+                  "altitude_deg": 19.42721693319675,
+                  "azimuth_deg": 289.7378149617333,
+                  "sun_separation_deg": 105.16578463330889,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.00245489112497832,
+                  "sun_altitude_deg": 33.808839321904024,
+                  "moon_altitude_deg": 19.42721693319675,
+                  "horizon_altitude_deg": 8.90345472434815,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            },
+            {
+              "id": "bsc5p:hr2491",
+              "name": "HR 2491",
+              "status": "no_matching_window",
+              "windows": [],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-01T11:00:00Z",
+                  "altitude_deg": -3.2194404656363886,
+                  "azimuth_deg": 246.8621285515504,
+                  "sun_separation_deg": 85.25580940699288,
+                  "moon_separation_deg": 54.359822503057764,
+                  "distance_au": null,
+                  "sun_altitude_deg": 34.17794724624342,
+                  "moon_altitude_deg": 10.159339976537407,
+                  "horizon_altitude_deg": 11.285437302691644,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-01T23:00:00Z",
+                  "altitude_deg": -22.953158896363746,
+                  "azimuth_deg": 88.298091659627,
+                  "sun_separation_deg": 85.63296764796942,
+                  "moon_separation_deg": 50.05983743135254,
+                  "distance_au": null,
+                  "sun_altitude_deg": -40.85790324584401,
+                  "moon_altitude_deg": 26.233788960346388,
+                  "horizon_altitude_deg": 9.905449536645945,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-02T11:00:00Z",
+                  "altitude_deg": -3.785181423970951,
+                  "azimuth_deg": 247.61887315054167,
+                  "sun_separation_deg": 86.01168488710589,
+                  "moon_separation_deg": 47.46512989441018,
+                  "distance_au": null,
+                  "sun_altitude_deg": 33.808839321904024,
+                  "moon_altitude_deg": 19.42721693319675,
+                  "horizon_altitude_deg": 11.243395936081019,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            },
+            {
+              "id": "openngc:NGC0224",
+              "name": "NGC0224",
+              "status": "windows_found",
+              "windows": [
+                {
+                  "start_utc": "2026-10-01T18:50:12Z",
+                  "end_utc": "2026-10-02T04:50:34Z"
+                }
+              ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-01T11:00:00Z",
+                "end_utc": "2026-10-02T11:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-01T11:00:00Z",
+                  "altitude_deg": 3.9541109528103946,
+                  "azimuth_deg": 348.0544937619251,
+                  "sun_separation_deg": 141.74559106701946,
+                  "moon_separation_deg": 48.263735289791995,
+                  "distance_au": null,
+                  "sun_altitude_deg": 34.17794724624342,
+                  "moon_altitude_deg": 10.159339976537407,
+                  "horizon_altitude_deg": 5.663639235448608,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-01T23:00:00Z",
+                  "altitude_deg": 75.37562263371612,
+                  "azimuth_deg": 127.50987249534506,
+                  "sun_separation_deg": 141.96938352027595,
+                  "moon_separation_deg": 54.77369604604403,
+                  "distance_au": null,
+                  "sun_altitude_deg": -40.85790324584401,
+                  "moon_altitude_deg": 26.233788960346388,
+                  "horizon_altitude_deg": 12.083881805296947,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-02T11:00:00Z",
+                  "altitude_deg": 3.831032313189385,
+                  "azimuth_deg": 348.7849492855049,
+                  "sun_separation_deg": 142.18939111495217,
+                  "moon_separation_deg": 59.589735643342465,
+                  "distance_au": null,
+                  "sun_altitude_deg": 33.808839321904024,
+                  "moon_altitude_deg": 19.42721693319675,
+                  "horizon_altitude_deg": 5.623058373027504,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "jpl-de440s-london-2026-10-24",
+      "provider": "jpl-de440s",
+      "reference": {
+        "request": {
+          "date": "2026-10-24",
+          "timezone": "Europe/London",
+          "lat": 51.5,
+          "lon": -0.12,
+          "targets": "moon,bsc5p:hr2491,openngc:NGC0224",
+          "min_altitude_deg": 20.0,
+          "sun_altitude_deg": -12.0,
+          "min_moon_separation_deg": 30.0,
+          "window_start_utc": "2026-10-24T11:00:00Z",
+          "window_end_utc": "2026-10-25T12:00:00Z",
+          "horizon_mask": [
+            {
+              "azimuth_deg": 0.0,
+              "min_altitude_deg": 5.0
+            },
+            {
+              "azimuth_deg": 180.0,
+              "min_altitude_deg": 15.0
+            }
+          ]
+        },
+        "identity": {
+          "method": {
+            "provider": "jpl-de440s",
+            "ephemeris": "JPL DE440s",
+            "astropy_version": "8.0.1",
+            "erfa_version": "2.0.1.5",
+            "frame": "apparent topocentric AltAz; azimuth north through east",
+            "refraction": "none; Moon/Mercury/Venus centres, Mars through Neptune system barycentres",
+            "accuracy_note": "Checksum-pinned JPL DE440s with Astropy apparent coordinate transforms in an isolated worker. Mars through Neptune use system barycentres, not independent planet centres. Numerical crossing tolerance is not physical accuracy. No surveyed terrain or atmospheric model, and no visibility guarantee. A supplied horizon mask is user-entered.",
+            "iers": {
+              "start_utc": "1973-01-02T00:00:00Z",
+              "end_utc": "2027-09-18T00:00:00Z",
+              "data_version": "0.2026.9.21.0.56.25",
+              "snapshot": {
+                "sha256": "3108b111e5a805d3140fd8707620ab6aeacdd4753a138743ad0b2366fcf7760f",
+                "algorithm": "effective-iers-columns-le-f64-v1",
+                "columns": [
+                  "MJD",
+                  "UT1_UTC",
+                  "PM_x",
+                  "PM_y",
+                  "UT1Flag",
+                  "PolPMFlag"
+                ]
+              },
+              "status": "predicted"
+            },
+            "jplephem_version": "2.24",
+            "kernel": {
+              "name": "de440s.bsp",
+              "sha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2",
+              "size_bytes": 32726016,
+              "source_url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp",
+              "start_tdb": "1849-12-26T00:00:00.000",
+              "end_tdb": "2150-01-22T00:00:00.000"
+            },
+            "calculation": {
+              "algorithm": "observing-source-files-sha256-v1",
+              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
+              "files": [
+                "observing/__init__.py",
+                "observing/catalogue.py",
+                "observing/ephemeris.py",
+                "observing/horizon.py",
+                "observing/identity.py",
+                "observing/inputs.py",
+                "observing/kernels.py",
+                "observing/planner.py",
+                "observing/worker.py",
+                "starter_astrometry.py",
+                "starter_catalogues.py"
+              ],
+              "python_version": "3.12.14",
+              "numpy_version": "2.5.3",
+              "catalogue_scope": "packaged-target-snapshots; SQLite catalogue not consulted"
+            },
+            "sample_minutes": 5.0,
+            "root_tolerance_seconds": 1,
+            "window_note": "Geometric model windows, not visibility or eye-safety advice. Near-tangent crossings and horizon azimuth ambiguity are marked unresolved; ambiguous bands and sub-second intervals are omitted. Returned windows use the selected UTC interval; chart samples cover the whole local night."
+          },
+          "catalogues": {
+            "bsc5p:hr2491": {
+              "source": "bsc5p",
+              "snapshot_sha256": "7fe926d80b535f9422ca81f8f3fee1d6422de29adaecfbd2f14b1a93fe5134b9",
+              "upstream_sha256": {
+                "bsc5p.tdat": "e2b2f8e9d615426f9478f88061235976143d49d8b25c6c15df3f3661c7095b53"
+              },
+              "source_url": "https://heasarc.gsfc.nasa.gov/FTP/heasarc/dbase/tdat_files/heasarc_bsc5p.tdat.gz",
+              "retrieved_at": "2026-10-01T21:40:09.869946+00:00",
+              "license": "NASA government-works; HEASARC free-use policy",
+              "attribution": "Hoffleit and Warren (1991), Bright Star Catalog, 5th revised preliminary edition; NASA/GSFC HEASARC",
+              "license_url": "https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html",
+              "astrometry_evidence": {
+                "file": "vizier-v50.xml",
+                "authority": "CDS VizieR",
+                "dataset": "V/50/catalog",
+                "query_url": "https://vizier.cds.unistra.fr/viz-bin/votable?-source=V%2F50%2Fcatalog&HR=472%2C617%2C1017%2C1457%2C1708%2C1713%2C1790%2C1791%2C1903%2C2061%2C2088%2C2294%2C2326%2C2421%2C2491%2C2618%2C2693%2C2891%2C2943%2C2990%2C3207%2C3307%2C3485%2C3685%2C3748%2C3982%2C4301%2C4730%2C4731%2C4763%2C4853%2C4905%2C5056%2C5191%2C5267%2C5340%2C5459%2C5460%2C5958%2C6134%2C6217%2C6527%2C6553%2C6879%2C7001%2C7557%2C7790%2C7924%2C8425%2C8728&-out=HR%2CRAJ2000%2CDEJ2000%2CpmRA%2CpmDE&-out.max=100",
+                "response_sha256": "a3f83273ccaecf913a0d8e077413062c20ce1fc01ce890c80615a9572d5f1be9",
+                "matched_records": 50,
+                "unsupported_identifiers": [],
+                "retrieved_at": "2026-10-01"
+              },
+              "appearance": {
+                "families": [
+                  "bright_star",
+                  "double_star"
+                ],
+                "magnitude": -1.46,
+                "magnitude_band": "V (BSC5P; retain code/uncertainty flags)",
+                "magnitude_flag": null,
+                "magnitude_code": null,
+                "major_axis_arcmin": null,
+                "minor_axis_arcmin": null
+              },
+              "input_coordinates": {
+                "ra_deg": 101.2871,
+                "dec_deg": -16.7161,
+                "frame": "FK5",
+                "equinox": "J2000.0",
+                "reference_epoch_jyear": 2000.0,
+                "observation_epoch_jyear": null
+              },
+              "motion_model": "linear_angular_proper_motion",
+              "proper_motion_applied": true,
+              "frame_transform": "Astropy FK5 J2000 orientation rotation to ICRS; empirical FK5/Hipparcos frame-spin correction not applied",
+              "pm_ra_cosdec_arcsec_per_year": -0.553,
+              "pm_dec_arcsec_per_year": -1.205,
+              "distance_au": null,
+              "refraction": "none; zero atmospheric pressure; angular catalogue direction",
+              "accuracy_note": "Angular-only estimate: no measured distance, annual parallax, radial velocity, perspective acceleration or binary orbit. Linear angular proper motion from Julian reference epoch 2000.0; missing radial velocity is treated as zero by the propagation model. Empirical FK5/Hipparcos frame-spin correction is not applied. 1900\u20132100 is a calculation bound, not an accuracy guarantee; bundled Earth-orientation coverage further restricts dates. Source rounding and catalogue systematics remain; no precision, component position, extended-object visibility or telescope-pointing guarantee."
+            },
+            "openngc:NGC0224": {
+              "source": "openngc",
+              "snapshot_sha256": "d8517e8d195ce69700645b60f8d6603d2aebba0e8e21f47603a4d6a31fe667a1",
+              "upstream_sha256": {
+                "NGC.csv": "d3cd7f1ab83122e81b3453d765d93b6dbbb15c910716c9e4ff99c7e916cb2218",
+                "addendum.csv": "1d8f0914e643ada325a5a94d88d8fefad6a4937a2f77cc34f21483af22b11983"
+              },
+              "source_url": "https://github.com/mattiaverga/OpenNGC/tree/75ca7ff090e1d0081a5b08be70eb3bc45ccd9e06",
+              "retrieved_at": "2026-10-01T21:40:09.873502+00:00",
+              "license": "CC-BY-SA-4.0",
+              "attribution": "OpenNGC, copyright 2023 Mattia Verga; adapted by Public Universe: bounded selection and unit conversions; source row strings retained",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "astrometry_evidence": {
+                "file": "gavo-openngc.xml",
+                "authority": "GAVO Data Center (author-linked OpenNGC publication)",
+                "dataset": "openngc.data",
+                "query_url": "https://dc.g-vo.org/tap/sync?REQUEST=doQuery&LANG=ADQL&FORMAT=votable%2Ftd&QUERY=SELECT+name%2Craj2000%2Cdej2000%2Csources+FROM+openngc.data+WHERE+name+IN+%28%27IC4715%27%2C%27IC4725%27%2C%27Mel022%27%2C%27NGC0205%27%2C%27NGC0221%27%2C%27NGC0224%27%2C%27NGC0581%27%2C%27NGC0598%27%2C%27NGC0628%27%2C%27NGC0650%27%2C%27NGC1039%27%2C%27NGC1068%27%2C%27NGC1904%27%2C%27NGC1912%27%2C%27NGC1952%27%2C%27NGC1960%27%2C%27NGC1976%27%2C%27NGC1982%27%2C%27NGC2068%27%2C%27NGC2099%27%2C%27NGC2168%27%2C%27NGC2287%27%2C%27NGC2323%27%2C%27NGC2422%27%2C%27NGC2437%27%2C%27NGC2447%27%2C%27NGC2548%27%2C%27NGC2632%27%2C%27NGC2682%27%2C%27NGC3031%27%2C%27NGC3034%27%2C%27NGC3351%27%2C%27NGC3368%27%2C%27NGC3379%27%2C%27NGC3556%27%2C%27NGC3587%27%2C%27NGC3623%27%2C%27NGC3627%27%2C%27NGC3992%27%2C%27NGC4192%27%2C%27NGC4254%27%2C%27NGC4258%27%2C%27NGC4303%27%2C%27NGC4321%27%2C%27NGC4374%27%2C%27NGC4382%27%2C%27NGC4406%27%2C%27NGC4472%27%2C%27NGC4486%27%2C%27NGC4501%27%2C%27NGC4548%27%2C%27NGC4552%27%2C%27NGC4569%27%2C%27NGC4579%27%2C%27NGC4590%27%2C%27NGC4594%27%2C%27NGC4621%27%2C%27NGC4649%27%2C%27NGC4736%27%2C%27NGC4826%27%2C%27NGC5024%27%2C%27NGC5055%27%2C%27NGC5194%27%2C%27NGC5236%27%2C%27NGC5272%27%2C%27NGC5457%27%2C%27NGC5904%27%2C%27NGC6093%27%2C%27NGC6121%27%2C%27NGC6171%27%2C%27NGC6205%27%2C%27NGC6218%27%2C%27NGC6254%27%2C%27NGC6266%27%2C%27NGC6273%27%2C%27NGC6333%27%2C%27NGC6341%27%2C%27NGC6402%27%2C%27NGC6405%27%2C%27NGC6475%27%2C%27NGC6494%27%2C%27NGC6514%27%2C%27NGC6523%27%2C%27NGC6531%27%2C%27NGC6611%27%2C%27NGC6613%27%2C%27NGC6618%27%2C%27NGC6626%27%2C%27NGC6637%27%2C%27NGC6656%27%2C%27NGC6681%27%2C%27NGC6694%27%2C%27NGC6705%27%2C%27NGC6715%27%2C%27NGC6720%27%2C%27NGC6779%27%2C%27NGC6809%27%2C%27NGC6838%27%2C%27NGC6853%27%2C%27NGC6864%27%2C%27NGC6913%27%2C%27NGC6981%27%2C%27NGC6994%27%2C%27NGC7078%27%2C%27NGC7089%27%2C%27NGC7092%27%2C%27NGC7099%27%2C%27NGC7654%27%29",
+                "response_sha256": "bb872b3b8759508d0bf714eabcd1bfed1796be95046506dd0802819a846535dd",
+                "matched_records": 107,
+                "unsupported_identifiers": [
+                  "Mel022"
+                ],
+                "retrieved_at": "2026-10-01"
+              },
+              "appearance": {
+                "families": [
+                  "deep_sky"
+                ],
+                "magnitude": 3.44,
+                "magnitude_band": "V",
+                "magnitude_flag": null,
+                "magnitude_code": null,
+                "major_axis_arcmin": 177.83,
+                "minor_axis_arcmin": 69.66
+              },
+              "input_coordinates": {
+                "ra_deg": 10.684791666666666,
+                "dec_deg": 41.26905555555555,
+                "frame": "ICRS",
+                "equinox": null,
+                "reference_epoch_jyear": 2000.0,
+                "observation_epoch_jyear": null
+              },
+              "motion_model": "static_catalogue_direction",
+              "proper_motion_applied": false,
+              "frame_transform": "ICRS source direction; no source-frame rotation needed",
+              "pm_ra_cosdec_arcsec_per_year": null,
+              "pm_dec_arcsec_per_year": null,
+              "distance_au": null,
+              "refraction": "none; zero atmospheric pressure; angular catalogue direction",
+              "accuracy_note": "Angular-only estimate: no measured distance, annual parallax, radial velocity, perspective acceleration or binary orbit. Static ICRS catalogue direction; no proper motion applied. 1900\u20132100 is a calculation bound, not an accuracy guarantee; bundled Earth-orientation coverage further restricts dates. Source rounding and catalogue systematics remain; no precision, component position, extended-object visibility or telescope-pointing guarantee."
+            }
+          }
+        },
+        "night": {
+          "date": "2026-10-24",
+          "start_utc": "2026-10-24T11:00:00Z",
+          "end_utc": "2026-10-25T12:00:00Z",
+          "duration_hours": 25.0
+        },
+        "results": {
+          "darkness": {
+            "intervals": [
+              {
+                "start_utc": "2026-10-24T18:01:57Z",
+                "end_utc": "2026-10-25T05:28:06Z"
+              }
+            ],
+            "status": "intervals_found"
+          },
+          "moon": {
+            "reference_utc": "2026-10-24T23:30:00Z",
+            "definition": "geocentric geometric illuminated fraction; no surface/libration model",
+            "illumination_fraction": 0.9802434494508268,
+            "phase_angle_deg": 16.16027282261232,
+            "elongation_deg": 163.79966584591475,
+            "samples": [
+              {
+                "time_utc": "2026-10-24T11:00:00Z",
+                "altitude_deg": -32.09301499550486,
+                "azimuth_deg": 13.020858062500036,
+                "sun_separation_deg": 157.18033385926262,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.0025378522744217073,
+                "sun_altitude_deg": 25.920730447220606,
+                "moon_altitude_deg": -32.09301499550486
+              },
+              {
+                "time_utc": "2026-10-24T23:30:00Z",
+                "altitude_deg": 46.24298003982306,
+                "azimuth_deg": 198.4564088632609,
+                "sun_separation_deg": 163.54263724582842,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.0024674438219412054,
+                "sun_altitude_deg": -50.40947141427113,
+                "moon_altitude_deg": 46.24298003982306
+              },
+              {
+                "time_utc": "2026-10-25T12:00:00Z",
+                "altitude_deg": -25.405532638046203,
+                "azimuth_deg": 14.972766257648733,
+                "sun_separation_deg": 170.27700766336318,
+                "moon_separation_deg": 0.0,
+                "distance_au": 0.0025010778469541904,
+                "sun_altitude_deg": 26.210854554709158,
+                "moon_altitude_deg": -25.405532638046203
+              }
+            ]
+          },
+          "targets": [
+            {
+              "id": "moon",
+              "name": "Moon",
+              "status": "windows_found",
+              "windows": [
+                {
+                  "start_utc": "2026-10-24T18:02:12Z",
+                  "end_utc": "2026-10-25T03:25:59Z"
+                }
+              ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-24T11:00:00Z",
+                  "altitude_deg": -32.09301499550486,
+                  "azimuth_deg": 13.020858062500036,
+                  "sun_separation_deg": 157.18033385926262,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.0025378522744217073,
+                  "sun_altitude_deg": 25.920730447220606,
+                  "moon_altitude_deg": -32.09301499550486,
+                  "horizon_altitude_deg": 5.723381003472224,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-24T23:30:00Z",
+                  "altitude_deg": 46.24298003982306,
+                  "azimuth_deg": 198.4564088632609,
+                  "sun_separation_deg": 163.54263724582842,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.0024674438219412054,
+                  "sun_altitude_deg": -50.40947141427113,
+                  "moon_altitude_deg": 46.24298003982306,
+                  "horizon_altitude_deg": 13.974643952041061,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-25T12:00:00Z",
+                  "altitude_deg": -25.405532638046203,
+                  "azimuth_deg": 14.972766257648733,
+                  "sun_separation_deg": 170.27700766336318,
+                  "moon_separation_deg": 0.0,
+                  "distance_au": 0.0025010778469541904,
+                  "sun_altitude_deg": 26.210854554709158,
+                  "moon_altitude_deg": -25.405532638046203,
+                  "horizon_altitude_deg": 5.8318203476471515,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            },
+            {
+              "id": "bsc5p:hr2491",
+              "name": "HR 2491",
+              "status": "windows_found",
+              "windows": [
+                {
+                  "start_utc": "2026-10-25T03:21:27Z",
+                  "end_utc": "2026-10-25T05:28:06Z"
+                }
+              ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-24T11:00:00Z",
+                  "altitude_deg": -16.82816057524981,
+                  "azimuth_deg": 264.0641500784902,
+                  "sun_separation_deg": 102.71211532662176,
+                  "moon_separation_deg": 96.2931328816024,
+                  "distance_au": null,
+                  "sun_altitude_deg": 25.920730447220606,
+                  "moon_altitude_deg": -32.09301499550486,
+                  "horizon_altitude_deg": 10.32976944008388,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-24T23:30:00Z",
+                  "altitude_deg": -4.5642700973955534,
+                  "azimuth_deg": 111.34902305865602,
+                  "sun_separation_deg": 103.10411409344213,
+                  "moon_separation_deg": 91.29995822165417,
+                  "distance_au": null,
+                  "sun_altitude_deg": -50.40947141427113,
+                  "moon_altitude_deg": 46.24298003982306,
+                  "horizon_altitude_deg": 11.186056836592002,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-25T12:00:00Z",
+                  "altitude_deg": -26.78480355995039,
+                  "azimuth_deg": 276.66375391581994,
+                  "sun_separation_deg": 103.49590921392857,
+                  "moon_separation_deg": 85.59510607299737,
+                  "distance_au": null,
+                  "sun_altitude_deg": 26.210854554709158,
+                  "moon_altitude_deg": -25.405532638046203,
+                  "horizon_altitude_deg": 9.629791449121115,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            },
+            {
+              "id": "openngc:NGC0224",
+              "name": "NGC0224",
+              "status": "windows_found",
+              "windows": [
+                {
+                  "start_utc": "2026-10-24T18:01:57Z",
+                  "end_utc": "2026-10-25T05:28:06Z"
+                }
+              ],
+              "constraint_coverage": {
+                "scope": "selected_interval",
+                "start_utc": "2026-10-24T11:00:00Z",
+                "end_utc": "2026-10-25T12:00:00Z",
+                "altitude": "partial",
+                "darkness": "partial"
+              },
+              "samples": [
+                {
+                  "time_utc": "2026-10-24T11:00:00Z",
+                  "altitude_deg": 3.101957291870153,
+                  "azimuth_deg": 5.016173415134035,
+                  "sun_separation_deg": 146.54535221933088,
+                  "moon_separation_deg": 36.006221398402765,
+                  "distance_au": null,
+                  "sun_altitude_deg": 25.920730447220606,
+                  "moon_altitude_deg": -32.09301499550486,
+                  "horizon_altitude_deg": 5.27867630084078,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-24T23:30:00Z",
+                  "altitude_deg": 75.76253932836474,
+                  "azimuth_deg": 230.6863314469159,
+                  "sun_separation_deg": 146.5027929771764,
+                  "moon_separation_deg": 32.437325757081595,
+                  "distance_au": null,
+                  "sun_altitude_deg": -50.40947141427113,
+                  "moon_altitude_deg": 46.24298003982306,
+                  "horizon_altitude_deg": 12.184092697393563,
+                  "required_min_altitude_deg": 20.0
+                },
+                {
+                  "time_utc": "2026-10-25T12:00:00Z",
+                  "altitude_deg": 4.999071871299391,
+                  "azimuth_deg": 16.896534282298244,
+                  "sun_separation_deg": 146.4539823737391,
+                  "moon_separation_deg": 30.461973420755562,
+                  "distance_au": null,
+                  "sun_altitude_deg": 26.210854554709158,
+                  "moon_altitude_deg": -25.405532638046203,
+                  "horizon_altitude_deg": 5.938696349016569,
+                  "required_min_altitude_deg": 20.0
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

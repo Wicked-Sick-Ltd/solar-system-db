@@ -1,0 +1,592 @@
+{
+  "method": "First call clears the per-instance schema inventory; repeated calls retain it. Every call opens read-only SQLite connections; OS cache is not evicted. Tracing/memory measured separately from timings.",
+  "python": "3.12.14",
+  "sqlite": "3.53.1",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "source_revision": "97ad0f4f5c0246e6f485da59176252509e598065",
+  "code_sha256": {
+    "solar_db/data_access.py": "9791a137776b5fe0f406939b9db5d0690c04a06c81b6c02ca98f540d9189d5a2",
+    "solar_db/exoplanets.py": "1b8708f4cca5c2b292ab80b748d095f7c1aaf46a468d2a7a9c06ead30048441d",
+    "solar_db/starter_catalogues.py": "22ee105fe1cdee8158af0ff81ec33f6f037a0281dc574d084b3d326cb5706a6d"
+  },
+  "input_sha256": "e4b588daf6ca9b6839fbac9a4959258f45a4658903c3469415f2e5c1665537de",
+  "synthetic_objects": 0,
+  "synthetic_hosts": 0,
+  "repeats": 11,
+  "catalogue_sha256": "e4b588daf6ca9b6839fbac9a4959258f45a4658903c3469415f2e5c1665537de",
+  "catalogue_bytes": 5369856,
+  "counts": {
+    "objects": 2431,
+    "exoplanets": 11,
+    "exoplanet_hosts": 4,
+    "starter_targets": 158
+  },
+  "cases": {
+    "search_exact": {
+      "first_call_ms": 0.601,
+      "warm_p50_ms": 0.331,
+      "warm_p95_ms": 0.417,
+      "warm_samples_ms": [
+        0.417,
+        0.357,
+        0.331,
+        0.327,
+        0.326,
+        0.335,
+        0.334,
+        0.325,
+        0.331,
+        0.335,
+        0.321
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 3,
+      "select_statements": 2,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 4773,
+      "json_bytes": 146,
+      "result_sha256": "50918cd6fc4eb595f5c2e7d54226802be76e208447e93715889a274bc269c135",
+      "result_rows": 1,
+      "plans": [
+        {
+          "sql_sha256": "be6f5f90dac3d4125fb585e9411e47cf024c98c93291fd5bec30e17764b0f365",
+          "plan": [
+            "SCAN main.objects_fts_config"
+          ]
+        },
+        {
+          "sql_sha256": "3756034ea051640f2eaded1d28a947ad5c96988f7067587f0c92d77de513f0d7",
+          "plan": [
+            "SCAN objects_fts VIRTUAL TABLE INDEX 0:M4",
+            "SEARCH o USING INDEX sqlite_autoindex_objects_1 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    "search_absent": {
+      "first_call_ms": 0.764,
+      "warm_p50_ms": 0.655,
+      "warm_p95_ms": 0.679,
+      "warm_samples_ms": [
+        0.679,
+        0.676,
+        0.655,
+        0.675,
+        0.644,
+        0.641,
+        0.674,
+        0.652,
+        0.656,
+        0.647,
+        0.644
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 4,
+      "select_statements": 3,
+      "vm_steps_lower_bound": 24000,
+      "python_peak_bytes": 4871,
+      "json_bytes": 2,
+      "result_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "result_rows": 0,
+      "plans": [
+        {
+          "sql_sha256": "be6f5f90dac3d4125fb585e9411e47cf024c98c93291fd5bec30e17764b0f365",
+          "plan": [
+            "SCAN main.objects_fts_config"
+          ]
+        },
+        {
+          "sql_sha256": "2b336f5b2fd7fef8e9a2b77c19fe7d4f296651ef20897956278a924d604cfd9b",
+          "plan": [
+            "SCAN objects_fts VIRTUAL TABLE INDEX 0:M4",
+            "SEARCH o USING INDEX sqlite_autoindex_objects_1 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql_sha256": "255d25f9783a7a223fcf6acff0016b253ac94ce63c48791cb9c210817d7b7117",
+          "plan": [
+            "SCAN objects",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    "objects_planets": {
+      "first_call_ms": 0.451,
+      "warm_p50_ms": 0.377,
+      "warm_p95_ms": 0.394,
+      "warm_samples_ms": [
+        0.394,
+        0.387,
+        0.393,
+        0.382,
+        0.375,
+        0.364,
+        0.377,
+        0.371,
+        0.373,
+        0.358,
+        0.377
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 13117,
+      "json_bytes": 4191,
+      "result_sha256": "107da6d07a362f3bed3125f3484991f32244961a7f30a1cda8ba422a6ae828a3",
+      "result_rows": 8,
+      "plans": [
+        {
+          "sql_sha256": "f700ac7dcf0ac71f00fbb0facb13e9088329e6d479f2c4e60a13906e57f131e8",
+          "plan": [
+            "SEARCH o USING INDEX idx_objects_type (object_type=?)",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?) LEFT-JOIN",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    "objects_offset_first": {
+      "first_call_ms": 2.487,
+      "warm_p50_ms": 2.26,
+      "warm_p95_ms": 4.524,
+      "warm_samples_ms": [
+        2.418,
+        2.435,
+        2.257,
+        2.265,
+        2.26,
+        2.221,
+        2.247,
+        2.391,
+        2.242,
+        4.524,
+        2.217
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 100000,
+      "python_peak_bytes": 51825,
+      "json_bytes": 26568,
+      "result_sha256": "2f757dbf68fde7112bfc741d9007820e09b1b2d2f523f6aac10548b0cb402b98",
+      "result_rows": 50,
+      "plans": [
+        {
+          "sql_sha256": "2dfdf47ceea36da9847d9eebd3e20dc2da4bcc0d556ffd5bf7e63ea8fa98c606",
+          "plan": [
+            "SCAN o USING INDEX sqlite_autoindex_objects_1",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?) LEFT-JOIN",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    "objects_offset_1000": {
+      "first_call_ms": 3.713,
+      "warm_p50_ms": 3.577,
+      "warm_p95_ms": 3.677,
+      "warm_samples_ms": [
+        3.677,
+        3.577,
+        3.581,
+        3.605,
+        3.55,
+        3.58,
+        3.552,
+        3.526,
+        3.54,
+        3.579,
+        3.569
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 144000,
+      "python_peak_bytes": 59093,
+      "json_bytes": 27944,
+      "result_sha256": "dffd4d7cfa01f87759d785d50c16a4ca3cbf88f871f1a3166c2349b49a38e712",
+      "result_rows": 50,
+      "plans": [
+        {
+          "sql_sha256": "95db3691d432e3c562d559c2f96007ac7ea1d01944c223714603c6cdc8db7d58",
+          "plan": [
+            "SCAN o USING INDEX sqlite_autoindex_objects_1",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?) LEFT-JOIN",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    "objects_keyset_first": {
+      "first_call_ms": 0.643,
+      "warm_p50_ms": 0.568,
+      "warm_p95_ms": 0.603,
+      "warm_samples_ms": [
+        0.603,
+        0.591,
+        0.585,
+        0.586,
+        0.568,
+        0.541,
+        0.526,
+        0.542,
+        0.55,
+        0.559,
+        0.571
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 2000,
+      "python_peak_bytes": 60562,
+      "json_bytes": 28443,
+      "result_sha256": "fb73004e46ed7f86f70a4e268e3cfeed06e8366bc008436b733af0b62424960a",
+      "result_rows": 50,
+      "plans": [
+        {
+          "sql_sha256": "786ea1620ffc82bbf3e378e95c5e88d0f81efc1461789cf741ccd2582ffb5a0d",
+          "plan": [
+            "SEARCH o USING INDEX sqlite_autoindex_objects_1 (id>?)",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?) LEFT-JOIN",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN"
+          ]
+        }
+      ]
+    },
+    "objects_keyset_middle": {
+      "first_call_ms": 0.636,
+      "warm_p50_ms": 0.565,
+      "warm_p95_ms": 1.071,
+      "warm_samples_ms": [
+        0.612,
+        0.567,
+        1.071,
+        0.546,
+        0.845,
+        0.529,
+        0.555,
+        0.559,
+        0.547,
+        0.565,
+        0.566
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 2000,
+      "python_peak_bytes": 54491,
+      "json_bytes": 27619,
+      "result_sha256": "33790e891981ef604962764610424ea2c88bf8424729dceb3cd0874b2cb2e600",
+      "result_rows": 50,
+      "plans": [
+        {
+          "sql_sha256": "7c6d622cdf392b91ba40dc1987df5659c42aef6a633584781308b3165b7bd926",
+          "plan": [
+            "SEARCH o USING INDEX sqlite_autoindex_objects_1 (id>?)",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?) LEFT-JOIN",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN"
+          ]
+        }
+      ]
+    },
+    "objects_filtered_keyset": {
+      "first_call_ms": 0.644,
+      "warm_p50_ms": 0.561,
+      "warm_p95_ms": 0.655,
+      "warm_samples_ms": [
+        0.629,
+        0.591,
+        0.58,
+        0.655,
+        0.578,
+        0.555,
+        0.561,
+        0.556,
+        0.552,
+        0.536,
+        0.556
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 2,
+      "select_statements": 1,
+      "vm_steps_lower_bound": 12000,
+      "python_peak_bytes": 8772,
+      "json_bytes": 1082,
+      "result_sha256": "012f5cb7383dd939537d4b1d320b85ff4a14ce1e79d31bd86e85d70fd6f2b26a",
+      "result_rows": 2,
+      "plans": [
+        {
+          "sql_sha256": "f5c7a02d9408bc01ef622d2e25b7bc06f858cd69229443be34cdde9451b3f595",
+          "plan": [
+            "SEARCH o USING INDEX sqlite_autoindex_objects_1 (id>?)",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH c USING COVERING INDEX sqlite_autoindex_classifications_1 (object_id=? AND label=?)",
+            "SEARCH p USING INDEX sqlite_autoindex_physical_properties_1 (object_id=?)",
+            "SEARCH oe USING INDEX sqlite_autoindex_orbital_elements_1 (object_id=?) LEFT-JOIN",
+            "SEARCH v USING INDEX sqlite_autoindex_visual_properties_1 (object_id=?) LEFT-JOIN"
+          ]
+        }
+      ]
+    },
+    "starter_bright": {
+      "first_call_ms": 1.786,
+      "warm_p50_ms": 1.479,
+      "warm_p95_ms": 1.59,
+      "warm_samples_ms": [
+        1.59,
+        1.496,
+        1.476,
+        1.479,
+        1.467,
+        1.483,
+        1.488,
+        1.434,
+        1.453,
+        1.528,
+        1.457
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 4,
+      "select_statements": 4,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 1297751,
+      "json_bytes": 47710,
+      "result_sha256": "0721f6ee3b425c5594cb8159c224c6cb910fb2714549feae23a6abd63fdc6c3c",
+      "result_rows": 24,
+      "plans": [
+        {
+          "sql_sha256": "8d00c891f5a2e286e8d9a3bbd23db59cbc17bbebda71880f88ea8e4b8904d564",
+          "plan": [
+            "SCAN sqlite_master"
+          ]
+        },
+        {
+          "sql_sha256": "e54645eaeedf00962576babbba281a9239052cad7bcd39ecaaa417bd5c6fa1bf",
+          "plan": [
+            "SCAN starter_sources USING COVERING INDEX sqlite_autoindex_starter_sources_1"
+          ]
+        },
+        {
+          "sql_sha256": "31a347b4e9a953625d4b71ae7dc021947e374a8c431fb359beb3f3eb0779e992",
+          "plan": [
+            "SCAN starter_targets USING INDEX sqlite_autoindex_starter_targets_1"
+          ]
+        },
+        {
+          "sql_sha256": "e301cb91959a749d3242872d411c67eaa439a90c46ea1eb62df2db5437c2cef8",
+          "plan": [
+            "SCAN starter_sources USING INDEX sqlite_autoindex_starter_sources_1"
+          ]
+        }
+      ]
+    },
+    "exoplanets_first": {
+      "first_call_ms": 0.629,
+      "warm_p50_ms": 0.508,
+      "warm_p95_ms": 0.552,
+      "warm_samples_ms": [
+        0.552,
+        0.53,
+        0.522,
+        0.512,
+        0.508,
+        0.522,
+        0.504,
+        0.487,
+        0.489,
+        0.482,
+        0.491
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 3,
+      "select_statements": 2,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 132313,
+      "json_bytes": 36856,
+      "result_sha256": "2b68a35df36df068d9c2c1f3435ee092825f4efa473b934791048d0ec3cd0d4f",
+      "result_rows": 11,
+      "plans": [
+        {
+          "sql_sha256": "3b258e23052b35f402d323b18180c416d786eb7eb9703a2a1c2bc3ef01076765",
+          "plan": [
+            "SCAN h",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql_sha256": "0176871338f11705c440baa950e23d9ec19f400ab5caa1863e80b9773afdbbae",
+          "plan": [
+            "SCAN h",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)"
+          ]
+        }
+      ]
+    },
+    "exoplanets_filtered_total": {
+      "first_call_ms": 0.5,
+      "warm_p50_ms": 0.47,
+      "warm_p95_ms": 0.482,
+      "warm_samples_ms": [
+        0.47,
+        0.473,
+        0.461,
+        0.48,
+        0.466,
+        0.468,
+        0.446,
+        0.464,
+        0.478,
+        0.482,
+        0.477
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 3,
+      "select_statements": 2,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 95654,
+      "json_bytes": 26288,
+      "result_sha256": "624a4c7b0980cc6f8083ba22a67bad5e1ed9092f686cbb8cc1c01ce8bf2dc9ed",
+      "result_rows": 8,
+      "plans": [
+        {
+          "sql_sha256": "6eebe2764d95f37e4ded0b8301ce24feaa4dc32a620c3701ed9babc5445278df",
+          "plan": [
+            "SCAN h",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql_sha256": "a9c29039228b8324f537d7950787d99001bfcfb09c62142b7abdf9d2af839a34",
+          "plan": [
+            "SCAN h",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)"
+          ]
+        }
+      ]
+    },
+    "galaxy_map": {
+      "first_call_ms": 0.453,
+      "warm_p50_ms": 0.387,
+      "warm_p95_ms": 0.503,
+      "warm_samples_ms": [
+        0.503,
+        0.4,
+        0.377,
+        0.387,
+        0.392,
+        0.372,
+        0.408,
+        0.378,
+        0.387,
+        0.35,
+        0.38
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 4,
+      "select_statements": 3,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 4933,
+      "json_bytes": 1892,
+      "result_sha256": "06d302ad384b17afda0e6ee25cd0b7a4bf9acf827f8e436dcefde5a5ed0aad06",
+      "result_rows": 4,
+      "plans": [
+        {
+          "sql_sha256": "e7ba1bce4cfdc8568e8e9d7e7b61a98f5ef5942b1ff342524df738326e106eed",
+          "plan": [
+            "SCAN exoplanet_hosts"
+          ]
+        },
+        {
+          "sql_sha256": "cd02185726b0fe541e566c0f166321309d99f381ccec8c12503f6514e22cf378",
+          "plan": [
+            "SCAN h USING INDEX sqlite_autoindex_exoplanet_hosts_1",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql_sha256": "3d0b732cca47d687afef2ae9e6a2f8f83cb2cd5b0c0b1b648552098da27ff522",
+          "plan": [
+            "SCAN exoplanet_hosts"
+          ]
+        }
+      ]
+    },
+    "galaxy_map_distance": {
+      "first_call_ms": 0.399,
+      "warm_p50_ms": 0.344,
+      "warm_p95_ms": 0.456,
+      "warm_samples_ms": [
+        0.366,
+        0.37,
+        0.366,
+        0.372,
+        0.456,
+        0.342,
+        0.333,
+        0.339,
+        0.344,
+        0.342,
+        0.342
+      ],
+      "connections": 1,
+      "cold_connections": 1,
+      "cold_select_statements": 4,
+      "select_statements": 3,
+      "vm_steps_lower_bound": 0,
+      "python_peak_bytes": 4929,
+      "json_bytes": 1892,
+      "result_sha256": "06d302ad384b17afda0e6ee25cd0b7a4bf9acf827f8e436dcefde5a5ed0aad06",
+      "result_rows": 4,
+      "plans": [
+        {
+          "sql_sha256": "e7ba1bce4cfdc8568e8e9d7e7b61a98f5ef5942b1ff342524df738326e106eed",
+          "plan": [
+            "SCAN exoplanet_hosts"
+          ]
+        },
+        {
+          "sql_sha256": "af9479e03d163103bff5498f65ab25f1fe49760e2b1347fbb9e8f7b2aac9850c",
+          "plan": [
+            "SCAN h USING INDEX sqlite_autoindex_exoplanet_hosts_1",
+            "SEARCH p USING INDEX idx_exoplanets_host (host_id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql_sha256": "9cabb82828dc7017255468f0305c24615c116919354bcce7abef6cb5bb9de3ef",
+          "plan": [
+            "SCAN exoplanet_hosts"
+          ]
+        }
+      ]
+    }
+  }
+}

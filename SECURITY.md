@@ -24,7 +24,9 @@ There is no bug bounty programme.
   MCP endpoint. Everything here runs locally in a couple of minutes (see
   [CONTRIBUTING.md](CONTRIBUTING.md)) — test against that instead.
 - Both interfaces are read-only by design and the SQLite file is opened
-  `mode=ro&immutable=1`, so the things we care about most are: anything that
+  `mode=ro&immutable=1` for legacy reads. Exoplanet pages use `mode=ro` with
+  an explicit read transaction and normal SQLite locking to bind page rows to
+  their catalogue identity. The things we care about most are: anything that
   reaches arbitrary SQL through the REST or MCP layers, path/SSRF issues in the
   ingest/publish scripts, a poisoned R2 artefact or `latest.json` (the
   manifest is fetched over HTTPS but not signed — `scripts/pull_latest.sh`

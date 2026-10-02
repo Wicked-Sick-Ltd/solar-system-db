@@ -370,6 +370,13 @@ CREATE TABLE IF NOT EXISTS build_meta (
     notes           TEXT
 );
 
+-- One finalized logical identity; builder-installed triggers invalidate it on
+-- any later catalogue table write. Old files without this table remain readable.
+CREATE TABLE IF NOT EXISTS catalogue_identity (
+    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+    payload TEXT NOT NULL
+);
+
 ----------------------------------------------------------------------
 -- Convenience views
 ----------------------------------------------------------------------
@@ -463,3 +470,7 @@ SELECT object_type, COUNT(*) AS n
 FROM objects
 GROUP BY object_type
 ORDER BY n DESC;
+
+-- Separate bounded, licensed observing snapshots; no solar-system object identities.
+CREATE TABLE IF NOT EXISTS starter_targets (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS starter_sources (source TEXT PRIMARY KEY, payload TEXT NOT NULL);
