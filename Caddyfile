@@ -29,8 +29,16 @@
 		reverse_proxy rest-api:8003
 	}
 
-	# MCP streamable-HTTP endpoint
+	# MCP streamable-HTTP endpoint.
+	# Observing quotas are enforced in the MCP process (see solar_db/http_quotas.py).
+	# The stock Caddy image has no rate-limit module; do not add a custom build
+	# for that. Caddy's source address is the compose network, not loopback, so
+	# forwarded headers are ignored unless MCP_TRUSTED_PROXIES lists that proxy.
+	# Until then every caller shares the proxy peer's quota bucket.
 	handle /mcp* {
+		request_body {
+			max_size 64kB
+		}
 		reverse_proxy mcp-server:8002
 	}
 

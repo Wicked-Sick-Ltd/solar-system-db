@@ -30,6 +30,7 @@ from slowapi.util import get_remote_address
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
 from solar_db.data_access import UnsupportedCatalogueFilter
 from solar_db.response_snapshot import CatalogueReadError
+from solar_db.http_quotas import OBSERVING_DISCOVER_LIMIT, OBSERVING_NIGHT_LIMIT
 from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
 from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
@@ -339,7 +340,7 @@ def search(request: Request,
 # --------------------------------------------------------------------------
 @app.get("/api/v1/observing/night", tags=["positions"],
          summary="One local night of labelled geometric Moon and planet planning")
-@limiter.limit("10/minute")
+@limiter.limit(OBSERVING_NIGHT_LIMIT)
 def observing_night(request: Request, date: str, timezone: str, lat: str, lon: str,
                     targets: str = "moon,jupiter,saturn", min_altitude_deg: str = "20",
                     sun_altitude_deg: str = "-12", min_moon_separation_deg: str = "0"):
@@ -363,7 +364,7 @@ def observing_night(request: Request, date: str, timezone: str, lat: str, lon: s
 
 @app.post("/api/v1/observing/night", tags=["positions"],
           summary="Plan with a bounded UTC observing window and user-entered horizon")
-@limiter.limit("10/minute")
+@limiter.limit(OBSERVING_NIGHT_LIMIT)
 async def observing_night_post(request: Request):
     headers = {"Cache-Control": "no-store"}
     allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
@@ -399,7 +400,7 @@ async def observing_night_post(request: Request):
 
 @app.post("/api/v1/observing/discover", tags=["positions"],
           summary="Opt-in bounded geometric shortlist with explained equipment preferences")
-@limiter.limit("5/minute")
+@limiter.limit(OBSERVING_DISCOVER_LIMIT)
 async def observing_discover_post(request: Request):
     headers = {"Cache-Control": "no-store"}
     try:

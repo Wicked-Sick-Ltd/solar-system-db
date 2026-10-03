@@ -50,10 +50,45 @@ installation, daemon-reload, enable and start `solar-mcp`.
 Include `nginx-mcp.conf` **inside the existing API TLS server block**, resolving
 any conflicting `/mcp` locations first. It preserves the request URI, Host,
 Origin and MCP session/protocol headers, and disables response/request buffering
-for streaming. Validate with `nginx -t` before an authorized nginx reload. The
+for streaming. Before the first reload, add this zone once in the **http**
+context (it is illegal inside the server snippet):
+
+```nginx
+limit_req_zone $binary_remote_addr zone=mcp_http:10m rate=60r/m;
+```
+
+Both `/mcp` locations then apply `limit_req zone=mcp_http burst=30 nodelay`
+(`limit_req_status 429`) and `client_max_body_size 64k`. 60 requests/minute is
+the REST default per-IP ceiling, so this location cannot fall outside ordinary
+catalogue limits. It is not the observing quota: nginx cannot see which JSON-RPC
+tool a POST calls. `X-Real-IP` is set from `$remote_addr`, replacing any
+client-supplied value. Validate with `nginx -t` before an authorized nginx reload. The
 canonical client endpoint is `https://api.sol.wickedsick.com/mcp` without a
 trailing slash; the prefix location also reaches the MCP application rather
 than falling through to REST. Do not strip `/mcp` in `proxy_pass`.
+
+Streamable HTTP and legacy SSE rate-limit the planner tools per client, using
+the same strings as REST (`solar_db/http_quotas.py`):
+
+| Tool | Quota | REST |
+|---|---|---|
+| `plan_observing_night` | 10/minute | `GET` and `POST /api/v1/observing/night` |
+| `discover_observing_targets` | 5/minute | `POST /api/v1/observing/discover` |
+
+The window is a sliding 60 seconds, counted per tool and per client. The next
+call returns an MCP tool error (`isError`) immediately and does not take a
+planner slot. `get_stats` and the other catalogue reads are not on this quota.
+Stdio is a local process and is not counted.
+
+The client key is the TCP peer. Because the service listens on `127.0.0.1`,
+nginx is that peer, and the process then uses `X-Real-IP` when it is a single
+IP. If that header is absent it uses the rightmost untrusted `X-Forwarded-For`
+hop (the address nginx appended). `127.0.0.1` and `::1` are always trusted.
+`MCP_TRUSTED_PROXIES` is an optional comma-separated list of additional proxy
+addresses; malformed entries are ignored. A peer that is not on that list
+cannot change its bucket by sending either header. Uvicorn proxy-header
+rewriting is off so the socket peer stays visible. The two-slot planner
+semaphore is unchanged and is not a per-client quota.
 
 `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` are comma-separated allowlists.
 The service permits only the existing public hostname/HTTPS origin in addition
@@ -65,7 +100,13 @@ client changes. This proposal does not move the endpoint to publicuniverse.net.
 
 The Docker alternative supplies the same allowlists from `PUBLIC_HOSTNAME`
 and passes that value to Caddy. This is a separate deployment option, not a
-reason to install Docker on php01.
+reason to install Docker on php01. The stock Caddy image has no request-rate
+module, so the Caddyfile only caps `/mcp` bodies at 64 kB. The MCP process
+still applies the observing quotas above. Caddy's connection arrives from the
+compose network rather than loopback, so `X-Forwarded-For` is not trusted and
+every caller shares that proxy's bucket until `MCP_TRUSTED_PROXIES` names
+Caddy's address. Sharing one bucket is stricter than per-client limits; it
+does not remove the cap.
 
 ## Catalogue refresh and code updates
 
@@ -97,7 +138,11 @@ Check both are active and catalogue identities agree after a refresh.
    Use the canonical `/mcp` URL; no OAuth or API key is required.
 3. Confirm a non-allowlisted Host or Origin is rejected. Validate clients with
    and without an Origin header. Confirm REST remains healthy.
-4. Check `journalctl -u solar-mcp`, the existing pull log and nginx logs without
+4. From one client address, the 11th `plan_observing_night` and the 6th
+   `discover_observing_targets` inside a minute return a rate-limit tool error
+   without waiting on the planner. A second client address is still served.
+   `get_stats` still succeeds for a client that has exhausted the night quota.
+5. Check `journalctl -u solar-mcp`, the existing pull log and nginx logs without
    publishing private client request data. Expect client sessions to reconnect
    following a service restart.
 
@@ -111,7 +156,10 @@ previous release and its dependencies through the release process.
 
 `mcp-server/tests/test_mcp_http.py` launches the real HTTP CLI against an isolated
 offline catalogue and exercises initialization, session headers, discovery,
-`get_stats`, session deletion and rejection of untrusted hosts/origins. It does
+`get_stats`, session deletion and rejection of untrusted hosts/origins.
+`mcp-server/tests/test_mcp_http_quota.py` checks the per-client observing
+quotas, a second client address, spoofed forwarded headers from an untrusted
+peer, and that `get_stats` is not on the observing quota. These tests do
 not claim production activation or acceptance in every vendor UI.
 
 - [MCP Python SDK transport security](https://github.com/modelcontextprotocol/python-sdk/blob/v1.27.1/src/mcp/server/transport_security.py)

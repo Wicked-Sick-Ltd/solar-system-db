@@ -32,17 +32,43 @@ from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 from pydantic import StrictFloat, StrictInt
 
+from http_quota import ToolRateLimiter, client_address
 from solar_db import SolarDB, compute_heliocentric_position, next_perihelion_jd
+from solar_db.http_quotas import MCP_OBSERVING_TOOL_LIMITS
 from solar_db.observing import PlanningError, plan_night
 from solar_db.observing.discovery import DISCOVERY_FIELDS, discover_targets
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
 
+_observing_quota = ToolRateLimiter(MCP_OBSERVING_TOOL_LIMITS)
+
+
+def _http_client_key(server: FastMCP) -> str | None:
+    """Client key for an in-flight HTTP tool call. ``None`` on stdio."""
+    try:
+        request_context = server._mcp_server.request_context
+    except LookupError:
+        return None
+    request = getattr(request_context, "request", None)
+    if request is None:
+        return None
+    peer = request.client.host if request.client else None
+    return client_address(peer, request.headers)
+
+
 class CatalogueMCP(FastMCP):
     """Do not silently discard constraints on the new planning tool."""
 
     async def call_tool(self, name, arguments):
+        # Count the attempt before argument checks or the planner semaphore.
+        # Over-limit HTTP calls return a tool error instead of queueing work.
+        # Stdio has no peer address and is not counted.
+        client = _http_client_key(self)
+        if client is not None:
+            refusal = _observing_quota.refusal(name, client)
+            if refusal:
+                raise ToolError(refusal)
         if name == "plan_observing_night":
             allowed = {"date", "timezone", "lat", "lon", "targets", "min_altitude_deg",
                        "sun_altitude_deg", "min_moon_separation_deg", "window_start_utc", "window_end_utc", "horizon_mask"}
@@ -616,8 +642,31 @@ def main(argv: list[str] | None = None) -> int:
         mcp.settings.port = args.port
         print(f"solar-system-db MCP server: {transport} on "
               f"{args.host}:{args.port}", file=sys.stderr)
+        _run_http(mcp.sse_app() if transport == "sse" else mcp.streamable_http_app())
+        return 0
     mcp.run(transport=transport)
     return 0
+
+
+def _run_http(app) -> None:
+    """Serve HTTP with the socket peer left intact.
+
+    Uvicorn's proxy-header middleware rewrites ``client.host`` from
+    ``X-Forwarded-For`` whenever the peer is 127.0.0.1. php01's nginx is that
+    peer, so trusting the header inside uvicorn would let a client pick its
+    rate-limit key. ``client_address`` applies the header only after this
+    process has seen a trusted proxy on the socket.
+    """
+    import uvicorn
+
+    config = uvicorn.Config(
+        app,
+        host=mcp.settings.host,
+        port=mcp.settings.port,
+        log_level=mcp.settings.log_level.lower(),
+        proxy_headers=False,
+    )
+    uvicorn.Server(config).run()
 
 
 if __name__ == "__main__":

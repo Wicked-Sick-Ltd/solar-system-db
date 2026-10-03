@@ -72,6 +72,12 @@ does the heavy lifting in front of public deployments; this is defence in
 depth. Adjust the `@limiter.limit("60/minute")` decorators in `api/main.py`
 if you need different limits.
 
+Night planning is **10/minute** and target discovery is **5/minute**, both per
+IP. Those strings live in `solar_db/http_quotas.py` (`OBSERVING_NIGHT_LIMIT`,
+`OBSERVING_DISCOVER_LIMIT`) and the MCP HTTP server applies them to
+`plan_observing_night` and `discover_observing_targets`. Change the numbers
+there so the two surfaces cannot drift.
+
 ## Data sources
 
 Meteor shower data is sourced from the **IAU Meteor Data Center** (Jenniskens et al. 2020; Hajdukova & Rudawska). See the root `README.md` for the full list of upstream sources and licensing.

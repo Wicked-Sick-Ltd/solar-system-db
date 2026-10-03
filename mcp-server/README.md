@@ -60,6 +60,30 @@ allowed by default; DNS-rebinding checks stay enabled. The proposed php01
 service/proxy and refresh procedure is in
 [the MCP rollout runbook](../deploy/php01/MCP-ROLLOUT.md).
 
+## HTTP quotas
+
+Streamable HTTP and legacy SSE apply the same observing quotas as REST. The
+strings live in [`solar_db/http_quotas.py`](../solar_db/http_quotas.py):
+
+| Tool | Quota | REST route |
+|---|---|---|
+| `plan_observing_night` | 10/minute | `GET` and `POST /api/v1/observing/night` |
+| `discover_observing_targets` | 5/minute | `POST /api/v1/observing/discover` |
+
+Each quota is a sliding 60-second window, per client and per tool. The next
+call is an MCP tool error (`isError`) and does not enter the two-slot planner.
+Catalogue reads such as `get_stats` are not on these quotas. Stdio is not
+counted: it has no remote peer.
+
+The client key is the TCP peer. `X-Real-IP` and `X-Forwarded-For` are read
+only when that peer is `127.0.0.1`, `::1`, or an address in the comma-separated
+`MCP_TRUSTED_PROXIES` list. A single `X-Real-IP` wins (php01 nginx sets it from
+`$remote_addr`). Otherwise the rightmost untrusted `X-Forwarded-For` hop is
+used, which is the address a proxy appended. An untrusted peer cannot move
+itself to another bucket by sending those headers. The php01 nginx locations
+also apply `limit_req` at 60 requests/minute and a 64 kB body cap; details are
+in the rollout runbook.
+
 ## Claude Desktop config
 
 Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`

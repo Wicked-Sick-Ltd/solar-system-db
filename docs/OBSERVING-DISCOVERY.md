@@ -9,6 +9,11 @@ visibility prediction, telescope pointing service or detection score.
 
 ## Inputs and privacy
 
+REST allows 5 discovery requests per minute per IP. MCP HTTP applies that same
+`OBSERVING_DISCOVER_LIMIT` from `solar_db/http_quotas.py` to
+`discover_observing_targets`. The two-slot planner cap is separate and is not
+a substitute for this quota.
+
 The REST route accepts only a JSON object, at most 16 KiB, with no query string.
 Duplicate/unknown fields, non-finite values, boolean numeric values, malformed
 dates and invalid windows/horizons fail before a worker starts. The request is
