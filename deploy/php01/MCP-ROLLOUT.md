@@ -8,7 +8,21 @@ inspected; the 404 alone does not establish the live root cause. Inspect it
 before applying this proposal. Production deployment and any new sudo grants
 require separate authorization.
 
-## Review before rollout
+## Domain/WAF decision — 2026-10-03
+
+Craig identified Cloudflare WAF rules as the public MCP issue and deferred the
+fix to the move to the new domain. This supersedes the earlier suspicion that
+missing origin routing caused the 404. Do not activate these service/proxy
+templates as a remedy for that response alone.
+
+At cutover, verify the intended hostname and MCP traffic through Cloudflare,
+then repeat initialization, tool discovery and a read-only call. Inspect the
+existing origin only if a problem remains; use the proposed templates below
+only if that inspection establishes an origin gap. Preserve any existing MCP
+service. Live client acceptance follows the domain/WAF correction; no immediate
+WAF, service or proxy changes are requested by this plan update.
+
+## Review before any conditional origin rollout
 
 - Confirm the active API TLS virtual host, existing location blocks, upstream
   ports, systemd units, service user and exact release commit. Preserve Forge
