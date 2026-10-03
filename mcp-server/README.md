@@ -54,6 +54,12 @@ python mcp-server/server.py --transport http --port 8002
 python mcp-server/server.py --transport sse
 ```
 
+For public reverse proxies, configure comma-separated `MCP_ALLOWED_HOSTS` and
+`MCP_ALLOWED_ORIGINS` with the actual host and HTTPS origin. Only loopback is
+allowed by default; DNS-rebinding checks stay enabled. The proposed php01
+service/proxy and refresh procedure is in
+[the MCP rollout runbook](../deploy/php01/MCP-ROLLOUT.md).
+
 ## Claude Desktop config
 
 Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -76,6 +82,14 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`
 Restart Claude Desktop. Type `/` in the chat to confirm the server registered.
 
 ## Tools
+
+Each current tool explicitly advertises read-only, non-destructive, idempotent,
+closed-world annotations. Calls read the local catalogue/manifest or perform
+offline calculations; `get_download_info` reads the local `latest.json` and
+returns download metadata without fetching it. Annotations are client-facing
+hints, not a permission bypass, and future tools must be classified individually.
+Idempotence describes absence of extra side effects; live catalogue refreshes
+and time-dependent defaults can still change returned results.
 
 ### Catalog (data-first)
 

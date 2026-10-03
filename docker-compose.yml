@@ -45,6 +45,8 @@ services:
       - MCP_TRANSPORT=http
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8002
+      - MCP_ALLOWED_HOSTS=${PUBLIC_HOSTNAME:-localhost},${PUBLIC_HOSTNAME:-localhost}:443
+      - MCP_ALLOWED_ORIGINS=https://${PUBLIC_HOSTNAME:-localhost}
     volumes:
       - ./data:/data:ro
     expose:
@@ -54,6 +56,8 @@ services:
     image: caddy:2-alpine
     container_name: solar-caddy
     restart: unless-stopped
+    environment:
+      - PUBLIC_HOSTNAME=${PUBLIC_HOSTNAME:-localhost}
     ports:
       - "80:80"
       - "443:443"
