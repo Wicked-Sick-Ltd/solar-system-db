@@ -36,7 +36,7 @@ def trusted_proxies() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address
             if entry not in _warned_proxy_entries:
                 _warned_proxy_entries.add(entry)
                 print(
-                    f"solar-system-db MCP: ignoring invalid MCP_TRUSTED_PROXIES entry {entry!r}",
+                    "solar-system-db MCP: ignoring an invalid MCP_TRUSTED_PROXIES entry",
                     file=sys.stderr,
                 )
     return frozenset(found)

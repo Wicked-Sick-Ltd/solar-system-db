@@ -27,15 +27,18 @@ DISCOVER_COUNT, _ = parse_quota(OBSERVING_DISCOVER_LIMIT)
 @pytest.fixture(scope="module")
 def http_server(tmp_path_factory):
     with socket.socket() as listener:
-        listener.bind(("0.0.0.0", 0))
+        listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     log_path = tmp_path_factory.mktemp("mcp-http-quota") / "server.log"
     env = {**os.environ, "MCP_ALLOWED_HOSTS": PUBLIC_HOST,
            "MCP_ALLOWED_ORIGINS": f"https://{PUBLIC_HOST}"}
+    env.pop("MCP_HOST", None)
     with log_path.open("w+") as log:
         process = subprocess.Popen(
+            # Default bind accepts loopback and this host's other address.
+            # Passing an explicit all-interfaces address is unnecessary here.
             [sys.executable, str(ROOT / "mcp-server/server.py"), "--transport", "http",
-             "--host", "0.0.0.0", "--port", str(port)],
+             "--port", str(port)],
             cwd=ROOT, env=env, stdout=log, stderr=log,
         )
         try:
