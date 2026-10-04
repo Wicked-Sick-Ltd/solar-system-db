@@ -5,7 +5,11 @@ php01 (`192.168.5.101`, Laravel Forge server; SSH as `wizzo`) serves
 (`solar-api`, not Docker) and refreshes its catalogue every 15 minutes with
 `scripts/pull_latest.sh` from the manifest the llm1 build host publishes to R2.
 
-## Layout (current, since 2026-09-18)
+Public MCP setup is proposed separately in [MCP-ROLLOUT.md](MCP-ROLLOUT.md),
+with a loopback service, nginx routing and a coordinated refresh command.
+It has not been applied to the live host by this change.
+
+## Layout (recorded since 2026-09-18; revalidate before changes)
 
 | What | Where |
 |---|---|

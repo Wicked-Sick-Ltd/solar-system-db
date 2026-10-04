@@ -26,7 +26,7 @@ dev = [
     "ruff>=0.5",
 ]
 mcp = [
-    "mcp>=1.0.0,<2",
+    "mcp>=1.27.1,<2",
 ]
 api = [
     "fastapi>=0.110",
@@ -39,7 +39,7 @@ publish = [
 ]
 all = [
     "jplephem==2.24",
-    "mcp>=1.0.0,<2",
+    "mcp>=1.27.1,<2",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "slowapi>=0.1.9",
