@@ -575,7 +575,7 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
             return [dict(r) for r in conn.execute(
                 """
                 SELECT ca.object_id, o.name, o.designation, ca.body, ca.cd_iso, ca.dist_au, ca.dist_min_au,
-                       ca.v_rel_km_s, v.absolute_magnitude_h, p.radius_km
+                       ca.v_rel_km_s, v.absolute_magnitude_h, p.radius_km, p.mass_kg
                 FROM close_approaches ca
                 JOIN objects o ON o.id = ca.object_id
                 LEFT JOIN visual_properties v ON v.object_id = ca.object_id
