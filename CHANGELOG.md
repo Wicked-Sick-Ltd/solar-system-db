@@ -116,6 +116,10 @@ It covers everything on `main` from the initial commit (1 June 2026) up to
   catalogue published by the `llm1` nightly on 9 October 2026 (built 05:25 BST)
   still reports schema v3 with no exoplanet tables. The build host needs to pick
   up current `main` before the downloadable database includes exoplanets.
+- The production API is behind `main`. On 9 October 2026 it answered
+  `/close-approaches` but returned 404 for `/meteor-showers`, `/exoplanets`,
+  `/catalogue`, `/observing/night` and `/starter-targets`, so #16, #30 and #46
+  are merged but not yet deployed to the API host.
 - publicuniverse.net API and download hostnames are proposals. Current
   addresses (`api.sol.wickedsick.com`, `download.sol.wickedsick.com`) remain in
   use, and the repository keeps its `solar-system-db` name.
