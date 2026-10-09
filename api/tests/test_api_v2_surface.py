@@ -66,6 +66,7 @@ def test_close_approach_routes(client):
     year = iso[:4]
     r = client.get("/api/v1/close-approaches", params={"from": f"{year}-01-01", "to": f"{year}-12-31", "max_dist_au": 0.05}).json()
     assert r["results"] and r["results"][0]["dist_au"] <= r["results"][-1]["dist_au"]
+    assert "mass_kg" in r["results"][0]
 
 
 def test_download_manifest_404_then_served(client, tmp_path, monkeypatch):
