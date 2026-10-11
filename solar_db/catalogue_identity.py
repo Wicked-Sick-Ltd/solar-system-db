@@ -40,7 +40,20 @@ def canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
 
 
+_MAX_IDENTIFIER_LEN = 128
+
+
 def quote(name):
+    """Quote a SQLite identifier taken from the catalogue's own schema.
+
+    Only ever called with names read from ``sqlite_master`` / ``PRAGMA`` output
+    or builder constants, never request input. Refuse anything that is not a
+    plausible identifier so a malformed schema cannot smuggle SQL through.
+    """
+    if not isinstance(name, str) or not name or len(name) > _MAX_IDENTIFIER_LEN:
+        raise ValueError("Invalid SQLite identifier")
+    if any(ord(char) < 32 or ord(char) == 127 for char in name):
+        raise ValueError("Invalid SQLite identifier")
     return '"' + name.replace('"', '""') + '"'
 
 
@@ -84,14 +97,14 @@ def logical_hash(conn):
     """
     tables = logical_tables(conn)
     for table in tables:
-        for foreign in conn.execute(f"PRAGMA foreign_key_list({quote(table)})"):
+        for foreign in conn.execute(f"PRAGMA foreign_key_list({quote(table)})"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
             if foreign[2].lower() in SURROGATE_TABLES and (foreign[4] is None or foreign[4].lower() == "id"):
                 raise ValueError("Hash policy must be revised for a referenced surrogate identifier")
     digest = hashlib.sha256()
     digest.update(canonical([HASH_POLICY]) + b"\n")
     row_counts = {}
     for table in tables:
-        columns = [row for row in conn.execute(f"PRAGMA table_info({quote(table)})")
+        columns = [row for row in conn.execute(f"PRAGMA table_info({quote(table)})")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
                    if row[1] not in EXCLUDED_COLUMNS.get(table, set())]
         if not columns:
             raise ValueError("Logical table has no retained columns")
@@ -104,7 +117,7 @@ def logical_hash(conn):
         ordering += "," + ",".join(f"typeof({quote(name)})" for name in names)
         query = f"SELECT {','.join(map(quote, names))} FROM {quote(table)} ORDER BY {ordering}"
         count = 0
-        for row in conn.execute(query):
+        for row in conn.execute(query):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
             digest.update(canonical([typed(value) for value in row]) + b"\n")
             count += 1
         digest.update(canonical(["rows", count]) + b"\n")
@@ -141,9 +154,9 @@ def source_manifest(conn, inputs, builder):
     for table in ("exoplanets", "exoplanet_hosts", "meteor_showers", "impact_monitoring"):
         if table not in tables:
             continue
-        has_time = "retrieved_at" in {r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")}
+        has_time = "retrieved_at" in {r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")}  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
         times = "MIN(retrieved_at),MAX(retrieved_at)" if has_time else "NULL,NULL"
-        for row in conn.execute(f"SELECT source,COUNT(*),{times} FROM {quote(table)} GROUP BY source ORDER BY source"):
+        for row in conn.execute(f"SELECT source,COUNT(*),{times} FROM {quote(table)} GROUP BY source ORDER BY source"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
             sources.append({"name": row[0], "scope": table, "records": row[1],
                             "recorded_retrieval_first": _timestamp(row[2]), "recorded_retrieval_last": _timestamp(row[3]), "source_version": None})
     pinned = []
@@ -158,13 +171,13 @@ def source_manifest(conn, inputs, builder):
                            "coordinate_evidence_retrieved_date": _date_only(evidence.get("retrieved_at")), "source_version": data.get("version")})
     retrieval_digest = hashlib.sha256()
     for table in sorted(tables):
-        columns = [r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")]
+        columns = [r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")]  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
         if "retrieved_at" not in columns:
             continue
         columns = [name for name in columns if name != "id" or table not in SURROGATE_TABLES]
         selection = ",".join(map(quote, columns))
         retrieval_digest.update(canonical([table, columns]) + b"\n")
-        for row in conn.execute(f"SELECT {selection} FROM {quote(table)} ORDER BY {selection}"):
+        for row in conn.execute(f"SELECT {selection} FROM {quote(table)} ORDER BY {selection}"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
             retrieval_digest.update(canonical([typed(value) for value in row]) + b"\n")
     return {"sources": sources, "pinned_catalogues": pinned, "inputs": inputs, "builder": builder,
             "recorded_retrieval_sha256": retrieval_digest.hexdigest(),
@@ -194,8 +207,8 @@ def finalize(conn, *, build, inputs=None, builder=None):
                 name = "identity_invalidate_" + hashlib.sha256(f"{table}:{action}".encode()).hexdigest()[:20]
                 # This namespace is builder-owned. Do not bless an accidental
                 # same-name no-op trigger into a newly finalized identity.
-                conn.execute(f"DROP TRIGGER IF EXISTS {quote(name)}")
-                conn.execute(f"CREATE TRIGGER {quote(name)} AFTER {action} ON {quote(table)} BEGIN DELETE FROM catalogue_identity; END")
+                conn.execute(f"DROP TRIGGER IF EXISTS {quote(name)}")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+                conn.execute(f"CREATE TRIGGER {quote(name)} AFTER {action} ON {quote(table)} BEGIN DELETE FROM catalogue_identity; END")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
         content_hash, counts = logical_hash(conn)
         manifest = source_manifest(conn, inputs or [], builder or {})
         schema_hash = schema_fingerprint(conn)
