@@ -177,7 +177,7 @@ def measure(db, function, repeats):
                 {
                     "sql_sha256": hashlib.sha256(statement.encode()).hexdigest(),
                     "plan": [
-                        r[3] for r in conn.execute("EXPLAIN QUERY PLAN " + statement)
+                        r[3] for r in conn.execute("EXPLAIN QUERY PLAN " + statement)  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev profiling script; statements are the app's own traced SELECTs, no external input
                     ],
                 }
             )
@@ -237,7 +237,7 @@ def run(path, repeats, objects):
     }
     with db._conn() as conn:
         counts = {
-            name: conn.execute(f"SELECT count(*) FROM {name}").fetchone()[0]
+            name: conn.execute(f"SELECT count(*) FROM {name}").fetchone()[0]  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev profiling script; table name from fixed literal list
             for name in ["objects", "exoplanets", "exoplanet_hosts", "starter_targets"]
         }
     return {

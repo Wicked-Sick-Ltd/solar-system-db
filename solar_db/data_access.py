@@ -198,7 +198,7 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
             where = " AND ".join(clauses) or "1"
             order = "o.id" if after is not None else "oe.semi_major_axis_au IS NULL, oe.semi_major_axis_au, o.id"
             extra = "oe.orbit_class_code, oe.moid_au, oe.condition_code," if v2 else ""
-            rows = conn.execute(
+            rows = conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- WHERE/ORDER built only from static clause strings; all values bound as named params
                 f"""
                 SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
                        o.discoverer, o.discovery_date, o.wikipedia_url,
