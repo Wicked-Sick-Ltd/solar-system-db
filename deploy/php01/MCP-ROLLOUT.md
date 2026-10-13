@@ -91,6 +91,9 @@ rewriting is off so the socket peer stays visible. The two-slot planner
 semaphore is unchanged and is not a per-client quota.
 
 `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` are comma-separated allowlists.
+They must list every public hostname the proxy forwards (`api.publicuniverse.net`
+and the `api.sol.wickedsick.com` alias); a hostname missing from them answers
+`421 Invalid Host header`.
 The service permits only the existing public hostname/HTTPS origin in addition
 to loopback. DNS-rebinding checks remain on. Server-to-server clients normally
 omit Origin; the SDK accepts that. Add any genuinely required browser origin
