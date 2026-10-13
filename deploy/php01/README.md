@@ -1,7 +1,7 @@
 # php01 — the API host
 
 php01 (`192.168.5.101`, Laravel Forge server; SSH as `wizzo`) serves
-`api.sol.wickedsick.com`. It runs the FastAPI app as a **systemd unit**
+`api.publicuniverse.net` (alias `api.sol.wickedsick.com`, same Forge site). It runs the FastAPI app as a **systemd unit**
 (`solar-api`, not Docker) and refreshes its catalogue every 15 minutes with
 `scripts/pull_latest.sh` from the manifest the llm1 build host publishes to R2.
 
