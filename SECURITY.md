@@ -3,7 +3,7 @@
 ## Supported versions
 
 Only the `main` branch is supported. It is what runs the public instance at
-<https://api.sol.wickedsick.com>; there are no tagged releases.
+<https://api.publicuniverse.net> (also served as `api.sol.wickedsick.com`); there are no tagged releases.
 
 ## Reporting a vulnerability
 

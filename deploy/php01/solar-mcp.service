@@ -10,8 +10,8 @@ User=wizzo
 Group=wizzo
 WorkingDirectory=/home/wizzo/solar-system-db
 Environment=SOLAR_DB_PATH=/home/wizzo/solar-data/solar_system.sqlite
-Environment=MCP_ALLOWED_HOSTS=api.sol.wickedsick.com,api.sol.wickedsick.com:443
-Environment=MCP_ALLOWED_ORIGINS=https://api.sol.wickedsick.com
+Environment=MCP_ALLOWED_HOSTS=api.publicuniverse.net,api.publicuniverse.net:443,api.sol.wickedsick.com,api.sol.wickedsick.com:443
+Environment=MCP_ALLOWED_ORIGINS=https://api.publicuniverse.net,https://api.sol.wickedsick.com
 ExecStart=/home/wizzo/solar-system-db/.venv/bin/python /home/wizzo/solar-system-db/mcp-server/server.py --transport http --host 127.0.0.1 --port 8002
 Restart=on-failure
 RestartSec=5

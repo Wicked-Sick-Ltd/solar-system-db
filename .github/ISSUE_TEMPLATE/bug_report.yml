@@ -24,7 +24,7 @@ body:
     id: env
     attributes:
       label: Environment
-      placeholder: Python 3.12 on macOS, or the public instance at api.sol.wickedsick.com
+      placeholder: Python 3.12 on macOS, or the public instance at api.publicuniverse.net
   - type: checkboxes
     id: checks
     attributes:
