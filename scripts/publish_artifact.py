@@ -220,7 +220,9 @@ def publish(db: Path, dest, *, enrichment_store: Path | None, keep_days: int, le
 
 
 def _publish_snapshot(db: Path, dest, *, enrichment_store: Path | None, keep_days: int, level: int, stamp: str | None = None) -> dict[str, Any]:
-    stamp = stamp or datetime.now(timezone.utc).strftime("%Y%m%d")
+    now = datetime.now(timezone.utc)
+    today = datetime.strptime(stamp, "%Y%m%d").replace(tzinfo=timezone.utc) if stamp else now
+    stamp = stamp or now.strftime("%Y%m%d")
     name = f"solar_system-{stamp}.sqlite.zst"
     work = db.parent / name
     t0 = time.time()
@@ -229,12 +231,12 @@ def _publish_snapshot(db: Path, dest, *, enrichment_store: Path | None, keep_day
     url = dest.put(work, name, "application/zstd")
     dest.put_text(f"{digest}  {name}\n", name + ".sha256")
     manifest = build_manifest(db, artefact_name=name, url=url, size_bytes=size, sha256=digest, enrichment_store=enrichment_store)
-    manifest["published_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    manifest["published_at"] = now.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     manifest["compress_seconds"] = round(time.time() - t0, 1)
     text = json.dumps(manifest, indent=1)
     dest.put_text(text, f"solar_system-{stamp}.json")
     dest.put_text(text, "latest.json")
-    manifest["pruned"] = prune(dest, keep_days, datetime.now(timezone.utc))
+    manifest["pruned"] = prune(dest, keep_days, today)
     work.unlink(missing_ok=True)
     return manifest
 
