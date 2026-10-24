@@ -359,7 +359,7 @@ def observing_night(request: Request, date: str, timezone: str, lat: str, lon: s
                             sun_altitude_deg, min_moon_separation_deg)
         return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
     except PlanningError as exc:
-        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers={"Cache-Control": "no-store"})
+        raise HTTPException(status_code=exc.status, detail=str(exc), headers={"Cache-Control": "no-store"}) from exc
 
 
 @app.post("/api/v1/observing/night", tags=["positions"],
@@ -393,7 +393,7 @@ async def observing_night_post(request: Request):
         result = await run_in_threadpool(plan_night, **payload)
         return JSONResponse(content=result, headers=headers)
     except PlanningError as exc:
-        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+        raise HTTPException(status_code=exc.status, detail=str(exc), headers=headers) from exc
     except (ValueError, UnicodeDecodeError, RecursionError):
         return JSONResponse(status_code=422, content={"detail": "Observing request must be a valid bounded JSON object."}, headers=headers)
 
@@ -426,7 +426,7 @@ async def observing_discover_post(request: Request):
         result = await run_in_threadpool(discover_targets, **payload)
         return JSONResponse(content=result, headers=headers)
     except PlanningError as exc:
-        return JSONResponse(status_code=exc.status, content={"detail": str(exc)}, headers=headers)
+        raise HTTPException(status_code=exc.status, detail=str(exc), headers=headers) from exc
     except (ValueError, UnicodeDecodeError, RecursionError):
         return JSONResponse(status_code=422, content={"detail": "Discovery request must be a valid bounded JSON object."}, headers=headers)
 
