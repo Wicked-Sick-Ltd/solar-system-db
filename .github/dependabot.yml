@@ -1,0 +1,18 @@
+# Weekly container image updates.
+# Dockerfiles live in subdirectories (there is no root Dockerfile).
+# docker-compose.yml at the repo root pulls an external image (caddy).
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: "docker"
+    directories:
+      - "/api"
+      - "/build"
+      - "/mcp-server"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
