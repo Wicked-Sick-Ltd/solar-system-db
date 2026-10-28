@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta, timezone
-from importlib import resources
+from importlib import resources  # nosemgrep: python.lang.compatibility.python37.python37-compatibility-importlib2 -- reviewed FP: requires-python >=3.10, importlib.resources is stdlib there
 from typing import Any
 
 from .positions import compute_heliocentric_position
