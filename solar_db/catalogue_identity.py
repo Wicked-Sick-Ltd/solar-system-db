@@ -41,6 +41,17 @@ def canonical(value):
 
 
 _MAX_IDENTIFIER_LEN = 128
+_TRIGGER_ACTIONS = ("INSERT", "UPDATE", "DELETE")
+_SOURCE_SUMMARY_QUERIES = {
+    ("exoplanets", True): "SELECT source,COUNT(*),MIN(retrieved_at),MAX(retrieved_at) FROM exoplanets GROUP BY source ORDER BY source",
+    ("exoplanets", False): "SELECT source,COUNT(*),NULL,NULL FROM exoplanets GROUP BY source ORDER BY source",
+    ("exoplanet_hosts", True): "SELECT source,COUNT(*),MIN(retrieved_at),MAX(retrieved_at) FROM exoplanet_hosts GROUP BY source ORDER BY source",
+    ("exoplanet_hosts", False): "SELECT source,COUNT(*),NULL,NULL FROM exoplanet_hosts GROUP BY source ORDER BY source",
+    ("meteor_showers", True): "SELECT source,COUNT(*),MIN(retrieved_at),MAX(retrieved_at) FROM meteor_showers GROUP BY source ORDER BY source",
+    ("meteor_showers", False): "SELECT source,COUNT(*),NULL,NULL FROM meteor_showers GROUP BY source ORDER BY source",
+    ("impact_monitoring", True): "SELECT source,COUNT(*),MIN(retrieved_at),MAX(retrieved_at) FROM impact_monitoring GROUP BY source ORDER BY source",
+    ("impact_monitoring", False): "SELECT source,COUNT(*),NULL,NULL FROM impact_monitoring GROUP BY source ORDER BY source",
+}
 
 
 def quote(name):
@@ -96,19 +107,26 @@ def logical_hash(conn):
     JSON text is deliberately exact text: whitespace/key-order changes alter ID.
     """
     tables = logical_tables(conn)
+    allowed_tables = set(tables)
     for table in tables:
-        for foreign in conn.execute(f"PRAGMA foreign_key_list({quote(table)})"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+        for foreign in conn.execute("SELECT * FROM pragma_foreign_key_list(?)", (table,)):
             if foreign[2].lower() in SURROGATE_TABLES and (foreign[4] is None or foreign[4].lower() == "id"):
                 raise ValueError("Hash policy must be revised for a referenced surrogate identifier")
     digest = hashlib.sha256()
     digest.update(canonical([HASH_POLICY]) + b"\n")
     row_counts = {}
     for table in tables:
-        columns = [row for row in conn.execute(f"PRAGMA table_info({quote(table)})")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+        if table not in allowed_tables:
+            raise ValueError("Invalid SQLite table identifier")
+        table_info = conn.execute("SELECT * FROM pragma_table_info(?)", (table,)).fetchall()
+        allowed_columns = {row[1] for row in table_info}
+        columns = [row for row in table_info
                    if row[1] not in EXCLUDED_COLUMNS.get(table, set())]
         if not columns:
             raise ValueError("Logical table has no retained columns")
         names = [row[1] for row in columns]
+        if not set(names) <= allowed_columns:
+            raise ValueError("Invalid SQLite column identifier")
         digest.update(canonical(["table", table, [[r[1], r[2]] for r in columns]]) + b"\n")
         # Stable primary keys avoid wide sorts on the largest property tables.
         primary = [r[1] for r in sorted(columns, key=lambda r: r[5]) if r[5]]
@@ -117,7 +135,7 @@ def logical_hash(conn):
         ordering += "," + ",".join(f"typeof({quote(name)})" for name in names)
         query = f"SELECT {','.join(map(quote, names))} FROM {quote(table)} ORDER BY {ordering}"
         count = 0
-        for row in conn.execute(query):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+        for row in conn.execute(query):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- identifiers from sqlite_master/pragma_table_info allowlists via strict quote(); no caller input
             digest.update(canonical([typed(value) for value in row]) + b"\n")
             count += 1
         digest.update(canonical(["rows", count]) + b"\n")
@@ -154,9 +172,8 @@ def source_manifest(conn, inputs, builder):
     for table in ("exoplanets", "exoplanet_hosts", "meteor_showers", "impact_monitoring"):
         if table not in tables:
             continue
-        has_time = "retrieved_at" in {r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")}  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
-        times = "MIN(retrieved_at),MAX(retrieved_at)" if has_time else "NULL,NULL"
-        for row in conn.execute(f"SELECT source,COUNT(*),{times} FROM {quote(table)} GROUP BY source ORDER BY source"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+        has_time = "retrieved_at" in {r[1] for r in conn.execute("SELECT * FROM pragma_table_info(?)", (table,))}
+        for row in conn.execute(_SOURCE_SUMMARY_QUERIES[(table, has_time)]):
             sources.append({"name": row[0], "scope": table, "records": row[1],
                             "recorded_retrieval_first": _timestamp(row[2]), "recorded_retrieval_last": _timestamp(row[3]), "source_version": None})
     pinned = []
@@ -171,13 +188,14 @@ def source_manifest(conn, inputs, builder):
                            "coordinate_evidence_retrieved_date": _date_only(evidence.get("retrieved_at")), "source_version": data.get("version")})
     retrieval_digest = hashlib.sha256()
     for table in sorted(tables):
-        columns = [r[1] for r in conn.execute(f"PRAGMA table_info({quote(table)})")]  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
-        if "retrieved_at" not in columns:
+        table_columns = [r[1] for r in conn.execute("SELECT * FROM pragma_table_info(?)", (table,))]
+        if "retrieved_at" not in table_columns:
             continue
-        columns = [name for name in columns if name != "id" or table not in SURROGATE_TABLES]
+        allowed_columns = set(table_columns)
+        columns = [name for name in table_columns if name in allowed_columns and (name != "id" or table not in SURROGATE_TABLES)]
         selection = ",".join(map(quote, columns))
         retrieval_digest.update(canonical([table, columns]) + b"\n")
-        for row in conn.execute(f"SELECT {selection} FROM {quote(table)} ORDER BY {selection}"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+        for row in conn.execute(f"SELECT {selection} FROM {quote(table)} ORDER BY {selection}"):  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- identifiers from sqlite_master/pragma_table_info allowlists via strict quote(); no caller input
             retrieval_digest.update(canonical([typed(value) for value in row]) + b"\n")
     return {"sources": sources, "pinned_catalogues": pinned, "inputs": inputs, "builder": builder,
             "recorded_retrieval_sha256": retrieval_digest.hexdigest(),
@@ -202,13 +220,18 @@ def finalize(conn, *, build, inputs=None, builder=None):
         invalidated_by = logical_tables(conn)
         if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='build_meta'").fetchone():
             invalidated_by.append("build_meta")
+        allowed_trigger_tables = set(invalidated_by)
         for table in invalidated_by:
-            for action in ("INSERT", "UPDATE", "DELETE"):
+            if table not in allowed_trigger_tables:
+                raise ValueError("Invalid SQLite table identifier")
+            for action in _TRIGGER_ACTIONS:
+                if action not in _TRIGGER_ACTIONS:
+                    raise ValueError("Invalid SQLite trigger action")
                 name = "identity_invalidate_" + hashlib.sha256(f"{table}:{action}".encode()).hexdigest()[:20]
                 # This namespace is builder-owned. Do not bless an accidental
                 # same-name no-op trigger into a newly finalized identity.
-                conn.execute(f"DROP TRIGGER IF EXISTS {quote(name)}")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
-                conn.execute(f"CREATE TRIGGER {quote(name)} AFTER {action} ON {quote(table)} BEGIN DELETE FROM catalogue_identity; END")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- identifiers from sqlite_master via strict quote(); no caller input
+                conn.execute(f"DROP TRIGGER IF EXISTS {quote(name)}")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- identifiers from sqlite_master allowlist via strict quote(); no caller input
+                conn.execute(f"CREATE TRIGGER {quote(name)} AFTER {action} ON {quote(table)} BEGIN DELETE FROM catalogue_identity; END")  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- identifiers from sqlite_master allowlist and _TRIGGER_ACTIONS via strict quote(); no caller input
         content_hash, counts = logical_hash(conn)
         manifest = source_manifest(conn, inputs or [], builder or {})
         schema_hash = schema_fingerprint(conn)

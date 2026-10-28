@@ -177,7 +177,7 @@ def measure(db, function, repeats):
                 {
                     "sql_sha256": hashlib.sha256(statement.encode()).hexdigest(),
                     "plan": [
-                        r[3] for r in conn.execute("EXPLAIN QUERY PLAN " + statement)  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev profiling script; statements are the app's own traced SELECTs, no external input
+                        r[3] for r in conn.execute("EXPLAIN QUERY PLAN " + statement)  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- dev profiling script; statements are the app's own traced SELECTs, no external input
                     ],
                 }
             )
@@ -235,10 +235,16 @@ def run(path, repeats, objects):
         "galaxy_map": lambda: db.galaxy_map(limit=10000),
         "galaxy_map_distance": lambda: db.galaxy_map(max_distance_pc=100, limit=10000),
     }
+    count_queries = {
+        "objects": "SELECT count(*) FROM objects",
+        "exoplanets": "SELECT count(*) FROM exoplanets",
+        "exoplanet_hosts": "SELECT count(*) FROM exoplanet_hosts",
+        "starter_targets": "SELECT count(*) FROM starter_targets",
+    }
     with db._conn() as conn:
         counts = {
-            name: conn.execute(f"SELECT count(*) FROM {name}").fetchone()[0]  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev profiling script; table name from fixed literal list
-            for name in ["objects", "exoplanets", "exoplanet_hosts", "starter_targets"]
+            name: conn.execute(query).fetchone()[0]
+            for name, query in count_queries.items()
         }
     return {
         "catalogue_sha256": digest(path),
