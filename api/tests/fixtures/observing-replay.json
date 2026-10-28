@@ -64,7 +64,7 @@
             },
             "calculation": {
               "algorithm": "observing-source-files-sha256-v1",
-              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
+              "source_sha256": "d3197ddef559140d47609280c636627e8b82fe667d0e324436804abd6955fbae",
               "files": [
                 "observing/__init__.py",
                 "observing/catalogue.py",
@@ -478,7 +478,7 @@
             },
             "calculation": {
               "algorithm": "observing-source-files-sha256-v1",
-              "source_sha256": "e7841a1bb32ddf8d3967c298cb7dfd07f604ebc3c073d2ac1ea31105469bf399",
+              "source_sha256": "d3197ddef559140d47609280c636627e8b82fe667d0e324436804abd6955fbae",
               "files": [
                 "observing/__init__.py",
                 "observing/catalogue.py",

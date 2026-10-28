@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 import re
-from importlib.resources import files
+from importlib.resources import files  # nosemgrep: python.lang.compatibility.python37.python37-compatibility-importlib2 -- reviewed FP: requires-python >=3.10, importlib.resources is stdlib there
 
 from .starter_astrometry import attach_astrometry
 
