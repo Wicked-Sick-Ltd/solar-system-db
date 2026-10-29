@@ -84,7 +84,11 @@ separate per-IP invalid-key limit so a client cannot spray guesses.
 | `institution` | Valid institution key | 5,000/minute and **100,000/day per key** |
 
 The institution daily ceiling is `PU_INSTITUTION_PER_DAY` (default `100000`),
-pending a final decision. A 429 includes `Retry-After`, a `Link` header, and
+pending a final decision. Cloudflare Pro still caps every caller, keyed or
+not, at 300 requests per minute per IP. The application budgets above that
+are reachable only after an edge allowlist. Egress CIDRs for that allowlist
+are collected on https://publicuniverse.net/api-access. A 429 includes
+`Retry-After`, a `Link` header, and
 `api_access_url` pointing at `PU_API_ACCESS_URL`
 (default `https://publicuniverse.net/api-access`).
 
