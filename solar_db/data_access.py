@@ -48,6 +48,39 @@ ORBITAL_FIELDS = (
     "perihelion_au", "aphelion_au", "mean_motion_deg_per_day",
 )
 
+_FIND_OBJECT_BASE_FILTERS = {
+    "min_diameter_radius": "p.radius_km >= :min_diameter_radius",
+    "discovered_after": "o.discovery_date >= :discovered_after",
+    "object_type": "o.object_type = :object_type",
+    "parent_id": "o.parent_id = :parent_id",
+    "min_radius_km": "p.radius_km >= :min_radius_km",
+    "max_radius_km": "p.radius_km <= :max_radius_km",
+    "max_eccentricity": "oe.eccentricity <= :max_eccentricity",
+    "min_semi_major_axis_au": "oe.semi_major_axis_au >= :min_semi_major_axis_au",
+    "max_semi_major_axis_au": "oe.semi_major_axis_au <= :max_semi_major_axis_au",
+}
+_FIND_OBJECT_V2_FILTERS = {
+    "orbit_class": "oe.orbit_class_code = :orbit_class",
+    "max_moid_au": "oe.moid_au <= :max_moid_au",
+    "max_condition_code": "oe.condition_code <= :max_condition_code",
+}
+_ALLOWED_FIND_OBJECT_CLAUSES = frozenset({
+    *_FIND_OBJECT_BASE_FILTERS.values(),
+    *_FIND_OBJECT_V2_FILTERS.values(),
+    "o.id > :after",
+    "EXISTS (SELECT 1 FROM classifications c WHERE c.object_id=o.id AND c.label='NEO')",
+    "EXISTS (SELECT 1 FROM classifications c WHERE c.object_id=o.id AND c.label='PHA')",
+    "(o.name IS NOT NULL AND o.name <> '')",
+})
+_ALLOWED_FIND_OBJECT_ORDERS = frozenset({
+    "o.id",
+    "oe.semi_major_axis_au IS NULL, oe.semi_major_axis_au, o.id",
+})
+_ALLOWED_FIND_OBJECT_EXTRA = frozenset({
+    "",
+    "oe.orbit_class_code, oe.moid_au, oe.condition_code,",
+})
+
 
 class UnsupportedCatalogueFilter(ValueError):
     """The loaded catalogue cannot honour a requested filter."""
@@ -163,23 +196,9 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
                 )
             # Only these fixed clauses enter SQL; caller values remain bound.
             # Parameter-guarded ORs and CASE ordering prevent indexed range seeks.
-            filters = {
-                "min_diameter_radius": "p.radius_km >= :min_diameter_radius",
-                "discovered_after": "o.discovery_date >= :discovered_after",
-                "object_type": "o.object_type = :object_type",
-                "parent_id": "o.parent_id = :parent_id",
-                "min_radius_km": "p.radius_km >= :min_radius_km",
-                "max_radius_km": "p.radius_km <= :max_radius_km",
-                "max_eccentricity": "oe.eccentricity <= :max_eccentricity",
-                "min_semi_major_axis_au": "oe.semi_major_axis_au >= :min_semi_major_axis_au",
-                "max_semi_major_axis_au": "oe.semi_major_axis_au <= :max_semi_major_axis_au",
-            }
+            filters = dict(_FIND_OBJECT_BASE_FILTERS)
             if v2:
-                filters.update({
-                    "orbit_class": "oe.orbit_class_code = :orbit_class",
-                    "max_moid_au": "oe.moid_au <= :max_moid_au",
-                    "max_condition_code": "oe.condition_code <= :max_condition_code",
-                })
+                filters.update(_FIND_OBJECT_V2_FILTERS)
             # sqlite3 binds float NaN as SQL NULL. Preserve the existing omitted-
             # filter behavior here; this performance change does not redefine validation.
             for name in filters:
@@ -195,10 +214,14 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
                 clauses.append("EXISTS (SELECT 1 FROM classifications c WHERE c.object_id=o.id AND c.label='PHA')")
             if named_only:
                 clauses.append("(o.name IS NOT NULL AND o.name <> '')")
+            if not set(clauses) <= _ALLOWED_FIND_OBJECT_CLAUSES:
+                raise ValueError("Disallowed SQL filter clause")
             where = " AND ".join(clauses) or "1"
             order = "o.id" if after is not None else "oe.semi_major_axis_au IS NULL, oe.semi_major_axis_au, o.id"
             extra = "oe.orbit_class_code, oe.moid_au, oe.condition_code," if v2 else ""
-            rows = conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- WHERE/ORDER built only from static clause strings; all values bound as named params
+            if order not in _ALLOWED_FIND_OBJECT_ORDERS or extra not in _ALLOWED_FIND_OBJECT_EXTRA:
+                raise ValueError("Disallowed SQL projection or ordering clause")
+            rows = conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query -- WHERE/ORDER/SELECT fragments validated against strict frozen allowlists; all values bound as named params
                 f"""
                 SELECT o.id, o.name, o.designation, o.object_type, o.parent_id,
                        o.discoverer, o.discovery_date, o.wikipedia_url,

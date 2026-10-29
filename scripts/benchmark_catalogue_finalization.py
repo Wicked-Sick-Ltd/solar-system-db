@@ -68,16 +68,16 @@ def compatibility(conn):
     for table in tables:
         cols = {
             row[1]
-            for row in conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev benchmark; identifier via catalogue_identity.quote() strict quoting
-                f"PRAGMA table_info({catalogue_identity.quote(table)})"
+            for row in conn.execute(
+                "SELECT * FROM pragma_table_info(?)", (table,)
             )
         }
         if not required.get(table, set()) <= cols:
             raise ValueError(
                 "Input schema is incompatible with current source-manifest columns"
             )
-        for foreign in conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- dev benchmark; identifier via catalogue_identity.quote() strict quoting
-            f"PRAGMA foreign_key_list({catalogue_identity.quote(table)})"
+        for foreign in conn.execute(
+            "SELECT * FROM pragma_foreign_key_list(?)", (table,)
         ):
             if foreign[2].lower() in catalogue_identity.SURROGATE_TABLES and (
                 foreign[4] is None or foreign[4].lower() == "id"
