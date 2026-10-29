@@ -179,7 +179,7 @@ docker compose up -d
 
 That brings up:
 
-- `solar-rest-api`  on `:8003` (internal)
+- `solar-rest-api`  on `:8003` (internal). Key hashes sit on the writable `api_keys` volume at `/var/lib/publicuniverse`. The container stays user `app`.
 - `solar-mcp-server` on `:8002` (internal)
 - `solar-caddy`     on `:80/:443`, routing:
   - `/`            → landing page (`web/index.html`)

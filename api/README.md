@@ -93,7 +93,22 @@ are collected on https://publicuniverse.net/api-access. A 429 includes
 (default `https://publicuniverse.net/api-access`).
 
 Keys are stored as SHA-256 hashes (`PU_API_KEY_PEPPER` is mixed in when set).
-Nothing in git is a live key.
+Nothing in git is a live key. Issued keys are 256-bit random tokens, so the
+store keeps that peppered digest. HMAC-SHA256 is the same kind of fast
+digest, and the CodeQL password-hash query still reports it.
+
+The Docker image runs as user `app` and keeps the key store at
+`/var/lib/publicuniverse/api_keys.sqlite`. Compose mounts the writable
+`api_keys` volume there. The catalogue stays on the read-only `./data`
+mount. Key hashes and WAL files use the writable volume. When the
+configured path cannot be created or opened, the process logs the error
+and serves with an in-memory store. The `add` command refuses to print a
+key it could not save.
+
+Browsers that send `X-PU-Api-Key` preflight with `OPTIONS`. Those requests
+are not counted. The API answers `/api/` preflight with `204` and
+`Access-Control-Allow-Headers: Content-Type, X-PU-Api-Key`. The compose
+Caddyfile answers `OPTIONS` itself, so that preflight does not reach the API.
 
 ```bash
 # prints the secret once; the database keeps only the hash
@@ -128,7 +143,7 @@ MCP itself is not on these API key tiers.
 
 | Variable | Default | Role |
 | --- | --- | --- |
-| `PU_API_KEYS_PATH` | `data/api_keys.sqlite` | Hash store and counters. Do not commit it. |
+| `PU_API_KEYS_PATH` | `data/api_keys.sqlite` | Hash store and counters. Do not commit it. The image overrides this to `/var/lib/publicuniverse/api_keys.sqlite`. |
 | `PU_API_KEY_PEPPER` | empty | Extra hash input. Set in production. Changing it invalidates existing hashes. |
 | `PU_API_KEYS` | unset | Optional JSON bootstrap. No-op when unset. |
 | `PU_ANON_PER_MINUTE` / `PU_ANON_PER_DAY` | 60 / 1000 | Anonymous per-IP budget. |

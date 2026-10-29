@@ -15,12 +15,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fair_use import (  # noqa: E402
     ANONYMOUS,
+    CORS_ALLOW_HEADERS,
+    CORS_ALLOW_METHODS,
+    CORS_ALLOW_ORIGIN,
+    CORS_EXPOSE_HEADERS,
+    CORS_MAX_AGE,
     FREE,
     INSTITUTION,
     FairUseGate,
     KeyStore,
     attach,
     hash_key,
+    main,
 )
 
 
@@ -216,6 +222,109 @@ def test_bootstrap_hashes_env_keys_and_ignores_a_bad_payload(tmp_path, monkeypat
     monkeypatch.setenv("PU_API_KEYS", "not-json")
     FairUseGate.from_environ()
     assert "ignoring PU_API_KEYS" in capsys.readouterr().err
+
+
+def test_options_preflight_is_not_metered(tmp_path):
+    fair = gate(tmp_path, anon_per_day=1, invalid_per_minute=1)
+    client = client_for(fair, "203.0.113.11")
+    headers = {
+        "Origin": "https://example.edu",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "X-PU-Api-Key",
+        "X-PU-Api-Key": "pu_wrong",
+    }
+    preflight = client.options("/api/v1/stats", headers=headers)
+    assert preflight.status_code == 204
+    assert preflight.headers["access-control-allow-origin"] == CORS_ALLOW_ORIGIN
+    assert preflight.headers["access-control-allow-methods"] == CORS_ALLOW_METHODS
+    assert preflight.headers["access-control-allow-headers"] == CORS_ALLOW_HEADERS
+    assert preflight.headers["access-control-expose-headers"] == CORS_EXPOSE_HEADERS
+    assert preflight.headers["access-control-max-age"] == CORS_MAX_AGE
+    assert "X-PU-Key-Tier" not in preflight.headers
+    assert preflight.content == b""
+    # The preflight did not spend the single anonymous call or the invalid-key budget.
+    allowed = client.get("/api/v1/stats")
+    assert allowed.status_code == 200
+    assert allowed.headers["X-PU-Key-Tier"] == ANONYMOUS
+    assert client.get("/api/v1/stats").status_code == 429
+
+
+def test_unwritable_key_store_keeps_serving_in_memory(tmp_path, monkeypatch, capsys):
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x")
+    monkeypatch.setenv("PU_API_KEYS_PATH", str(blocker / "api_keys.sqlite"))
+    monkeypatch.setenv("PU_ANON_PER_DAY", "1")
+    monkeypatch.setenv("PU_API_KEY_PEPPER", "pepper")
+    monkeypatch.setenv(
+        "PU_API_KEYS",
+        '[{"key":"pu_bootstrap_secret_value","tier":"free","id":"mem1"}]',
+    )
+    built = FairUseGate.from_environ()
+    assert built.store.path == ":memory:"
+    assert "cannot open key store" in capsys.readouterr().err
+    decision = built.evaluate("203.0.113.4", {"x-pu-api-key": "pu_bootstrap_secret_value"})
+    assert decision.allowed and decision.tier == FREE
+    client = client_for(built, "203.0.113.12")
+    assert client.get("/api/v1/stats").status_code == 200
+    assert client.get("/api/v1/stats").status_code == 429
+
+
+def test_from_environ_creates_a_missing_key_store_directory(tmp_path, monkeypatch):
+    path = tmp_path / "nested" / "keys.sqlite"
+    monkeypatch.setenv("PU_API_KEYS_PATH", str(path))
+    monkeypatch.delenv("PU_API_KEYS", raising=False)
+    built = FairUseGate.from_environ()
+    assert built.store.path == str(path)
+    assert path.is_file()
+
+
+def test_directory_key_store_path_falls_back_to_memory(tmp_path, monkeypatch, capsys):
+    path = tmp_path / "api_keys.sqlite"
+    path.mkdir()
+    monkeypatch.setenv("PU_API_KEYS_PATH", str(path))
+    monkeypatch.delenv("PU_API_KEYS", raising=False)
+    built = FairUseGate.from_environ()
+    assert built.store.path == ":memory:"
+    assert "cannot open key store" in capsys.readouterr().err
+
+
+def test_cli_reports_an_unwritable_store(tmp_path, capsys):
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x")
+    code = main(["--db", str(blocker / "api_keys.sqlite"), "list"])
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "Cannot open key store" in err
+    assert "api_keys.sqlite" in err
+
+
+def test_compose_keeps_a_writable_key_store_for_the_app_user():
+    root = Path(__file__).resolve().parents[2]
+    compose = (root / "docker-compose.yml").read_text()
+    api = compose.split("mcp-server:", 1)[0]
+    assert "PU_API_KEYS_PATH=/var/lib/publicuniverse/api_keys.sqlite" in api
+    assert "./data:/data:ro" in api
+    assert "api_keys:/var/lib/publicuniverse" in api
+    assert "\n  api_keys:\n" in compose
+    dockerfile = (root / "api" / "Dockerfile").read_text()
+    assert "mkdir -p /var/lib/publicuniverse" in dockerfile
+    assert "chown app:app /var/lib/publicuniverse" in dockerfile
+    assert "PU_API_KEYS_PATH=/var/lib/publicuniverse/api_keys.sqlite" in dockerfile
+    assert "\nUSER app\n" in dockerfile
+    assert dockerfile.strip().endswith('CMD ["python", "api/main.py"]')
+    assert dockerfile.index("chown app:app /var/lib/publicuniverse") < dockerfile.index("\nUSER app\n")
+
+
+def test_caddy_answers_cors_preflight_without_proxying():
+    text = (Path(__file__).resolve().parents[2] / "Caddyfile").read_text()
+    assert "@cors_preflight method OPTIONS" in text
+    handle = text.split("@cors_preflight method OPTIONS", 1)[1].split("handle_path", 1)[0]
+    assert "respond 204" in handle
+    assert "reverse_proxy" not in handle
+    assert text.index("@cors_preflight method OPTIONS") < text.index("reverse_proxy rest-api:8003")
+    assert 'Access-Control-Allow-Headers "Content-Type, X-PU-Api-Key"' in text
+    assert 'Access-Control-Allow-Methods "GET, OPTIONS"' in text
+    assert 'Access-Control-Max-Age "86400"' in text
 
 
 def test_minute_window_sets_retry_after_until_the_next_minute(tmp_path):

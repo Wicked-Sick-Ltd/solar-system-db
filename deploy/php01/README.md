@@ -155,6 +155,9 @@ PU_API_KEYS_PATH=/home/wizzo/solar-data/api_keys.sqlite \
 ```
 
 Point the unit at that file with `PU_API_KEYS_PATH` and set `PU_API_KEY_PEPPER`.
+The path has to be writable by `wizzo` (the catalogue directory is fine; a
+read-only mount is not). If the file cannot be opened, the API logs the
+error and keeps serving with an in-memory store until the path is fixed.
 Leave `PU_API_KEYS` unset unless you intentionally bootstrap hashes from the
 environment. `PU_INSTITUTION_PER_DAY` defaults to `100000`. nginx on this host
 must forward `CF-Connecting-IP` (see `api/README.md`) so anonymous limits are

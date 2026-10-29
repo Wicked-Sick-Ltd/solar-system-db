@@ -15,7 +15,8 @@ the secret once.
 
 Requests that arrive on the loopback interface with no forwarding headers and
 no key are the co-located website. They are not counted. A forwarded client
-address is counted. An invalid key is never exempt.
+address is counted. An invalid key is never exempt. ``OPTIONS`` is a CORS
+preflight and is not counted.
 """
 
 from __future__ import annotations
@@ -35,10 +36,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 HEADER_NAME = "x-pu-api-key"
 TIER_HEADER = "X-PU-Key-Tier"
+CORS_ALLOW_ORIGIN = "*"
+CORS_ALLOW_METHODS = "GET, OPTIONS"
+CORS_ALLOW_HEADERS = "Content-Type, X-PU-Api-Key"
+CORS_EXPOSE_HEADERS = "X-PU-Key-Tier, Retry-After, Link"
+CORS_MAX_AGE = "86400"
 ANONYMOUS = "anonymous"
 FREE = "free"
 INSTITUTION = "institution"
@@ -59,7 +65,14 @@ _warned_proxies: set[str] = set()
 
 
 def hash_key(raw: str, pepper: str) -> str:
-    """Hash a key for storage. The raw value is not recoverable."""
+    """Hash a key for storage. The raw value is not recoverable.
+
+    Issued keys are 256-bit random tokens, so a slow password KDF is the
+    wrong primitive for this exact-match lookup. ``pepper`` is mixed in so a
+    copied database cannot be checked against a guessed key without it.
+    HMAC-SHA256 is the same speed, and CodeQL's password-hash query still
+    reports it: ``hmac.new`` is modeled as a SHA-256 hash of its message.
+    """
     material = b"publicuniverse-api-key-v1\0" + pepper.encode() + b"\0" + raw.encode()
     return hashlib.sha256(material).hexdigest()
 
@@ -341,7 +354,7 @@ class FairUseGate:
     def from_environ(cls) -> FairUseGate:
         path = os.environ.get("PU_API_KEYS_PATH", "").strip() or str(Path("data") / "api_keys.sqlite")
         gate = cls(
-            KeyStore(path),
+            open_key_store(path),
             pepper=os.environ.get("PU_API_KEY_PEPPER", ""),
             anon_per_minute=_positive(os.environ.get("PU_ANON_PER_MINUTE", ""), 60, "PU_ANON_PER_MINUTE"),
             anon_per_day=_positive(os.environ.get("PU_ANON_PER_DAY", ""), 1000, "PU_ANON_PER_DAY"),
@@ -466,10 +479,25 @@ class FairUseGate:
             headers=self.headers_for(decision),
         )
 
+    def preflight(self) -> Response:
+        """CORS preflight. No key is presented and nothing is counted."""
+        return Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Origin": CORS_ALLOW_ORIGIN,
+                "Access-Control-Allow-Methods": CORS_ALLOW_METHODS,
+                "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+                "Access-Control-Expose-Headers": CORS_EXPOSE_HEADERS,
+                "Access-Control-Max-Age": CORS_MAX_AGE,
+            },
+        )
+
     async def handle(self, request: Request, call_next):
         path = request.url.path
         if not path.startswith("/api/"):
             return await call_next(request)
+        if request.method == "OPTIONS":
+            return self.preflight()
         peer = request.client.host if request.client else None
         decision = self.evaluate(peer, request.headers)
         if not decision.allowed:
@@ -477,6 +505,25 @@ class FairUseGate:
         response = await call_next(request)
         response.headers[TIER_HEADER] = decision.tier
         return response
+
+
+def open_key_store(path: str) -> KeyStore:
+    """Open ``path``, or an in-memory store when that file cannot be opened.
+
+    The container runs as ``app`` with a root-owned ``/app`` and a read-only
+    catalogue mount. A ``PermissionError`` while creating the default
+    ``data/api_keys.sqlite`` must not stop the API. Keys and counters in the
+    fallback store last for this process only.
+    """
+    try:
+        return KeyStore(path)
+    except (OSError, sqlite3.Error) as exc:
+        print(
+            "solar-system-db API: cannot open key store at "
+            f"{path} ({exc}). Serving with an in-memory store.",
+            file=sys.stderr,
+        )
+        return KeyStore(":memory:")
 
 
 def attach(app, gate: FairUseGate) -> None:
@@ -500,7 +547,12 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("list", help="list key ids without secrets")
     args = parser.parse_args(argv)
     pepper = os.environ.get("PU_API_KEY_PEPPER", "")
-    gate = FairUseGate(KeyStore(args.db), pepper=pepper)
+    try:
+        store = KeyStore(args.db)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"Cannot open key store at {args.db}: {exc}", file=sys.stderr)
+        return 1
+    gate = FairUseGate(store, pepper=pepper)
     if args.command == "add":
         key_id, raw = gate.issue(args.tier, args.label)
         print(f"id={key_id}")

@@ -14,6 +14,13 @@
 {$PUBLIC_HOSTNAME:localhost} {
 	encode gzip zstd
 
+	# Browser preflight for X-PU-Api-Key. Answer here so OPTIONS never
+	# reaches FastAPI, which would return 405 and spend the anonymous budget.
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		respond 204
+	}
+
 	# REST API (OpenAPI/Swagger UI at /docs, ReDoc at /redoc)
 	handle_path /api/* {
 		rewrite * /api{uri}
@@ -57,5 +64,6 @@
 		Access-Control-Allow-Methods "GET, OPTIONS"
 		Access-Control-Allow-Headers "Content-Type, X-PU-Api-Key"
 		Access-Control-Expose-Headers "X-PU-Key-Tier, Retry-After, Link"
+		Access-Control-Max-Age "86400"
 	}
 }
