@@ -15,6 +15,11 @@ WorkingDirectory=/home/wizzo/solar-system-db
 Environment=API_HOST=127.0.0.1
 Environment=API_PORT=8003
 Environment=SOLAR_DB_PATH=/home/wizzo/solar-data/solar_system.sqlite
+# Fair-use key store (hashes only). Set the pepper on the host; do not commit it.
+# Environment=PU_API_KEYS_PATH=/home/wizzo/solar-data/api_keys.sqlite
+# Environment=PU_API_KEY_PEPPER=
+# Environment=PU_INSTITUTION_PER_DAY=100000
+# Environment=PU_API_ACCESS_URL=https://publicuniverse.net/api-access
 ExecStart=/home/wizzo/solar-system-db/.venv/bin/python /home/wizzo/solar-system-db/api/main.py
 Restart=on-failure
 RestartSec=5

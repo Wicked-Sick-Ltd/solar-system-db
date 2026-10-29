@@ -55,6 +55,7 @@
 		# CORS — read-only, public; allow any browser to call the API
 		Access-Control-Allow-Origin "*"
 		Access-Control-Allow-Methods "GET, OPTIONS"
-		Access-Control-Allow-Headers "Content-Type"
+		Access-Control-Allow-Headers "Content-Type, X-PU-Api-Key"
+		Access-Control-Expose-Headers "X-PU-Key-Tier, Retry-After, Link"
 	}
 }

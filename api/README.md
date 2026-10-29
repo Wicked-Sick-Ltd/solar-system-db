@@ -65,18 +65,74 @@ Many `submitted_on` values are the MDC placeholder `"SD"` rather than a real
 date, and `reference` may contain raw HTML anchors (`<A href='…'>…</A>`) as
 supplied by the source document — neither is cleaned up by this API.
 
-## Rate limits
+## Rate limits and API keys
 
-Default: **60 req/min and 1000 req/day per IP** (via `slowapi`). Cloudflare
-does the heavy lifting in front of public deployments; this is defence in
-depth. Adjust the `@limiter.limit("60/minute")` decorators in `api/main.py`
-if you need different limits.
+Catalogue routes are tiered. Send the key in the **`X-PU-Api-Key`** request
+header (not a query parameter, so it does not land in access logs). Every
+response on `/api/` includes **`X-PU-Key-Tier`**: `anonymous`, `free`, or
+`institution`. Cloudflare's edge exempts a request that merely carries
+`X-PU-Api-Key`. Because that exemption is presence-only, this app treats a
+missing, blank, unknown, or revoked key as anonymous traffic: the per-IP
+anonymous limit applies, the tier header is `anonymous`, and the call is not
+rejected with 401. Unknown and revoked keys are also counted against a
+separate per-IP invalid-key limit so a client cannot spray guesses.
 
-Night planning is **10/minute** and target discovery is **5/minute**, both per
-IP. Those strings live in `solar_db/http_quotas.py` (`OBSERVING_NIGHT_LIMIT`,
-`OBSERVING_DISCOVER_LIMIT`) and the MCP HTTP server applies them to
-`plan_observing_night` and `discover_observing_targets`. Change the numbers
-there so the two surfaces cannot drift.
+| Tier | Who | Default budget |
+| --- | --- | --- |
+| `anonymous` | No key, or a missing / invalid / revoked key | 60/minute and 1,000/day **per IP** |
+| `free` | Valid free key | 300/minute and 10,000/day **per key** |
+| `institution` | Valid institution key | 5,000/minute and **100,000/day per key** |
+
+The institution daily ceiling is `PU_INSTITUTION_PER_DAY` (default `100000`),
+pending a final decision. A 429 includes `Retry-After`, a `Link` header, and
+`api_access_url` pointing at `PU_API_ACCESS_URL`
+(default `https://publicuniverse.net/api-access`).
+
+Keys are stored as SHA-256 hashes (`PU_API_KEY_PEPPER` is mixed in when set).
+Nothing in git is a live key.
+
+```bash
+# prints the secret once; the database keeps only the hash
+PU_API_KEYS_PATH=/var/lib/solar-system-db/api_keys.sqlite \
+  python api/fair_use.py add --tier free --label "example lab"
+python api/fair_use.py revoke --id <id>
+python api/fair_use.py list
+```
+
+`PU_API_KEYS` may be a JSON list of `{"key","tier","label","id"}` objects.
+On startup those values are hashed into the database. Leave it unset in
+shared environments. A bad payload is ignored and the process still starts.
+
+Requests that hit this process on loopback **with no forwarding headers and
+no key** are the co-located website (`API_BASE_URL=http://127.0.0.1:8003`).
+They are not counted. php01's nginx is that loopback peer: forwarding
+headers are trusted only then (plus addresses in `PU_TRUSTED_PROXIES`).
+`CF-Connecting-IP` wins, then `X-Real-IP`, then the rightmost untrusted
+`X-Forwarded-For` hop. An untrusted peer cannot pick its bucket by sending
+those headers. Forward `CF-Connecting-IP` from Cloudflare:
+
+```nginx
+proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+Night planning stays **10/minute** and target discovery **5/minute**, per
+socket address, via `slowapi`. Those strings live in `solar_db/http_quotas.py`
+and the MCP HTTP server applies the same numbers to its observing tools.
+MCP itself is not on these API key tiers.
+
+| Variable | Default | Role |
+| --- | --- | --- |
+| `PU_API_KEYS_PATH` | `data/api_keys.sqlite` | Hash store and counters. Do not commit it. |
+| `PU_API_KEY_PEPPER` | empty | Extra hash input. Set in production. Changing it invalidates existing hashes. |
+| `PU_API_KEYS` | unset | Optional JSON bootstrap. No-op when unset. |
+| `PU_ANON_PER_MINUTE` / `PU_ANON_PER_DAY` | 60 / 1000 | Anonymous per-IP budget. |
+| `PU_FREE_PER_MINUTE` / `PU_FREE_PER_DAY` | 300 / 10000 | Free-key budget. |
+| `PU_INSTITUTION_PER_MINUTE` / `PU_INSTITUTION_PER_DAY` | 5000 / **100000** | Institution budget. Daily default is pending review. |
+| `PU_INVALID_KEY_PER_MINUTE` | 30 | Per-IP cap on unknown or revoked keys. |
+| `PU_API_ACCESS_URL` | `https://publicuniverse.net/api-access` | Link returned with HTTP 429. |
+| `PU_TRUSTED_PROXIES` | loopback only | Extra proxy addresses allowed to supply a client IP. |
 
 ## Data sources
 

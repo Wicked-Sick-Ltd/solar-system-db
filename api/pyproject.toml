@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 solar-system-db-api = "main:run"
+solar-system-db-api-keys = "fair_use:main"
 
 [tool.uv.sources]
 solar-system-db = { path = "..", editable = true }
@@ -23,4 +24,4 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main"]
+py-modules = ["main", "fair_use"]

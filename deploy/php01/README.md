@@ -140,3 +140,23 @@ succeeded, `start` failed with "bad unit file setting", and the API was down
 from 11:27 to 11:38 UTC until the unit was re-typed by hand. Hence the committed
 template and the redirect-only restore above. Never read a file on the left of a
 pipe that writes the same file on the right.
+
+## Fair-use API keys
+
+Catalogue quotas live in the API process (`api/fair_use.py`), not in Cloudflare.
+Clients send `X-PU-Api-Key`. A missing, invalid, or revoked key is anonymous
+per-IP traffic and still returns `X-PU-Key-Tier: anonymous`. Issue a key on
+the host (the secret is printed once):
+
+```bash
+cd ~/solar-system-db
+PU_API_KEYS_PATH=/home/wizzo/solar-data/api_keys.sqlite \
+  .venv/bin/python api/fair_use.py add --tier institution --label "site-origin"
+```
+
+Point the unit at that file with `PU_API_KEYS_PATH` and set `PU_API_KEY_PEPPER`.
+Leave `PU_API_KEYS` unset unless you intentionally bootstrap hashes from the
+environment. `PU_INSTITUTION_PER_DAY` defaults to `100000`. nginx on this host
+must forward `CF-Connecting-IP` (see `api/README.md`) so anonymous limits are
+per visitor rather than per Cloudflare address. The website's loopback calls
+with no forwarding headers are not counted.
