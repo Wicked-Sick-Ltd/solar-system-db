@@ -11,11 +11,14 @@ RUN pip install --no-cache-dir -e . && \
     pip install --no-cache-dir -e ./api
 
 RUN addgroup --system app && \
-    adduser --system --ingroup app --no-create-home app
+    adduser --system --ingroup app --no-create-home app && \
+    mkdir -p /var/lib/publicuniverse && \
+    chown app:app /var/lib/publicuniverse
 
 ENV PYTHONUNBUFFERED=1 \
     SOLAR_DB_PATH=/data/solar_system.sqlite \
-    API_PORT=8003
+    API_PORT=8003 \
+    PU_API_KEYS_PATH=/var/lib/publicuniverse/api_keys.sqlite
 
 EXPOSE 8003
 

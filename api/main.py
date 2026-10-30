@@ -36,13 +36,18 @@ from solar_db.observing import PlanningError, plan_night
 from solar_db.positions import date_to_jd
 from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 
+from fair_use import FairUseGate, attach
+
 # --------------------------------------------------------------------------
 # App + rate limiter
 # --------------------------------------------------------------------------
 db = SolarDB()
 
-limiter = Limiter(key_func=get_remote_address,
-                  default_limits=["60/minute", "1000/day"])
+# Per-route slowapi defaults used to cap every caller at 60/minute and
+# 1,000/day. Fair-use tiers in fair_use.py own those budgets now, so a
+# valid key is not also pinned to the anonymous ceiling. Observing routes
+# keep their own tighter slowapi limits below.
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 app = FastAPI(
     title="solar-system-db REST API",
@@ -52,7 +57,11 @@ app = FastAPI(
         "from NASA/JPL and the IAU Minor Planet Center. Separate exoplanet and host "
         "catalogues use the NASA Exoplanet Archive. "
         "**For astronomy, science education, sci-fi worldbuilding, and "
-        "model-building — not astrology.**"
+        "model-building — not astrology.** "
+        "Anonymous clients are limited per IP. Bulk and automated clients "
+        "send a key in the X-PU-Api-Key header. A missing, invalid, or "
+        "revoked key is treated as anonymous. See "
+        "https://publicuniverse.net/fair-use."
     ),
     version="0.1.0",
     contact={"name": "solar-system-db",
@@ -79,7 +88,6 @@ async def unsupported_catalogue_filter(request: Request, exc: UnsupportedCatalog
 # Catalog
 # --------------------------------------------------------------------------
 @app.get("/api/v1/objects", tags=["catalog"], summary="Filter solar-system objects")
-@limiter.limit("60/minute")
 def get_objects(
     request: Request,
     type: Optional[str] = Query(None, description="object_type filter (planet/moon/asteroid/comet/...)"),
@@ -126,7 +134,6 @@ def get_objects(
 # --------------------------------------------------------------------------
 @app.get("/api/v1/objects/{name_or_designation:path}/close-approaches", tags=["detail"],
          summary="Close approaches of one body to the planets / Moon")
-@limiter.limit("60/minute")
 def object_close_approaches(request: Request, name_or_designation: str,
                             date_min: Optional[str] = Query(None, alias="from"),
                             date_max: Optional[str] = Query(None, alias="to"),
@@ -138,7 +145,6 @@ def object_close_approaches(request: Request, name_or_designation: str,
 
 
 @app.get("/api/v1/objects/{name_or_designation:path}/discovery", tags=["detail"], summary="Discovery circumstances")
-@limiter.limit("60/minute")
 def object_discovery(request: Request, name_or_designation: str):
     d = db.get_discovery(name_or_designation)
     if d is None:
@@ -148,7 +154,6 @@ def object_discovery(request: Request, name_or_designation: str):
 
 @app.get("/api/v1/objects/{name_or_designation:path}/designations", tags=["detail"],
          summary="Every number, name, provisional and alternate designation")
-@limiter.limit("60/minute")
 def object_designations(request: Request, name_or_designation: str):
     d = db.get_designations(name_or_designation)
     if d is None:
@@ -157,7 +162,6 @@ def object_designations(request: Request, name_or_designation: str):
 
 
 @app.get("/api/v1/planets/{name}/atmosphere", tags=["detail"], summary="Atmosphere (NASA fact sheet)")
-@limiter.limit("60/minute")
 def planet_atmosphere(request: Request, name: str):
     a = db.get_atmosphere(name)
     if a is None:
@@ -167,7 +171,6 @@ def planet_atmosphere(request: Request, name: str):
 
 @app.get("/api/v1/close-approaches", tags=["detail"],
          summary="All close approaches to a body in a date window, nearest first")
-@limiter.limit("60/minute")
 def close_approaches(request: Request,
                      date_min: str = Query(..., alias="from", description="ISO date"),
                      date_max: str = Query(..., alias="to", description="ISO date"),
@@ -179,7 +182,6 @@ def close_approaches(request: Request,
 
 
 @app.get("/api/v1/starter-targets", tags=["observing catalogues"])
-@limiter.limit("60/minute")
 def list_starter_targets(request: Request, family: Optional[str] = Query(None),
                          q: Optional[str] = Query(None, max_length=200),
                          limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=1000)):
@@ -190,7 +192,6 @@ def list_starter_targets(request: Request, family: Optional[str] = Query(None),
 
 
 @app.get("/api/v1/starter-targets/{target_id}", tags=["observing catalogues"])
-@limiter.limit("60/minute")
 def get_starter_target(request: Request, target_id: str):
     try:
         result = db.get_starter_target(target_id)
@@ -202,7 +203,6 @@ def get_starter_target(request: Request, target_id: str):
 
 
 @app.get("/api/v1/exoplanets", tags=["exoplanets"])
-@limiter.limit("60/minute")
 def list_exoplanets(request: Request, q: Optional[str] = Query(None, max_length=200),
                     discovery_method: Optional[str] = Query(None, max_length=100),
                     max_distance_pc: Optional[float] = Query(None, gt=0, allow_inf_nan=False),
@@ -212,7 +212,6 @@ def list_exoplanets(request: Request, q: Optional[str] = Query(None, max_length=
 
 
 @app.get("/api/v1/exoplanets/{name}", tags=["exoplanets"])
-@limiter.limit("60/minute")
 def get_exoplanet(request: Request, name: str):
     result = db.get_exoplanet(name)
     if result is None:
@@ -221,7 +220,6 @@ def get_exoplanet(request: Request, name: str):
 
 
 @app.get("/api/v1/exoplanet-hosts/{name}", tags=["exoplanets"])
-@limiter.limit("60/minute")
 def get_exoplanet_host(request: Request, name: str):
     result = db.get_exoplanet_host(name)
     if result is None:
@@ -230,7 +228,6 @@ def get_exoplanet_host(request: Request, name: str):
 
 
 @app.get("/api/v1/galaxy", tags=["exoplanets"], summary="Measured exoplanet host positions in parsecs")
-@limiter.limit("60/minute")
 def galaxy_map(request: Request,
                max_distance_pc: Optional[float] = Query(None, gt=0, allow_inf_nan=False),
                limit: int = Query(10000, ge=1, le=10000)):
@@ -238,7 +235,6 @@ def galaxy_map(request: Request,
 
 
 @app.get("/api/v1/meteor-showers", tags=["catalog"], summary="IAU meteor showers")
-@limiter.limit("60/minute")
 def list_meteor_showers(request: Request,
                         established_only: bool = Query(False, description="Keep only MDC status codes 1 (single established shower, group) or 6 (member of the established group)"),
                         active_on: Optional[str] = Query(None, description="ISO date (YYYY-MM-DD); filters to showers active on this date"),
@@ -251,7 +247,6 @@ def list_meteor_showers(request: Request,
 
 
 @app.get("/api/v1/meteor-showers/{code}", tags=["detail"], summary="One IAU meteor shower by code or name")
-@limiter.limit("60/minute")
 def get_meteor_shower(request: Request, code: str):
     shower = db.get_meteor_shower(code)
     if shower is None:
@@ -260,7 +255,6 @@ def get_meteor_shower(request: Request, code: str):
 
 
 @app.get("/api/v1/download", tags=["reference"], summary="Where to get the whole database as one file")
-@limiter.limit("60/minute")
 def download_manifest(request: Request):
     m = db.download_manifest()
     if m is None:
@@ -270,7 +264,6 @@ def download_manifest(request: Request):
 
 @app.get("/api/v1/objects/{name_or_designation:path}",
          tags=["catalog"], summary="Get full record for one object")
-@limiter.limit("60/minute")
 def get_object(request: Request, name_or_designation: str):
     obj = db.get_object(name_or_designation)
     if obj is None:
@@ -281,27 +274,23 @@ def get_object(request: Request, name_or_designation: str):
 
 @app.get("/api/v1/planets/{name}/moons", tags=["catalog"],
          summary="List moons of a planet or dwarf planet")
-@limiter.limit("60/minute")
 def list_moons(request: Request, name: str):
     return {"results": db.list_moons(name)}
 
 
 @app.get("/api/v1/planets/{name}/rings", tags=["catalog"],
          summary="List rings of a planet or dwarf planet")
-@limiter.limit("60/minute")
 def list_rings(request: Request, name: str):
     return {"results": db.get_rings(name)}
 
 
 @app.get("/api/v1/dwarf-planets", tags=["catalog"],
          summary="IAU dwarf planets (+ candidates if requested)")
-@limiter.limit("60/minute")
 def list_dwarf_planets(request: Request, include_candidates: bool = False):
     return {"results": db.list_dwarf_planets(include_candidates=include_candidates)}
 
 
 @app.get("/api/v1/neos", tags=["catalog"], summary="Near-Earth Objects")
-@limiter.limit("60/minute")
 def list_neos(request: Request,
               min_diameter_km: Optional[float] = None,
               max_diameter_km: Optional[float] = None,
@@ -313,7 +302,6 @@ def list_neos(request: Request,
 
 @app.get("/api/v1/comets/periodic", tags=["catalog"],
          summary="Numbered periodic comets")
-@limiter.limit("60/minute")
 def list_periodic_comets(request: Request,
                           limit: int = Query(500, ge=1, le=2000)):
     return {"results": db.list_periodic_comets(limit=limit)}
@@ -321,14 +309,12 @@ def list_periodic_comets(request: Request,
 
 @app.get("/api/v1/tnos", tags=["catalog"],
          summary="Trans-Neptunian objects + centaurs")
-@limiter.limit("60/minute")
 def list_tnos(request: Request, limit: int = Query(500, ge=1, le=2000)):
     return {"results": db.list_tnos(limit=limit)}
 
 
 @app.get("/api/v1/search", tags=["catalog"],
          summary="Fuzzy text search across names/designations/discoverers")
-@limiter.limit("60/minute")
 def search(request: Request,
            q: str = Query(..., min_length=1, description="Search query"),
            limit: int = Query(20, ge=1, le=100)):
@@ -433,7 +419,6 @@ async def observing_discover_post(request: Request):
 
 @app.get("/api/v1/positions/{name_or_designation:path}", tags=["positions"],
          summary="Heliocentric position by two-body Kepler propagation")
-@limiter.limit("60/minute")
 def compute_position(request: Request, name_or_designation: str,
                       date: str = Query(..., description="ISO date or datetime")):
     elements = db.get_orbital_elements(name_or_designation)
@@ -454,7 +439,6 @@ def compute_position(request: Request, name_or_designation: str,
 
 @app.get("/api/v1/sky/{name_or_designation:path}", tags=["positions"],
          summary="Where an object appears in Earth's sky (RA/Dec, constellation, optional observer view)")
-@limiter.limit("60/minute")
 def sky_position(request: Request, name_or_designation: str,
                  date: Optional[str] = Query(None, description="ISO date or datetime (UTC); default now"),
                  lat: Optional[float] = Query(None, ge=-90, le=90,
@@ -474,7 +458,6 @@ def sky_position(request: Request, name_or_designation: str,
 
 @app.get("/api/v1/perihelion/{name_or_designation:path}",
          tags=["positions"], summary="Next perihelion JD")
-@limiter.limit("60/minute")
 def next_perihelion(request: Request, name_or_designation: str):
     elements = db.get_orbital_elements(name_or_designation)
     if not elements:
@@ -495,35 +478,30 @@ def next_perihelion(request: Request, name_or_designation: str):
 # Reference
 # --------------------------------------------------------------------------
 @app.get("/api/v1/catalogue", tags=["reference"], summary="Finalized catalogue identity and recorded source provenance")
-@limiter.limit("60/minute")
 def catalogue_identity(request: Request):
     return JSONResponse(db.catalogue_identity(), headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/api/v1/object-types", tags=["reference"],
          summary="Object types present in the catalogue and their counts")
-@limiter.limit("60/minute")
 def list_object_types(request: Request):
     return {"results": db.list_object_types()}
 
 
 @app.get("/api/v1/sources", tags=["reference"],
          summary="Upstream data sources + last-retrieved timestamps")
-@limiter.limit("60/minute")
 def get_sources(request: Request):
     return {"results": db.get_sources()}
 
 
 @app.get("/api/v1/schema", tags=["reference"], response_class=PlainTextResponse,
          summary="SQLite schema DDL (read-only)")
-@limiter.limit("30/minute")
 def get_schema(request: Request):
     return db.get_schema()
 
 
 @app.get("/api/v1/stats", tags=["reference"],
          summary="Catalogue stats + last refresh timestamp")
-@limiter.limit("60/minute")
 def get_stats(request: Request):
     return db.stats()
 
@@ -534,6 +512,9 @@ def get_stats(request: Request):
 @app.get("/healthz", include_in_schema=False)
 def healthz():
     return {"status": "ok", "total_objects": db.stats()["total_objects"]}
+
+
+attach(app, FairUseGate.from_environ())
 
 
 def run() -> None:

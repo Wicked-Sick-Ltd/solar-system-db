@@ -34,6 +34,7 @@ pytest-cache-files-*/
 data/solar_system.sqlite
 data/latest.json
 data/enrichment.sqlite
+data/api_keys.sqlite
 data/.pull.*
 
 # superpowers SDD scratch (ledgers, briefs, review packages)

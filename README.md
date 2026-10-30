@@ -25,6 +25,15 @@ NASA/JPL and the IAU Minor Planet Centre, refreshed nightly on the build host
    `/docs` and an MCP HTTP endpoint at `/mcp`. **No direct SQL access is
    exposed publicly** — the REST API is the contract.
 
+Anonymous REST calls are limited per IP (60/minute and 1,000/day by default).
+Bulk and automated use sends a key in the `X-PU-Api-Key` header. A missing,
+invalid, or revoked key is still anonymous traffic: Cloudflare may skip its
+edge limit whenever the header is present, and this app applies the anonymous
+budget anyway. Valid keys return `X-PU-Key-Tier: free` or `institution`.
+The institution ceiling defaults to 100,000 calls/day (`PU_INSTITUTION_PER_DAY`).
+See [api/README.md](api/README.md#rate-limits-and-api-keys). The public MCP
+endpoint is unchanged and does not use these keys.
+
 ## What's in the box
 
 ```
@@ -170,7 +179,7 @@ docker compose up -d
 
 That brings up:
 
-- `solar-rest-api`  on `:8003` (internal)
+- `solar-rest-api`  on `:8003` (internal). Key hashes sit on the writable `api_keys` volume at `/var/lib/publicuniverse`. The container stays user `app`.
 - `solar-mcp-server` on `:8002` (internal)
 - `solar-caddy`     on `:80/:443`, routing:
   - `/`            → landing page (`web/index.html`)
