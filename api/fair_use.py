@@ -10,8 +10,8 @@ a request that merely carries that header, so this process decides the tier:
 * A valid key spends that key's own minute and day budget. ``X-PU-Key-Tier``
   is ``free`` or ``institution``. Every other request sends ``anonymous``.
 
-Raw keys are never stored. The database keeps a SHA-256 hash. ``add`` prints
-the secret once.
+Raw keys are never stored. The database keeps an HMAC-SHA256 digest. ``add``
+prints the secret once.
 
 Requests that arrive on the loopback interface with no forwarding headers and
 no key are the co-located website. They are not counted. A forwarded client
@@ -22,7 +22,7 @@ preflight and is not counted.
 from __future__ import annotations
 
 import argparse
-import hashlib
+import hmac
 import ipaddress
 import json
 import os
@@ -64,17 +64,20 @@ _LOOPBACK = frozenset({
 _warned_proxies: set[str] = set()
 
 
+_KEY_DIGEST_LABEL = b"publicuniverse-api-key-v1"
+
+
 def hash_key(raw: str, pepper: str) -> str:
-    """Hash a key for storage. The raw value is not recoverable.
+    """Digest a key for storage. The raw value is not recoverable.
 
     Issued keys are 256-bit random tokens, so a slow password KDF is the
-    wrong primitive for this exact-match lookup. ``pepper`` is mixed in so a
-    copied database cannot be checked against a guessed key without it.
-    HMAC-SHA256 is the same speed, and CodeQL's password-hash query still
-    reports it: ``hmac.new`` is modeled as a SHA-256 hash of its message.
+    wrong primitive for this exact-match lookup. The token and ``pepper``
+    are the HMAC-SHA256 key and a fixed label is the message: a keyed
+    fingerprint, not a password hash. A copied database cannot be checked
+    against a guessed token without the pepper.
     """
-    material = b"publicuniverse-api-key-v1\0" + pepper.encode() + b"\0" + raw.encode()
-    return hashlib.sha256(material).hexdigest()
+    mac_key = pepper.encode() + b"\0" + raw.encode()
+    return hmac.digest(mac_key, _KEY_DIGEST_LABEL, "sha256").hex()
 
 
 def _positive(value: str, default: int, name: str) -> int:

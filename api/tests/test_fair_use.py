@@ -5,6 +5,7 @@ catalogue database.
 """
 from __future__ import annotations
 
+import hmac
 import sys
 from pathlib import Path
 
@@ -171,6 +172,22 @@ def test_keys_are_hashed_at_rest_and_health_is_not_limited(tmp_path):
     for _ in range(5):
         assert client.get("/healthz").status_code == 200
         assert "X-PU-Key-Tier" not in client.get("/healthz").headers
+
+
+def test_key_digest_is_hmac_sha256_with_the_token_as_the_mac_key():
+    raw = "pu_example_token"
+    pepper = "pepper-value"
+    digest = hash_key(raw, pepper)
+    assert digest == hmac.digest(
+        pepper.encode() + b"\0" + raw.encode(),
+        b"publicuniverse-api-key-v1",
+        "sha256",
+    ).hex()
+    assert digest != hmac.digest(
+        b"publicuniverse-api-key-v1",
+        pepper.encode() + b"\0" + raw.encode(),
+        "sha256",
+    ).hex()
 
 
 def test_direct_loopback_without_a_key_is_the_colocated_site(tmp_path):

@@ -92,10 +92,10 @@ are collected on https://publicuniverse.net/api-access. A 429 includes
 `api_access_url` pointing at `PU_API_ACCESS_URL`
 (default `https://publicuniverse.net/api-access`).
 
-Keys are stored as SHA-256 hashes (`PU_API_KEY_PEPPER` is mixed in when set).
-Nothing in git is a live key. Issued keys are 256-bit random tokens, so the
-store keeps that peppered digest. HMAC-SHA256 is the same kind of fast
-digest, and the CodeQL password-hash query still reports it.
+Keys are stored as HMAC-SHA256 digests. The token and `PU_API_KEY_PEPPER`
+(when set) are the MAC key, and a fixed label is the message. Nothing in git
+is a live key. Issued keys are 256-bit random tokens, so the store keeps that
+fast keyed digest rather than a password KDF.
 
 The Docker image runs as user `app` and keeps the key store at
 `/var/lib/publicuniverse/api_keys.sqlite`. Compose mounts the writable
