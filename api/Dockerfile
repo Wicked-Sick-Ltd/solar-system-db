@@ -10,8 +10,8 @@ COPY api ./api
 RUN pip install --no-cache-dir -e . && \
     pip install --no-cache-dir -e ./api
 
-RUN addgroup --system app && \
-    adduser --system --ingroup app --no-create-home app && \
+RUN groupadd --system app && \
+    useradd --system --gid app --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin app && \
     mkdir -p /var/lib/publicuniverse && \
     chown app:app /var/lib/publicuniverse
 
