@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 
@@ -9,8 +9,8 @@ COPY mcp-server ./mcp-server
 RUN pip install --no-cache-dir -e . && \
     pip install --no-cache-dir -e ./mcp-server
 
-RUN addgroup --system app && \
-    adduser --system --ingroup app --no-create-home app
+RUN groupadd --system app && \
+    useradd --system --gid app --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin app
 
 ENV PYTHONUNBUFFERED=1 \
     SOLAR_DB_PATH=/data/solar_system.sqlite \
