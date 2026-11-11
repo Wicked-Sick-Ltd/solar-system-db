@@ -24,8 +24,10 @@ default `~/deploy/solar-data` on llm1 vs. `./data` in dev).
 ## Object storage (Cloudflare R2)
 - Bucket `solar-system-db` on Cloudflare R2, endpoint
   `https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com`.
-- Public base URL: `https://download.sol.wickedsick.com` (Cloudflare-fronted custom
-  domain; the bucket itself is not public).
+- Public base URL: `https://download.publicuniverse.net` (Cloudflare-fronted custom
+  domain on bucket `solar-system-db`; the bucket itself is not public). Object
+  keys are unchanged. `download.sol.wickedsick.com` serves the same keys,
+  including manifests and archives already published with that host in `url`.
 - Region is `auto` (`S3_REGION=auto`, `AWS_DEFAULT_REGION` derived from it).
 - **No ACLs are ever sent** — R2 doesn't support per-object ACLs and errors on
   them. `publish_artifact.py` is invoked with `S3_NO_ACL=1` (`--no-acl`) on this
@@ -120,6 +122,8 @@ sourced, e.g. `set -a; . ~/.config/solar-pull.env; set +a; ./scripts/pull_latest
   notice instead of re-posting the previous summary. Two silent nights
   (2026-09-18/19) went unnoticed under the old `ExecStartPost`, which only
   runs after a successful start.
-- If the artefact date on `download.sol.wickedsick.com/latest.json` is not
+- If the artefact date on `download.publicuniverse.net/latest.json` is not
   yesterday's, check `systemctl --user status solar-build.service` on llm1 first.
+  `download.sol.wickedsick.com/latest.json` is the same object while both custom
+  domains point at this bucket.
 - On the API host, alert if `/home/wizzo/solar-data/latest.json`'s `built_at` is older than 36 h.

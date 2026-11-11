@@ -7,7 +7,9 @@ php01 (`192.168.5.101`, Laravel Forge server; SSH as `wizzo`) serves
 
 Public MCP setup is proposed separately in [MCP-ROLLOUT.md](MCP-ROLLOUT.md),
 with a loopback service, nginx routing and a coordinated refresh command.
-It has not been applied to the live host by this change.
+The advertised MCP endpoint in that template is
+`https://api.publicuniverse.net/mcp`. `api.sol.wickedsick.com` stays on the
+same server. It has not been applied to the live host by this change.
 
 ## Layout (recorded since 2026-09-18; revalidate before changes)
 
@@ -48,10 +50,18 @@ line is duplicated — run the block above.
 `~/.config/solar-pull.env` must contain:
 
 ```
-MANIFEST_URL=https://download.sol.wickedsick.com/latest.json
+MANIFEST_URL=https://download.publicuniverse.net/latest.json
 DATA_DIR=/home/wizzo/solar-data
 RESTART_CMD='sudo systemctl stop solar-api && sudo systemctl start solar-api'
 ```
+
+The committed template (`solar-pull.env.example`) uses
+`https://download.publicuniverse.net/latest.json`. Replacing
+`~/.config/solar-pull.env` on php01 is a separate operator step; this
+repository change leaves the live file alone. `download.sol.wickedsick.com`
+serves the same object keys. `pull_latest.sh` accepts an artefact URL on
+either download host when the manifest was fetched from either host, so a
+manifest that still names the previous host keeps installing.
 
 `RESTART_CMD` is stop+start, not `restart`: the sudoers grant's `restart` line is
 malformed (`/usr/bin systemctl restart solar-api`, missing the slash) and does not

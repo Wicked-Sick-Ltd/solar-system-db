@@ -105,6 +105,43 @@ def test_pull_latest_rejects_traversal_and_records_only_after_restart(tmp_path):
 
 
 @pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
+def test_pull_allows_either_download_host_and_rejects_other_origins():
+    script = ROOT / "scripts" / "pull_latest.sh"
+    probe = r"""
+set -u
+PULL_LATEST_SOURCE_ONLY=1
+source "$SCRIPT"
+check() {
+  if artefact_url_allowed "$1" "$2"; then echo allow; else echo deny; fi
+}
+check "https://download.publicuniverse.net/latest.json" \
+  "https://download.sol.wickedsick.com/solar_system-20261111.sqlite.zst"
+check "https://download.sol.wickedsick.com/latest.json" \
+  "https://download.publicuniverse.net/solar_system-20261111.sqlite.zst"
+check "https://download.publicuniverse.net/latest.json" \
+  "https://download.publicuniverse.net/solar_system-20261111.sqlite.zst"
+check "file:///tmp/out/latest.json" \
+  "file:///tmp/out/solar_system-20260915.sqlite.zst"
+check "https://download.publicuniverse.net/latest.json" \
+  "https://evil.example/solar_system-20261111.sqlite.zst"
+check "https://evil.example/latest.json" \
+  "https://download.sol.wickedsick.com/solar_system-20261111.sqlite.zst"
+check "https://download.publicuniverse.net/latest.json" \
+  "https://download.sol.wickedsick.com/solar_system-20261111.sqlite.zst.evil"
+check "https://download.publicuniverse.net/latest.json" \
+  "https://download.sol.wickedsick.com/nested/solar_system-20261111.sqlite.zst"
+check "file:///tmp/out/latest.json" \
+  "https://download.publicuniverse.net/solar_system-20261111.sqlite.zst"
+"""
+    r = subprocess.run(["bash", "-c", probe], env={**os.environ, "SCRIPT": str(script)},
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.stdout.splitlines() == [
+        "allow", "allow", "allow", "allow",
+        "deny", "deny", "deny", "deny", "deny",
+    ]
+
+
 def test_pull_dry_run_downloads_nothing(tmp_path):
     out = tmp_path / "out"
     dest = LocalDest(out, public_base="file://" + str(out))

@@ -3,7 +3,14 @@
 ## Supported versions
 
 Only the `main` branch is supported. It is what runs the public instance at
-<https://api.publicuniverse.net> (also served as `api.sol.wickedsick.com`); there are no tagged releases.
+<https://api.publicuniverse.net>. The advertised MCP endpoint is
+<https://api.publicuniverse.net/mcp>. The same origin also answers
+`api.sol.wickedsick.com`. There are no tagged releases.
+
+Catalogue artefacts are published at <https://download.publicuniverse.net>
+(R2 bucket `solar-system-db`). Object keys are unchanged.
+`download.sol.wickedsick.com` serves those same keys, including manifests and
+archives already published with that host in their `url` field.
 
 ## Reporting a vulnerability
 
@@ -31,4 +38,8 @@ There is no bug bounty programme.
   ingest/publish scripts, a poisoned R2 artefact or `latest.json` (the
   manifest is fetched over HTTPS but not signed — `scripts/pull_latest.sh`
   must keep refusing unexpected artefact names and URLs, verifying sha256,
-  and swapping the SQLite file atomically), and rate-limit bypass.
+  and swapping the SQLite file atomically). The pull script may follow an
+  artefact URL on `download.publicuniverse.net` or `download.sol.wickedsick.com`
+  when the manifest itself came from one of those two hosts, because they are
+  the same bucket. Any other manifest host stays confined to its own directory.
+  Rate-limit bypass is in the same set of concerns.
