@@ -104,7 +104,6 @@ def test_pull_latest_rejects_traversal_and_records_only_after_restart(tmp_path):
     assert r.returncode != 0 and (data / "solar_system.sqlite").exists() and not (data / "latest.json").exists()
 
 
-@pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
 def test_pull_allows_either_download_host_and_rejects_other_origins():
     script = ROOT / "scripts" / "pull_latest.sh"
     probe = r"""
@@ -142,6 +141,7 @@ check "file:///tmp/out/latest.json" \
     ]
 
 
+@pytest.mark.skipif(shutil.which("zstd") is None or not can_compress(), reason="zstd CLI not installed")
 def test_pull_dry_run_downloads_nothing(tmp_path):
     out = tmp_path / "out"
     dest = LocalDest(out, public_base="file://" + str(out))

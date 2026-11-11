@@ -1,6 +1,8 @@
 """The build-host files must reference secrets only through op:// and never carry ACL flags."""
+import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,7 +28,6 @@ def test_timer_is_0300_utc_and_persistent():
 
 R2_ENDPOINT = "https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com"
 R2_PUBLIC_BASE = "https://download.publicuniverse.net"
-R2_PUBLIC_BASE_ALIAS = "https://download.sol.wickedsick.com"
 
 
 def test_compose_builder_defaults_to_r2_not_ceph_rgw():
@@ -48,7 +49,7 @@ def test_publish_defaults_use_publicuniverse_download_host():
     assert f"S3_PUBLIC_BASE={R2_PUBLIC_BASE}" in example
     assert f"MANIFEST_URL={R2_PUBLIC_BASE}/latest.json" in pull
     # The previous custom domain is documented as still serving the same keys.
-    assert "download.sol.wickedsick.com" in example
+    assert "# Same R2 bucket (solar-system-db) as download.sol.wickedsick.com. Object keys" in example
 
 
 def test_nginx_mcp_advertises_publicuniverse_and_keeps_alias():
@@ -61,6 +62,6 @@ def test_nginx_mcp_advertises_publicuniverse_and_keeps_alias():
 
 
 def test_published_manifest_snapshot_keeps_original_download_host():
-    text = (ROOT / "docs/performance/full-catalogue-manifest-20261002.json").read_text()
-    assert f"{R2_PUBLIC_BASE_ALIAS}/solar_system-20261002.sqlite.zst" in text
-    assert "download.publicuniverse.net" not in text
+    data = json.loads((ROOT / "docs/performance/full-catalogue-manifest-20261002.json").read_text())
+    assert urlsplit(data["url"]).hostname == "download.sol.wickedsick.com"
+    assert data["url"].endswith("/solar_system-20261002.sqlite.zst")
