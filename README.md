@@ -20,10 +20,13 @@ NASA/JPL and the IAU Minor Planet Centre, refreshed nightly on the build host
 2. **Run the MCP server locally.** A FastMCP server exposes the catalogue as
    typed tools for Claude Desktop, Cursor, Continue, and any other MCP-aware
    AI client (stdio or streamable HTTP).
-3. **Query a public instance.** When self-hosted, the bundled Caddy + FastAPI
-   + MCP-HTTP stack gives you a public REST/JSON API with OpenAPI docs at
-   `/docs` and an MCP HTTP endpoint at `/mcp`. **No direct SQL access is
-   exposed publicly** — the REST API is the contract.
+3. **Query a public instance.** The advertised API is
+   <https://api.publicuniverse.net> and the advertised MCP endpoint is
+   <https://api.publicuniverse.net/mcp>. `api.sol.wickedsick.com` answers the
+   same origin. When self-hosted, the bundled Caddy + FastAPI + MCP-HTTP stack
+   gives you a public REST/JSON API with OpenAPI docs at `/docs` and an MCP
+   HTTP endpoint at `/mcp`. **No direct SQL access is exposed publicly** — the
+   REST API is the contract.
 
 Anonymous REST calls are limited per IP (60/minute and 1,000/day by default).
 Bulk and automated use sends a key in the `X-PU-Api-Key` header. A missing,
@@ -274,10 +277,15 @@ Every night the build host publishes the complete catalogue as a single
 zstd-compressed SQLite file with a manifest:
 
 ```bash
-curl -s https://download.sol.wickedsick.com/latest.json | jq .   # size, sha256, counts, licence
-curl -O "$(curl -s https://download.sol.wickedsick.com/latest.json | jq -r .url)"
+curl -s https://download.publicuniverse.net/latest.json | jq .   # size, sha256, counts, licence
+curl -O "$(curl -s https://download.publicuniverse.net/latest.json | jq -r .url)"
 zstd -d solar_system-*.sqlite.zst && sqlite3 solar_system-*.sqlite 'SELECT COUNT(*) FROM objects'
 ```
+
+`download.publicuniverse.net` and `download.sol.wickedsick.com` serve the same
+R2 bucket (`solar-system-db`) and the same object keys. A manifest that was
+already published keeps the host written into its `url` field, so the second
+command may still save a file from `download.sol.wickedsick.com`.
 
 To use the file you just downloaded: point the API or MCP server at it with
 `SOLAR_DB_PATH=$PWD/solar_system-YYYYMMDD.sqlite python api/main.py`, or open

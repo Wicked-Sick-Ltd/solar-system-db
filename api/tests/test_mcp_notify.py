@@ -161,6 +161,7 @@ def test_failure_result_posts_failure_not_stale_summary(tmp_path, monkeypatch, c
     out = capsys.readouterr().out
     assert "FAILED: exit-code (exit status 1)" in out
     assert "journalctl --user -u solar-build.service" in out
+    assert "No new artefact was published; download.publicuniverse.net still serves the previous build (the same objects remain on download.sol.wickedsick.com)." in out
     assert "20260917" not in out
 
 

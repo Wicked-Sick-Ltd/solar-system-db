@@ -23,8 +23,13 @@ Make sure `data/solar_system.sqlite` exists — it isn't committed to git.
 From the repo root, either fetch the published nightly artefact:
 
 ```bash
-MANIFEST_URL=https://download.sol.wickedsick.com/latest.json ./scripts/pull_latest.sh
+MANIFEST_URL=https://download.publicuniverse.net/latest.json ./scripts/pull_latest.sh
 ```
+
+Manifests already published may still name `download.sol.wickedsick.com` in
+their `url` field. That host serves the same object keys. The advertised
+remote MCP endpoint is `https://api.publicuniverse.net/mcp`.
+`api.sol.wickedsick.com` stays on the same origin.
 
 or build a small offline one (no network, ~1 second):
 

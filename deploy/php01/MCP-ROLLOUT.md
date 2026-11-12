@@ -47,8 +47,17 @@ using the real deployed paths. The service runs Streamable HTTP on
 `127.0.0.1:8002`; it does not expose that port publicly. After authorized
 installation, daemon-reload, enable and start `solar-mcp`.
 
-Include `nginx-mcp.conf` **inside the existing API TLS server block**, resolving
-any conflicting `/mcp` locations first. It preserves the request URI, Host,
+Include `nginx-mcp.conf` **inside the one API TLS server block**, resolving
+any conflicting `/mcp` locations first. The snippet sets
+
+```nginx
+server_name api.publicuniverse.net api.sol.wickedsick.com;
+```
+
+Nginx merges `server_name` directives, so both names stay on that block.
+Include the snippet from that one server block only; a second block that also
+includes it would claim the same names. The advertised name is
+`api.publicuniverse.net`. The alias stays. The snippet preserves the request URI, Host,
 Origin and MCP session/protocol headers, and disables response/request buffering
 for streaming. Before the first reload, add this zone once in the **http**
 context (it is illegal inside the server snippet):
@@ -63,8 +72,9 @@ the REST default per-IP ceiling, so this location cannot fall outside ordinary
 catalogue limits. It is not the observing quota: nginx cannot see which JSON-RPC
 tool a POST calls. `X-Real-IP` is set from `$remote_addr`, replacing any
 client-supplied value. Validate with `nginx -t` before an authorized nginx reload. The
-canonical client endpoint is `https://api.sol.wickedsick.com/mcp` without a
-trailing slash; the prefix location also reaches the MCP application rather
+canonical client endpoint is `https://api.publicuniverse.net/mcp` without a
+trailing slash. `https://api.sol.wickedsick.com/mcp` stays on the same server
+and keeps answering. The prefix location also reaches the MCP application rather
 than falling through to REST. Do not strip `/mcp` in `proxy_pass`.
 
 Streamable HTTP and legacy SSE rate-limit the planner tools per client, using
@@ -94,12 +104,15 @@ semaphore is unchanged and is not a per-client quota.
 They must list every public hostname the proxy forwards (`api.publicuniverse.net`
 and the `api.sol.wickedsick.com` alias); a hostname missing from them answers
 `421 Invalid Host header`.
-The service permits only the existing public hostname/HTTPS origin in addition
-to loopback. DNS-rebinding checks remain on. Server-to-server clients normally
-omit Origin; the SDK accepts that. Add any genuinely required browser origin
-only after review; do not replace the allowlist with `*` or strip Origin at
-nginx. Changing the public domain requires coordinated proxy, service and
-client changes. This proposal does not move the endpoint to publicuniverse.net.
+The service permits the advertised public hostname (`api.publicuniverse.net`)
+and the `api.sol.wickedsick.com` alias, plus loopback. DNS-rebinding checks
+remain on. Server-to-server clients normally omit Origin; the SDK accepts that.
+Add any genuinely required browser origin only after review; do not replace the
+allowlist with `*` or strip Origin at nginx. Changing the public domain requires
+coordinated proxy, service and client changes. The advertised endpoint in this
+template is `https://api.publicuniverse.net/mcp`. `api.sol.wickedsick.com` stays
+on `server_name` and on the allowlists above. Merging the template does not edit
+php01, and it does not add a redirect.
 
 The Docker alternative supplies the same allowlists from `PUBLIC_HOSTNAME`
 and passes that value to Caddy. This is a separate deployment option, not a

@@ -89,7 +89,7 @@ def format_failure_message(service_result: str, exit_status: str | None) -> tupl
     subject = f"solar-system-db nightly FAILED: {service_result}{status}"
     body = "\n".join([
         f"solar-build.service ended with SERVICE_RESULT={service_result}{status}.",
-        "No new artefact was published; download.sol.wickedsick.com still serves the previous build.",
+        "No new artefact was published; download.publicuniverse.net still serves the previous build (the same objects remain on download.sol.wickedsick.com).",
         "",
         "Diagnose on llm1:",
         "  journalctl --user -u solar-build.service -n 60 --no-pager",

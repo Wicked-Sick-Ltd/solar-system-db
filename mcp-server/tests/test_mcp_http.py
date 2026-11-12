@@ -13,7 +13,8 @@ import httpx
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_HOST = "api.sol.wickedsick.com"
+PUBLIC_HOST = "api.publicuniverse.net"
+ALIAS_HOST = "api.sol.wickedsick.com"
 
 
 @pytest.fixture(scope="module")
@@ -22,8 +23,8 @@ def http_server(tmp_path_factory):
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     log_path = tmp_path_factory.mktemp("mcp-http") / "server.log"
-    env = {**os.environ, "MCP_ALLOWED_HOSTS": PUBLIC_HOST,
-           "MCP_ALLOWED_ORIGINS": f"https://{PUBLIC_HOST}"}
+    env = {**os.environ, "MCP_ALLOWED_HOSTS": f"{PUBLIC_HOST},{ALIAS_HOST}",
+           "MCP_ALLOWED_ORIGINS": f"https://{PUBLIC_HOST},https://{ALIAS_HOST}"}
     with log_path.open("w+") as log:
         process = subprocess.Popen(
             [sys.executable, str(ROOT / "mcp-server/server.py"), "--transport", "http",
@@ -64,6 +65,7 @@ def payload(response):
 @pytest.mark.parametrize("proxy_headers", [
     {"Host": PUBLIC_HOST, "Origin": f"https://{PUBLIC_HOST}"},
     {"Host": PUBLIC_HOST},
+    {"Host": ALIAS_HOST, "Origin": f"https://{ALIAS_HOST}"},
     {},  # Ordinary loopback Host with no Origin remains supported.
 ])
 def test_http_session_lists_and_calls_tools(http_server, proxy_headers):

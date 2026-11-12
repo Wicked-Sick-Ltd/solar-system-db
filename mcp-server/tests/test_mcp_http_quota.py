@@ -19,7 +19,8 @@ from solar_db.http_quotas import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_HOST = "api.sol.wickedsick.com"
+PUBLIC_HOST = "api.publicuniverse.net"
+ALIAS_HOST = "api.sol.wickedsick.com"
 NIGHT_COUNT, _ = parse_quota(OBSERVING_NIGHT_LIMIT)
 DISCOVER_COUNT, _ = parse_quota(OBSERVING_DISCOVER_LIMIT)
 
@@ -30,8 +31,8 @@ def http_server(tmp_path_factory):
         listener.bind(("127.0.0.1", 0))
         port = listener.getsockname()[1]
     log_path = tmp_path_factory.mktemp("mcp-http-quota") / "server.log"
-    env = {**os.environ, "MCP_ALLOWED_HOSTS": PUBLIC_HOST,
-           "MCP_ALLOWED_ORIGINS": f"https://{PUBLIC_HOST}"}
+    env = {**os.environ, "MCP_ALLOWED_HOSTS": f"{PUBLIC_HOST},{ALIAS_HOST}",
+           "MCP_ALLOWED_ORIGINS": f"https://{PUBLIC_HOST},https://{ALIAS_HOST}"}
     env.pop("MCP_HOST", None)
     with log_path.open("w+") as log:
         process = subprocess.Popen(

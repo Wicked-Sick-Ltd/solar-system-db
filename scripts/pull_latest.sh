@@ -2,8 +2,14 @@
 # scripts/pull_latest.sh — on the public API host, fetch the latest published
 # catalogue from object storage and swap it in atomically.
 #
-#   MANIFEST_URL=https://download.sol.wickedsick.com/latest.json \
+#   MANIFEST_URL=https://download.publicuniverse.net/latest.json \
 #   DATA_DIR=/home/wizzo/solar-data ./scripts/pull_latest.sh
+#
+# download.publicuniverse.net and download.sol.wickedsick.com are the same R2
+# bucket (solar-system-db). Object keys are unchanged. A manifest fetched from
+# either host may still name the other host in its url field; both are accepted.
+# Any other manifest host may only pull an artefact from that manifest's own
+# directory.
 #
 # Default DATA_DIR (<repo>/data) is fine for the build host's docker-compose
 # profile. On a bare-metal API host keep DATA_DIR outside the git checkout
@@ -17,6 +23,38 @@
 # Cron (every 15 min; the build publishes around 03:40 UTC):
 #   */15 * * * * cd /home/wizzo/solar-system-db && set -a && . ~/.config/solar-pull.env && set +a && ./scripts/pull_latest.sh >> /home/wizzo/solar-pull.log 2>&1
 set -euo pipefail
+
+# Same-bucket download hosts. A manifest on either one may name objects on the
+# other. Historical manifests keep the host they were published with.
+DOWNLOAD_HOSTS=(
+  "https://download.publicuniverse.net"
+  "https://download.sol.wickedsick.com"
+)
+
+artefact_url_allowed() {
+  local manifest_url="$1"
+  local art_url="$2"
+  local manifest_dir="${manifest_url%/*}"
+  local host
+  case "$art_url" in
+    "$manifest_dir"/solar_system-*.sqlite.zst) return 0 ;;
+  esac
+  case "$manifest_dir" in
+    "${DOWNLOAD_HOSTS[0]}"|"${DOWNLOAD_HOSTS[1]}")
+      for host in "${DOWNLOAD_HOSTS[@]}"; do
+        case "$art_url" in
+          "$host"/solar_system-*.sqlite.zst) return 0 ;;
+        esac
+      done
+      ;;
+  esac
+  return 1
+}
+
+# Tests source this file with PULL_LATEST_SOURCE_ONLY=1 and stop after the helper.
+if [[ "${PULL_LATEST_SOURCE_ONLY:-}" == 1 ]]; then
+  return 0 2>/dev/null || exit 0
+fi
 
 MANIFEST_URL="${MANIFEST_URL:?set MANIFEST_URL to the published latest.json}"
 DATA_DIR="${DATA_DIR:-$(cd "$(dirname "$0")/.." && pwd)/data}"
@@ -48,7 +86,10 @@ name="$(printf '%s' "$manifest" | json '["artefact"]')"
 # The manifest is fetched over HTTPS but not signed: never let its fields shape a path.
 name="$(basename -- "$name")"
 [[ "$name" =~ ^solar_system-[0-9]{8}\.sqlite\.zst$ ]] || { log "refusing unexpected artefact name: $name"; exit 1; }
-case "$art_url" in "${MANIFEST_URL%/*}"/solar_system-*.sqlite.zst) ;; *) log "refusing artefact URL outside the manifest's directory: $art_url"; exit 1 ;; esac
+if ! artefact_url_allowed "$MANIFEST_URL" "$art_url"; then
+  log "refusing artefact URL outside the manifest's directory: $art_url"
+  exit 1
+fi
 
 have_sha=""
 [[ -f "$DATA_DIR/latest.json" ]] && have_sha="$(json '["sha256"]' < "$DATA_DIR/latest.json" || true)"

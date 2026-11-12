@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Publish and pull defaults (`MANIFEST_URL`, `S3_PUBLIC_BASE`, `build/.env.op`,
+  the php01 pull-env template) now use `https://download.publicuniverse.net`.
+  The R2 bucket stays `solar-system-db` and object keys are unchanged.
+  `download.sol.wickedsick.com` keeps serving the same objects. Manifests and
+  archives already published keep the URLs they were written with.
+  `scripts/pull_latest.sh` accepts an artefact URL on either download host when
+  the manifest was fetched from either host.
+- The php01 MCP templates advertise `https://api.publicuniverse.net/mcp`.
+  `api.sol.wickedsick.com` stays on `server_name` and on the MCP allowlists.
+  The templates are repository-only; nothing in this change is applied to php01.
+  Redirects are unchanged.
+
 ## [0.1.0] - 2026-10-09
 
 First tagged release of the catalogue behind Public Universe (publicuniverse.net).
@@ -120,9 +136,10 @@ It covers everything on `main` from the initial commit (1 June 2026) up to
   `/close-approaches` but returned 404 for `/meteor-showers`, `/exoplanets`,
   `/catalogue`, `/observing/night` and `/starter-targets`, so #16, #30 and #46
   are merged but not yet deployed to the API host.
-- publicuniverse.net API and download hostnames are proposals. Current
-  addresses (`api.sol.wickedsick.com`, `download.sol.wickedsick.com`) remain in
-  use, and the repository keeps its `solar-system-db` name.
+- As of this release, publicuniverse.net API and download hostnames were
+  proposals. The addresses then in use were `api.sol.wickedsick.com` and
+  `download.sol.wickedsick.com`. Later hostname defaults are in [Unreleased].
+  The repository keeps its `solar-system-db` name.
 - Sky and position endpoints use two-body propagation, accurate to about one
   degree. Night planning is an explicitly labelled approximation, and the JPL
   provider is optional and not provisioned by default.

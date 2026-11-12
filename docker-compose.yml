@@ -87,7 +87,7 @@ services:
     environment:
       - S3_BUCKET=${S3_BUCKET:-solar-system-db}
       - S3_ENDPOINT=${S3_ENDPOINT:-https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com}
-      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-https://download.sol.wickedsick.com}
+      - S3_PUBLIC_BASE=${S3_PUBLIC_BASE:-https://download.publicuniverse.net}
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_DEFAULT_REGION=${S3_REGION:-auto}

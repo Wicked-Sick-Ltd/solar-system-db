@@ -22,8 +22,11 @@ ruff; `[publish]` plus the `zstd` CLI exercises the publish/pull tests.
 The catalogue is **not** committed to git — get it one of these ways:
 
 ```bash
-# Fetch the published nightly artefact (fastest; ~1.5-2.5 GB download)
-MANIFEST_URL=https://download.sol.wickedsick.com/latest.json ./scripts/pull_latest.sh
+# Fetch the published nightly artefact (fastest; ~1.5-2.5 GB download).
+# Manifests already published may still name download.sol.wickedsick.com in
+# their url field. That host serves the same object keys, and pull_latest.sh
+# accepts an artefact URL on either download host.
+MANIFEST_URL=https://download.publicuniverse.net/latest.json ./scripts/pull_latest.sh
 
 # Or build a small offline one from tests/fixtures (no network, ~1 second)
 python scripts/build_full.py --fresh --offline

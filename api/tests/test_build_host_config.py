@@ -1,6 +1,8 @@
 """The build-host files must reference secrets only through op:// and never carry ACL flags."""
+import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -25,7 +27,7 @@ def test_timer_is_0300_utc_and_persistent():
 
 
 R2_ENDPOINT = "https://4ce32b0dd5d81195ffdef6d24d1a8297.r2.cloudflarestorage.com"
-R2_PUBLIC_BASE = "https://download.sol.wickedsick.com"
+R2_PUBLIC_BASE = "https://download.publicuniverse.net"
 
 
 def test_compose_builder_defaults_to_r2_not_ceph_rgw():
@@ -36,3 +38,30 @@ def test_compose_builder_defaults_to_r2_not_ceph_rgw():
     assert re.search(r"^\s*-\s*S3_NO_ACL=\$\{S3_NO_ACL:-1\}$", text, re.MULTILINE)
     assert not re.search(r"s3\.wickedsick\.com", text), "Ceph RGW host must not appear anywhere in compose"
     assert "$$CRAWLER_RPS" in text
+
+
+def test_publish_defaults_use_publicuniverse_download_host():
+    op = (ROOT / "build" / ".env.op").read_text()
+    example = (ROOT / ".env.example").read_text()
+    pull = (ROOT / "deploy" / "php01" / "solar-pull.env.example").read_text()
+    assert f"S3_PUBLIC_BASE={R2_PUBLIC_BASE}" in op
+    assert f"MANIFEST_URL={R2_PUBLIC_BASE}/latest.json" in example
+    assert f"S3_PUBLIC_BASE={R2_PUBLIC_BASE}" in example
+    assert f"MANIFEST_URL={R2_PUBLIC_BASE}/latest.json" in pull
+    # The previous custom domain is documented as still serving the same keys.
+    assert "# Same R2 bucket (solar-system-db) as download.sol.wickedsick.com. Object keys" in example
+
+
+def test_nginx_mcp_advertises_publicuniverse_and_keeps_alias():
+    text = (ROOT / "deploy" / "php01" / "nginx-mcp.conf").read_text()
+    assert re.search(
+        r"^server_name\s+api\.publicuniverse\.net\s+api\.sol\.wickedsick\.com\s*;",
+        text,
+        re.MULTILINE,
+    )
+
+
+def test_published_manifest_snapshot_keeps_original_download_host():
+    data = json.loads((ROOT / "docs/performance/full-catalogue-manifest-20261002.json").read_text())
+    assert urlsplit(data["url"]).hostname == "download.sol.wickedsick.com"
+    assert data["url"].endswith("/solar_system-20261002.sqlite.zst")
