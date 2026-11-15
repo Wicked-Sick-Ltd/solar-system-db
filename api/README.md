@@ -119,7 +119,8 @@ python api/fair_use.py list
 ```
 
 `PU_API_KEYS` may be a JSON list of `{"key","tier","label","id"}` objects.
-On startup those values are hashed into the database. Leave it unset in
+On startup those values are hashed into the database. A listed key that has
+been revoked stays revoked; restarting does not restore it. Leave it unset in
 shared environments. A bad payload is ignored and the process still starts.
 
 Requests that hit this process on loopback **with no forwarding headers and
