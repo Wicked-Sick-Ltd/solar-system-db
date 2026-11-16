@@ -37,6 +37,7 @@ from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
+from starlette.concurrency import run_in_threadpool
 
 HEADER_NAME = "x-pu-api-key"
 TIER_HEADER = "X-PU-Key-Tier"
@@ -212,6 +213,22 @@ class Decision:
     retry_after: int = 0
 
 
+@dataclass(frozen=True)
+class _Bucket:
+    name: str
+    expires_at: int
+    limit: int
+
+
+@dataclass(frozen=True)
+class _Admission:
+    """Budget reserved in memory for one request, still to be persisted."""
+
+    tier: str
+    now: int
+    buckets: tuple[_Bucket, ...]
+
+
 class KeyStore:
     """SQLite store of key hashes and fixed-window counters."""
 
@@ -245,9 +262,20 @@ class KeyStore:
         )
         self._conn.commit()
         self._writes = 0
+        # Key lookups use their own WAL reader so they never wait behind a
+        # counter commit. An in-memory database is private to one connection.
+        if path == ":memory:":
+            self._read_lock = self._lock
+            self._read_conn = self._conn
+        else:
+            self._read_lock = threading.Lock()
+            self._read_conn = sqlite3.connect(path, check_same_thread=False)
 
     def close(self) -> None:
         with self._lock:
+            if self._read_conn is not self._conn:
+                with self._read_lock:
+                    self._read_conn.close()
             self._conn.close()
 
     def add(self, key_id: str, key_hash: str, tier: str, label: str) -> None:
@@ -279,8 +307,8 @@ class KeyStore:
             return cursor.rowcount > 0
 
     def find(self, key_hash: str) -> tuple[str, str, str | None] | None:
-        with self._lock:
-            row = self._conn.execute(
+        with self._read_lock:
+            row = self._read_conn.execute(
                 "SELECT id, tier, revoked_at FROM api_keys WHERE key_hash = ?",
                 (key_hash,),
             ).fetchone()
@@ -352,6 +380,11 @@ class FairUseGate:
         self.api_access_url = api_access_url
         self.trusted = trusted_proxy_set(trusted_proxies)
         self._clock = clock
+        # Per-process view of the SQLite windows. Rejections are decided here so
+        # an over-budget request never opens a write transaction.
+        self._window: dict[str, list[int]] = {}
+        self._window_lock = threading.Lock()
+        self._admitted = 0
 
     @classmethod
     def from_environ(cls) -> FairUseGate:
@@ -422,16 +455,24 @@ class FairUseGate:
             return None
         return raw.strip()[:256]
 
-    def evaluate(self, peer_host: str | None, headers: Mapping[str, str]) -> Decision:
-        now = int(self._clock())
-        presented = self.presented_key(headers)
+    def _lookup(self, presented: str) -> tuple[str, str, str | None] | None:
+        return self.store.find(hash_key(presented, self.pepper))
+
+    def _admit(
+        self,
+        now: int,
+        peer_host: str | None,
+        headers: Mapping[str, str],
+        presented: str | None,
+        found: tuple[str, str, str | None] | None,
+    ) -> Decision | _Admission:
+        """Decide from memory and reserve budget. Touches no SQLite state."""
         identity = client_address(peer_host, headers, self.trusted)
         tier = ANONYMOUS
         subject = "ip:" + identity
         invalid = False
 
         if presented is not None:
-            found = self.store.find(hash_key(presented, self.pepper))
             if found is not None and found[2] is None and found[1] in KEY_TIERS:
                 tier = found[1]
                 subject = "key:" + found[0]
@@ -441,23 +482,75 @@ class FairUseGate:
         if tier == ANONYMOUS and presented is None and direct_loopback(peer_host, headers):
             return Decision(tier=ANONYMOUS, allowed=True)
 
-        if invalid:
-            expires = (now // 60 + 1) * 60
-            count = self.store.bump(f"invalid:{identity}:{now // 60}", expires, now)
-            if count > self.invalid_per_minute:
-                return Decision(tier=ANONYMOUS, allowed=False, retry_after=max(1, expires - now))
-
         per_minute, per_day = self.limits[tier]
         minute_expires = (now // 60 + 1) * 60
         day_index = now // 86400
         day_expires = (day_index + 1) * 86400
-        minute_count = self.store.bump(f"m:{subject}:{now // 60}", minute_expires, now)
-        day_count = self.store.bump(f"d:{subject}:{day_index}", day_expires, now)
-        if minute_count > per_minute:
-            return Decision(tier=tier, allowed=False, retry_after=max(1, minute_expires - now))
-        if day_count > per_day:
-            return Decision(tier=tier, allowed=False, retry_after=max(1, day_expires - now))
-        return Decision(tier=tier, allowed=True)
+        buckets: list[_Bucket] = []
+        if invalid:
+            buckets.append(_Bucket(f"invalid:{identity}:{now // 60}", minute_expires, self.invalid_per_minute))
+        buckets.append(_Bucket(f"m:{subject}:{now // 60}", minute_expires, per_minute))
+        buckets.append(_Bucket(f"d:{subject}:{day_index}", day_expires, per_day))
+
+        with self._window_lock:
+            self._admitted += 1
+            if self._admitted % 1024 == 0:
+                for name in [name for name, entry in self._window.items() if entry[1] <= now]:
+                    del self._window[name]
+            for bucket in buckets:
+                entry = self._window.get(bucket.name)
+                if entry is not None and entry[0] >= bucket.limit:
+                    return Decision(tier=tier, allowed=False, retry_after=max(1, bucket.expires_at - now))
+            for bucket in buckets:
+                entry = self._window.setdefault(bucket.name, [0, bucket.expires_at])
+                entry[0] += 1
+        return _Admission(tier=tier, now=now, buckets=tuple(buckets))
+
+    def _record(self, admission: _Admission) -> list[int]:
+        """Persist an admitted request. Blocking SQLite work; keep it off the event loop."""
+        counts: list[int] = []
+        for bucket in admission.buckets:
+            count = self.store.bump(bucket.name, bucket.expires_at, admission.now)
+            counts.append(count)
+            if count > bucket.limit:
+                break
+        return counts
+
+    def _settle(self, admission: _Admission, counts: list[int]) -> Decision:
+        """Fold persisted counts (other processes, earlier runs) back into memory."""
+        with self._window_lock:
+            for bucket, count in zip(admission.buckets, counts):
+                entry = self._window.setdefault(bucket.name, [0, bucket.expires_at])
+                entry[0] = max(entry[0], count)
+        for bucket, count in zip(admission.buckets, counts):
+            if count > bucket.limit:
+                return Decision(
+                    tier=admission.tier,
+                    allowed=False,
+                    retry_after=max(1, bucket.expires_at - admission.now),
+                )
+        return Decision(tier=admission.tier, allowed=True)
+
+    def evaluate(self, peer_host: str | None, headers: Mapping[str, str]) -> Decision:
+        """Synchronous check for callers that are not on the event loop."""
+        now = int(self._clock())
+        presented = self.presented_key(headers)
+        found = self._lookup(presented) if presented is not None else None
+        admitted = self._admit(now, peer_host, headers, presented, found)
+        if isinstance(admitted, Decision):
+            return admitted
+        return self._settle(admitted, self._record(admitted))
+
+    async def evaluate_async(self, peer_host: str | None, headers: Mapping[str, str]) -> Decision:
+        """Event-loop check. SQLite reads and commits run in the threadpool."""
+        now = int(self._clock())
+        presented = self.presented_key(headers)
+        found = await run_in_threadpool(self._lookup, presented) if presented is not None else None
+        admitted = self._admit(now, peer_host, headers, presented, found)
+        if isinstance(admitted, Decision):
+            return admitted
+        counts = await run_in_threadpool(self._record, admitted)
+        return self._settle(admitted, counts)
 
     def headers_for(self, decision: Decision) -> dict[str, str]:
         headers = {
@@ -502,7 +595,7 @@ class FairUseGate:
         if request.method == "OPTIONS":
             return self.preflight()
         peer = request.client.host if request.client else None
-        decision = self.evaluate(peer, request.headers)
+        decision = await self.evaluate_async(peer, request.headers)
         if not decision.allowed:
             return self.deny(decision)
         response = await call_next(request)
