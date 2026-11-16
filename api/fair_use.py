@@ -452,9 +452,9 @@ class FairUseGate:
         day_index = now // 86400
         day_expires = (day_index + 1) * 86400
         minute_count = self.store.bump(f"m:{subject}:{now // 60}", minute_expires, now)
-        day_count = self.store.bump(f"d:{subject}:{day_index}", day_expires, now)
         if minute_count > per_minute:
             return Decision(tier=tier, allowed=False, retry_after=max(1, minute_expires - now))
+        day_count = self.store.bump(f"d:{subject}:{day_index}", day_expires, now)
         if day_count > per_day:
             return Decision(tier=tier, allowed=False, retry_after=max(1, day_expires - now))
         return Decision(tier=tier, allowed=True)
