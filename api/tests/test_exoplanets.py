@@ -114,6 +114,84 @@ def test_rest_mcp_filters_detail_map_and_validation(catalogue, monkeypatch):
         server.galaxy_map(max_distance_pc=float('nan'))
 
 
+def _nested(depth):
+    return '[' * depth + ']' * depth
+
+
+def _rest_and_mcp(db, monkeypatch):
+    import api.main as api
+    monkeypatch.setattr(api, 'db', db)
+    monkeypatch.setattr(api.limiter, "enabled", False)
+    spec = importlib.util.spec_from_file_location('exo_mcp_nested', ROOT / 'mcp-server/server.py')
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    monkeypatch.setattr(server, 'db', lambda: db)
+    return TestClient(api.app, raise_server_exceptions=False), server
+
+
+# 100000 overflows the C decoder; 2000 decodes but is too deep to serialise.
+@pytest.mark.parametrize('depth', [100000, 2000])
+def test_nested_source_data_reports_unavailable(catalogue, monkeypatch, depth):
+    from solar_db.response_snapshot import CatalogueReadError
+    conn, rows, db = catalogue
+    write_exoplanets(conn, rows)
+    with conn:
+        conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (_nested(depth), 'Proxima Cen b'))
+    client, server = _rest_and_mcp(db, monkeypatch)
+    unavailable = {'detail': 'Exoplanet catalogue is temporarily unavailable.'}
+    host = stable_id('host', 'Proxima Cen')
+    for path in ('/api/v1/exoplanets', '/api/v1/exoplanets/Proxima Cen b', '/api/v1/exoplanet-hosts/' + host):
+        response = client.get(path)
+        assert response.status_code == 503, path
+        assert response.json() == unavailable
+    for call in (server.list_exoplanets, lambda: server.get_exoplanet('Proxima Cen b'),
+                 lambda: server.get_exoplanet_host(host)):
+        with pytest.raises(CatalogueReadError):
+            call()
+    other = client.get('/api/v1/exoplanets', params={'q': 'TRAPPIST'})
+    assert other.status_code == 200 and other.json()['total'] == 7
+
+
+def test_catalogue_json_depth_limit_and_blob_cells(catalogue, monkeypatch):
+    from solar_db.exoplanets import MAX_JSON_DEPTH, catalogue_json
+    conn, rows, db = catalogue
+    write_exoplanets(conn, rows)
+    with conn:
+        conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (_nested(MAX_JSON_DEPTH), 'Proxima Cen b'))
+        conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (b'{"pl_name": "51 Peg b"}', '51 Peg b'))
+    client, server = _rest_and_mcp(db, monkeypatch)
+    assert client.get('/api/v1/exoplanets/Proxima Cen b').status_code == 200
+    assert server.get_exoplanet('51 Peg b')['source_data'] == {'pl_name': '51 Peg b'}
+    assert catalogue_json(json.dumps({'k': '[' * 100000})) == {'k': '[' * 100000}
+    for text in (_nested(MAX_JSON_DEPTH + 1), '{"a":' * 5000 + '1' + '}' * 5000, '"' + '[' * 100000):
+        with pytest.raises(ValueError):
+            catalogue_json(text)
+
+
+def test_nested_host_metadata_reports_unavailable(catalogue, monkeypatch):
+    conn, rows, db = catalogue
+    write_exoplanets(conn, rows)
+    host = stable_id('host', 'TRAPPIST-1')
+    with conn:
+        conn.execute('UPDATE exoplanet_hosts SET coordinate_metadata=? WHERE id=?', (_nested(100000), host))
+    client, _ = _rest_and_mcp(db, monkeypatch)
+    response = client.get('/api/v1/exoplanet-hosts/' + host)
+    assert response.status_code == 503
+    assert client.get('/api/v1/exoplanets/Proxima Cen b').status_code == 200
+
+
+def test_nested_identity_payload_reads_as_invalid(catalogue, monkeypatch):
+    conn, rows, db = catalogue
+    write_exoplanets(conn, rows)
+    with conn:
+        conn.execute('INSERT OR REPLACE INTO catalogue_identity VALUES (1,?)', (_nested(400000),))
+    client, _ = _rest_and_mcp(db, monkeypatch)
+    response = client.get('/api/v1/exoplanets')
+    assert response.status_code == 200
+    snapshot = response.json()['catalogue_snapshot']
+    assert (snapshot['status'], snapshot['reason']) == ('unknown', 'invalid_metadata')
+
+
 def test_old_catalogue_reports_unavailable(catalogue):
     conn, _, db = catalogue
     conn.execute('DROP TABLE exoplanets')
