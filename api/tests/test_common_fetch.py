@@ -117,6 +117,12 @@ def test_backoff_is_capped_and_never_negative():
     assert 0 <= common.backoff_seconds(0) <= 2.0
 
 
+def test_backoff_has_a_half_step_floor(monkeypatch):
+    # Worst-case draw: eight attempts must still span 1+2+4+8+16+32+60 = 123 s.
+    monkeypatch.setattr(common.random, "uniform", lambda a, b: a)
+    assert sum(common.backoff_seconds(i) for i in range(7)) == 123.0
+
+
 def test_retry_budget_refuses_to_plan_past_its_limits(clock):
     budget = common.RetryBudget(max_attempts=3, seconds=60.0)
     assert budget.next_delay(0) == 2.0
