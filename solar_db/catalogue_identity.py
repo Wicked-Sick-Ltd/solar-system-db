@@ -284,5 +284,5 @@ def read_identity(conn):
         if value["build_identifier"] != "sha256:" + expected or value.get("built_at") != value.get("build", {}).get("finished_at"):
             return unknown("invalid_metadata")
         return value
-    except (sqlite3.DatabaseError, ValueError, TypeError, AttributeError):
+    except (sqlite3.DatabaseError, ValueError, TypeError, AttributeError, RecursionError):
         return unknown("invalid_metadata")
