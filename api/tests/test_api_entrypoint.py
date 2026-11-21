@@ -22,3 +22,12 @@ def test_run_starts_uvicorn_from_environment(monkeypatch):
     assert calls == [
         (("main:app",), {"host": "127.0.0.1", "port": 9123, "reload": False})
     ]
+
+
+def test_sentry_is_off_without_a_dsn():
+    # conftest.py clears SENTRY_DSN before main is imported.
+    import main
+    import sentry_sdk
+
+    assert main.app.title == "solar-system-db REST API"
+    assert not sentry_sdk.is_initialized()

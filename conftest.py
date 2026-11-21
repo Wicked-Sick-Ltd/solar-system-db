@@ -24,6 +24,8 @@ def pytest_configure(config):
     os.environ["PU_ANON_PER_MINUTE"] = "1000000"
     os.environ["PU_ANON_PER_DAY"] = "1000000"
     os.environ["PU_INVALID_KEY_PER_MINUTE"] = "1000000"
+    # A test run never reports to Sentry, whatever the shell has exported.
+    os.environ.pop("SENTRY_DSN", None)
     if os.environ.get("SOLAR_TEST_DB_READY"):
         return
     build_dir = Path(tempfile.mkdtemp(prefix="solar-test-db-"))

@@ -39,6 +39,26 @@ from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 from fair_use import FairUseGate, attach
 
 # --------------------------------------------------------------------------
+# Error monitoring: off, and sentry-sdk not imported, until SENTRY_DSN is set
+# --------------------------------------------------------------------------
+if os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+    from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
+
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        environment=os.environ.get("SENTRY_ENVIRONMENT"),
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+        # send_default_pii=False does not cover these two request headers: the
+        # caller's API key, and the client IP as Cloudflare forwards it.
+        event_scrubber=EventScrubber(
+            denylist=DEFAULT_DENYLIST + ["x-pu-api-key", "cf-connecting-ip"]),
+        # Frame locals hold the raw ASGI scope: every header again, and the peer IP.
+        include_local_variables=False,
+    )
+
+# --------------------------------------------------------------------------
 # App + rate limiter
 # --------------------------------------------------------------------------
 db = SolarDB()

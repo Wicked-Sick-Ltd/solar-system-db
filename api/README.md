@@ -152,6 +152,14 @@ MCP itself is not on these API key tiers.
 | `PU_INVALID_KEY_PER_MINUTE` | 30 | Per-IP cap on unknown or revoked keys. |
 | `PU_API_ACCESS_URL` | `https://publicuniverse.net/api-access` | Link returned with HTTP 429. |
 | `PU_TRUSTED_PROXIES` | loopback only | Extra proxy addresses allowed to supply a client IP. |
+| `SENTRY_DSN` | unset | Sentry DSN. Unset keeps error and trace reporting off. Set it on the host, never in git. |
+| `SENTRY_ENVIRONMENT` | unset | Environment name shown in Sentry. Unset is reported as `production`. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0.1` | Share of requests traced, `0` to `1`. |
+
+With a DSN set, unhandled errors and the sampled traces carry the request
+method, path, query string and headers. `X-PU-Api-Key`, `CF-Connecting-IP`,
+`X-Forwarded-For`, `X-Real-IP`, `Authorization` and cookies are filtered out,
+and stack traces are sent without local variables.
 
 ## Data sources
 
