@@ -15,6 +15,8 @@ import re
 import sqlite3
 from datetime import date, datetime
 
+from . import catalogue_json
+
 HASH_POLICY = "catalogue-logical-v1"
 IDENTITY_TABLE = "catalogue_identity"
 EXCLUDED_TABLES = {"build_meta", "enrichment_state", IDENTITY_TABLE,
@@ -179,7 +181,7 @@ def source_manifest(conn, inputs, builder):
     pinned = []
     if "starter_sources" in tables:
         for source, payload in conn.execute("SELECT source,payload FROM starter_sources ORDER BY source"):
-            data = json.loads(payload)
+            data = catalogue_json.loads(payload)
             evidence = data.get("astrometry_evidence", {})
             pinned.append({"name": source, "retrieved_at": _timestamp(data.get("retrieved_at")),
                            "snapshot_sha256": data.get("snapshot_sha256"), "upstream_sha256": data.get("upstream_sha256", {}),
@@ -262,7 +264,7 @@ def read_identity(conn):
             return unknown("not_finalized_or_changed")
         if not isinstance(row[0], str) or len(row[0].encode()) > 1048576:
             return unknown("invalid_metadata")
-        value = json.loads(row[0])
+        value = catalogue_json.loads(row[0])
         if not isinstance(value, dict) or value.get("schema_version") != 1 or value.get("status") != "known" or value.get("hash_policy") != HASH_POLICY:
             return unknown("unsupported_metadata")
         if set(value) != set(unknown("shape")) or value.get("reason") is not None:

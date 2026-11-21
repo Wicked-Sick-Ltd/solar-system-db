@@ -1,9 +1,9 @@
 """Read-only exoplanet queries shared by REST and MCP."""
 from __future__ import annotations
 
-import json
 import math
 
+from . import catalogue_json
 from .galactic import FRAME
 from .response_snapshot import CatalogueReadError, catalogue_snapshot
 
@@ -16,7 +16,7 @@ def positive_distance(value: float | None) -> float | None:
 
 def planet_record(row) -> dict:
     result = dict(row)
-    result["source_data"] = json.loads(result["source_data"])
+    result["source_data"] = catalogue_json.loads(result["source_data"])
     return result
 
 
@@ -69,7 +69,7 @@ class ExoplanetQueries:
             if row is None:
                 return None
             result = dict(row)
-            result["coordinate_metadata"] = json.loads(result["coordinate_metadata"])
+            result["coordinate_metadata"] = catalogue_json.loads(result["coordinate_metadata"])
             planets = conn.execute("""SELECT p.*, h.name AS host_name, h.distance_pc
                 FROM exoplanets p JOIN exoplanet_hosts h ON h.id=p.host_id
                 WHERE p.host_id=? ORDER BY p.name""", (row["id"],)).fetchall()
