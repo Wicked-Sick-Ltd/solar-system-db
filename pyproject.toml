@@ -32,6 +32,7 @@ api = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "slowapi>=0.1.9",
+    "sentry-sdk>=2.0,<3",
 ]
 publish = [
     "zstandard>=0.22",
@@ -43,6 +44,7 @@ all = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "slowapi>=0.1.9",
+    "sentry-sdk>=2.0,<3",
     "zstandard>=0.22",
     "boto3>=1.34",
 ]
