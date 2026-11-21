@@ -41,22 +41,44 @@ from fair_use import FairUseGate, attach
 # --------------------------------------------------------------------------
 # Error monitoring: off, and sentry-sdk not imported, until SENTRY_DSN is set
 # --------------------------------------------------------------------------
-if os.environ.get("SENTRY_DSN"):
+def _privacy_first(event, _hint):
+    """Sentry before_send hook: nothing from the HTTP request leaves this host."""
+    event.pop("request", None)  # URL, query string, headers, cookies, body, env
+    if event.get("transaction_info", {}).get("source") == "url":
+        event["transaction"] = "unmatched route"  # no route matched: the name is the raw URL
+    for span in event.get("spans") or ():  # only present once tracing is opted into
+        if span.get("op") == "http.client":  # an outbound URL and its query string
+            span.pop("description", None)
+            span.pop("data", None)
+    return event
+
+
+def _init_sentry() -> None:
+    """An event is the exception and its stack trace, nothing else."""
+    if not os.environ.get("SENTRY_DSN"):
+        return
     import sentry_sdk
-    from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
+    from sentry_sdk.integrations.logging import LoggingIntegration
 
     sentry_sdk.init(
         dsn=os.environ["SENTRY_DSN"],
-        environment=os.environ.get("SENTRY_ENVIRONMENT"),
-        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        environment=os.environ.get("SENTRY_ENVIRONMENT") or None,
+        # Tracing is opt-in: unset, empty or 0 reports errors only.
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE") or 0) or None,
         send_default_pii=False,
-        # send_default_pii=False does not cover these two request headers: the
-        # caller's API key, and the client IP as Cloudflare forwards it.
-        event_scrubber=EventScrubber(
-            denylist=DEFAULT_DENYLIST + ["x-pu-api-key", "cf-connecting-ip"]),
-        # Frame locals hold the raw ASGI scope: every header again, and the peer IP.
-        include_local_variables=False,
+        max_request_body_size="never",  # observing plans: the observer's site
+        include_local_variables=False,  # locals hold the raw ASGI scope: headers, peer IP
+        max_breadcrumbs=0,  # log lines and outbound URLs, e.g. the access log's path
+        trace_propagation_targets=[],  # no sentry-trace/baggage headers on outbound calls
+        before_send=_privacy_first,
+        before_send_transaction=_privacy_first,
+        # Only exceptions become events. A log line is whatever the code put in it,
+        # and a failure logged on a timer would be an event every interval.
+        integrations=[LoggingIntegration(event_level=None)],
     )
+
+
+_init_sentry()  # before SolarDB() and the app are created
 
 # --------------------------------------------------------------------------
 # App + rate limiter

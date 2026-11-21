@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- The REST API reports unhandled errors and a sample of request traces to
-  Sentry when `SENTRY_DSN` is set (`SENTRY_ENVIRONMENT`,
-  `SENTRY_TRACES_SAMPLE_RATE`, default `0.1`). Unset, which is the default,
-  nothing is sent and `sentry-sdk` is not imported. API keys, client IP
-  headers and stack-frame locals are never sent. The MCP server and the build
-  pipeline are unchanged.
+- The REST API reports unhandled errors to Sentry when `SENTRY_DSN` is set
+  (`SENTRY_ENVIRONMENT` names the environment). Unset, which is the default,
+  nothing is sent and `sentry-sdk` is not imported. An event is the exception
+  and its stack trace: nothing from the request (URL, query string, headers,
+  cookies, body, client address), no local variables and no log lines.
+  Request tracing is opt-in through `SENTRY_TRACES_SAMPLE_RATE`. The MCP
+  server and the build pipeline are unchanged.
 
 ### Changed
 

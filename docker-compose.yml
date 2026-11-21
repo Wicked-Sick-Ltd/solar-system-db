@@ -32,7 +32,7 @@ services:
       - PU_API_KEY_PEPPER=${PU_API_KEY_PEPPER:-}
       - SENTRY_DSN=${SENTRY_DSN:-}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-}
-      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-}
     volumes:
       - ./data:/data:ro
       - api_keys:/var/lib/publicuniverse
