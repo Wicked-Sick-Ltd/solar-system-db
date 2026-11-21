@@ -43,7 +43,15 @@ from fair_use import FairUseGate, attach
 # --------------------------------------------------------------------------
 def _privacy_first(event, _hint):
     """Sentry before_send hook: nothing from the HTTP request leaves this host."""
-    event.pop("request", None)  # URL, query string, headers, cookies, body, env
+    if event.pop("request", None) is not None:  # URL, query string, headers, cookies, body, env
+        for raised in (event.get("exception") or {}).get("values") or ():
+            raised.pop("value", None)  # raised while handling a request: its text may quote it
+    contexts = event.get("contexts") or {}
+    if event.get("type") == "transaction":
+        # Built from the caller's baggage header; it would become the envelope's trace header.
+        (contexts.get("trace") or {}).pop("dynamic_sampling_context", None)
+    else:
+        contexts.pop("trace", None)  # trace ids and baggage come from the caller's headers
     if event.get("transaction_info", {}).get("source") == "url":
         event["transaction"] = "unmatched route"  # no route matched: the name is the raw URL
     for span in event.get("spans") or ():  # only present once tracing is opted into

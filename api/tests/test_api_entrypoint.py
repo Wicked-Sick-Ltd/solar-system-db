@@ -19,6 +19,9 @@ REQUEST_SECRETS = {
     "lat": "51.4778123",
     "lon": "-0.0015123",
     "horizon_mask": "12.3456789",
+    "baggage": "BAGGAGE-VALUE-7f3a",
+    "outbound_path": "OUTBOUND-PATH-7f3a",
+    "outbound_query": "OUTBOUND-QUERY-7f3a",
 }
 
 
@@ -54,6 +57,7 @@ def test_sentry_events_carry_nothing_from_the_request(monkeypatch):
     import json
     import logging
 
+    import httpx
     import main
     import sentry_sdk
     from fastapi import FastAPI
@@ -67,15 +71,25 @@ def test_sentry_events_carry_nothing_from_the_request(monkeypatch):
     monkeypatch.setattr(sentry_sdk.get_client().transport, "capture_envelope", sent.append)
     probe = FastAPI()  # the SDK config is process-wide; main.app's routes stay untouched
 
+    upstream_headers = []
+
+    def upstream(request):  # stands in for a service this app calls; nothing leaves the process
+        upstream_headers.append(dict(request.headers))
+        return httpx.Response(200)
+
     @probe.post("/boom/{token}")
     async def boom(token: str, payload: dict):
         logging.getLogger("solar_db").error("handling %s", token)
-        raise RuntimeError("boom")
+        with httpx.Client(transport=httpx.MockTransport(upstream)) as outbound:
+            outbound.get("https://upstream.test/" + s["outbound_path"], params={"k": s["outbound_query"]})
+        raise RuntimeError(f"boom while handling {token}")
 
     headers = {
         "X-PU-Api-Key": s["api_key"],
         "Cookie": f"sid={s['cookie']}",
         "CF-Connecting-IP": s["client"],
+        "sentry-trace": "0123456789abcdef0123456789abcdef-0123456789abcdef-1",
+        "baggage": f"sentry-public_key=public,sentry-user_segment={s['baggage']}",
     }
     body = {"lat": float(s["lat"]), "lon": float(s["lon"]), "horizon_mask": [[0, float(s["horizon_mask"])]]}
     try:
@@ -88,6 +102,11 @@ def test_sentry_events_carry_nothing_from_the_request(monkeypatch):
 
     items = [item for envelope in sent for item in envelope.items if item.payload.json]
     assert {"event", "transaction"} <= {item.type for item in items}
-    sent_text = json.dumps([item.payload.json for item in items])
+    payloads = [item.payload.json for item in items]
+    assert "http.client" in {span.get("op") for p in payloads for span in p.get("spans", [])}
+    assert not {"sentry-trace", "baggage"} & set(upstream_headers[0])  # the outbound call got none
+    errors = [item.payload.json for item in items if item.type == "event"]
+    assert all("trace" not in error.get("contexts", {}) for error in errors)
+    sent_text = json.dumps([[envelope.headers, payloads] for envelope in sent], default=str)
     assert [name for name, value in s.items() if value in sent_text] == []
     assert not sentry_sdk.is_initialized()
