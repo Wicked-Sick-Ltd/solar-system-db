@@ -1,0 +1,12 @@
+{
+  "name": "solar-system-db",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "bash .cursor/run-api.sh",
+      "description": "FastAPI catalogue server on port 8003"
+    }
+  ]
+}
