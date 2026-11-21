@@ -66,6 +66,7 @@ def test_sentry_events_carry_nothing_from_the_request(monkeypatch):
     s = REQUEST_SECRETS
     monkeypatch.setenv("SENTRY_DSN", "http://public@127.0.0.1:9/1")
     monkeypatch.setenv("SENTRY_TRACES_SAMPLE_RATE", "1")  # opt in, so traces are checked too
+    monkeypatch.setenv("SENTRY_RELEASE", "test")  # with a release, session counts would be sent
     main._init_sentry()
     sent = []
     monkeypatch.setattr(sentry_sdk.get_client().transport, "capture_envelope", sent.append)
@@ -101,7 +102,7 @@ def test_sentry_events_carry_nothing_from_the_request(monkeypatch):
         sentry_sdk.get_global_scope().set_client(None)
 
     items = [item for envelope in sent for item in envelope.items if item.payload.json]
-    assert {"event", "transaction"} <= {item.type for item in items}
+    assert {item.type for item in items} == {"event", "transaction"}  # and no session counts
     payloads = [item.payload.json for item in items]
     assert "http.client" in {span.get("op") for p in payloads for span in p.get("spans", [])}
     assert not {"sentry-trace", "baggage"} & set(upstream_headers[0])  # the outbound call got none

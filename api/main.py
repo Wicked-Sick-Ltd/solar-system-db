@@ -77,6 +77,7 @@ def _init_sentry() -> None:
         max_request_body_size="never",  # observing plans: the observer's site
         include_local_variables=False,  # locals hold the raw ASGI scope: headers, peer IP
         max_breadcrumbs=0,  # log lines and outbound URLs, e.g. the access log's path
+        auto_session_tracking=False,  # no per-minute request counts either
         trace_propagation_targets=[],  # no sentry-trace/baggage headers on outbound calls
         before_send=_privacy_first,
         before_send_transaction=_privacy_first,
