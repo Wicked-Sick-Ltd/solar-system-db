@@ -83,6 +83,8 @@ separate per-IP invalid-key limit so a client cannot spray guesses.
 | `free` | Valid free key | 300/minute and 10,000/day **per key** |
 | `institution` | Valid institution key | 5,000/minute and **100,000/day per key** |
 
+A call refused by the minute limit does not count against the daily budget.
+
 The institution daily ceiling is `PU_INSTITUTION_PER_DAY` (default `100000`),
 pending a final decision. Cloudflare Pro still caps every caller, keyed or
 not, at 300 requests per minute per IP. The application budgets above that

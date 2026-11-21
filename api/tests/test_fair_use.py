@@ -352,3 +352,46 @@ def test_minute_window_sets_retry_after_until_the_next_minute(tmp_path):
     blocked = client.get("/api/v1/stats")
     assert blocked.status_code == 429
     assert blocked.headers["Retry-After"] == "30"
+
+
+class _Clock:
+    def __init__(self, start: float):
+        self.now = start
+
+    def __call__(self) -> float:
+        return self.now
+
+
+def test_minute_cap_rejections_do_not_spend_the_anonymous_daily_budget(tmp_path):
+    clock = _Clock(1_700_000_010)
+    fair = gate(tmp_path, anon_per_minute=2, anon_per_day=5, clock=clock)
+    client = client_for(fair, "203.0.113.100")
+    burst = [client.get("/api/v1/stats").status_code for _ in range(20)]
+    assert burst == [200, 200] + [429] * 18
+
+    clock.now += 60
+    assert client.get("/api/v1/stats").status_code == 200
+    assert client.get("/api/v1/stats").status_code == 200
+
+    clock.now += 60
+    assert client.get("/api/v1/stats").status_code == 200
+    blocked = client.get("/api/v1/stats")
+    assert blocked.status_code == 429
+    assert int(blocked.headers["Retry-After"]) > 60
+
+
+def test_minute_cap_rejections_do_not_spend_a_keys_daily_budget(tmp_path):
+    clock = _Clock(1_700_000_010)
+    fair = gate(tmp_path, free_per_minute=2, free_per_day=4, clock=clock)
+    _key_id, raw = fair.issue(FREE, "lab")
+    client = client_for(fair, "203.0.113.110")
+    headers = {"X-PU-Api-Key": raw}
+    burst = [client.get("/api/v1/stats", headers=headers).status_code for _ in range(10)]
+    assert burst == [200, 200] + [429] * 8
+
+    clock.now += 60
+    for _ in range(2):
+        response = client.get("/api/v1/stats", headers=headers)
+        assert response.status_code == 200
+        assert response.headers["X-PU-Key-Tier"] == FREE
+    assert client.get("/api/v1/stats", headers=headers).status_code == 429
