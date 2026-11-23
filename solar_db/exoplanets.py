@@ -7,6 +7,8 @@ from . import catalogue_json
 from .galactic import FRAME
 from .response_snapshot import CatalogueReadError, catalogue_snapshot
 
+UNAVAILABLE = "Exoplanet catalogue is temporarily unavailable."
+
 
 def positive_distance(value: float | None) -> float | None:
     if value is not None and (not math.isfinite(value) or value <= 0):
@@ -18,6 +20,13 @@ def planet_record(row) -> dict:
     result = dict(row)
     result["source_data"] = catalogue_json.loads(result["source_data"])
     return result
+
+
+def _decode(build):
+    try:
+        return build()
+    except (ValueError, TypeError) as exc:
+        raise CatalogueReadError(UNAVAILABLE) from exc
 
 
 class ExoplanetQueries:
@@ -44,10 +53,7 @@ class ExoplanetQueries:
                 WHERE (:q='' OR instr(lower(p.name),lower(:q))>0 OR instr(lower(h.name),lower(:q))>0)
                 AND (:method IS NULL OR p.discovery_method=:method)
                 AND (:distance IS NULL OR h.distance_pc<=:distance)""", params).fetchone()[0]
-        try:
-            results = [planet_record(row) for row in rows]
-        except (ValueError, TypeError) as exc:
-            raise CatalogueReadError("Exoplanet catalogue is temporarily unavailable.") from exc
+        results = _decode(lambda: [planet_record(row) for row in rows])
         return {"available": True, "results": results, "total": total,
                 "limit": limit, "offset": offset, "has_more": offset + len(rows) < total, "catalogue_snapshot": snapshot}
 
@@ -58,7 +64,7 @@ class ExoplanetQueries:
             row = conn.execute("""SELECT p.*, h.name AS host_name, h.distance_pc
                 FROM exoplanets p JOIN exoplanet_hosts h ON h.id=p.host_id
                 WHERE p.id=? OR p.name=? COLLATE NOCASE LIMIT 1""", (name_or_id, name_or_id)).fetchone()
-        return planet_record(row) if row else None
+        return _decode(lambda: planet_record(row)) if row else None
 
     def get_exoplanet_host(self, name_or_id: str) -> dict | None:
         with self._conn() as conn:
@@ -69,11 +75,11 @@ class ExoplanetQueries:
             if row is None:
                 return None
             result = dict(row)
-            result["coordinate_metadata"] = catalogue_json.loads(result["coordinate_metadata"])
             planets = conn.execute("""SELECT p.*, h.name AS host_name, h.distance_pc
                 FROM exoplanets p JOIN exoplanet_hosts h ON h.id=p.host_id
                 WHERE p.host_id=? ORDER BY p.name""", (row["id"],)).fetchall()
-            result["planets"] = [planet_record(p) for p in planets]
+        result["coordinate_metadata"] = _decode(lambda: catalogue_json.loads(result["coordinate_metadata"]))
+        result["planets"] = _decode(lambda: [planet_record(p) for p in planets])
         return result
 
     def galaxy_map(self, *, max_distance_pc: float | None = None, limit: int = 10000) -> dict:

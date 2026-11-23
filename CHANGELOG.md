@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The templates are repository-only; nothing in this change is applied to php01.
   Redirects are unchanged.
 
+### Fixed
+
+- Exoplanet list, planet, and host lookups (REST and MCP) now return the
+  existing "temporarily unavailable" response when a catalogue's
+  `source_data` or `coordinate_metadata` cell is nested deeper than 32 levels
+  or cannot be decoded. Before, such a cell caused a server error. A deeply
+  nested `catalogue_identity` payload now reads as `invalid_metadata` instead
+  of failing the request.
+
 ## [0.1.0] - 2026-10-09
 
 First tagged release of the catalogue behind Public Universe (publicuniverse.net).
