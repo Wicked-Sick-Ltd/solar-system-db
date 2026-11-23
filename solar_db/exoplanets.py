@@ -1,19 +1,12 @@
 """Read-only exoplanet queries shared by REST and MCP."""
 from __future__ import annotations
 
-import json
 import math
-import re
 
+from . import catalogue_json
 from .galactic import FRAME
 from .response_snapshot import CatalogueReadError, catalogue_snapshot
 
-# Ingest writes a flat archive row and a two-level frame description. The cap
-# keeps the decoder and the REST/MCP serialisers far from Python's recursion
-# limit, whatever a published catalogue file carries.
-MAX_JSON_DEPTH = 32
-_JSON_STRING = re.compile(r'"(?:[^"\\]|\\.)*"', re.DOTALL)
-_JSON_BRACKET = re.compile(r"[\[\]{}]")
 UNAVAILABLE = "Exoplanet catalogue is temporarily unavailable."
 
 
@@ -23,25 +16,9 @@ def positive_distance(value: float | None) -> float | None:
     return value
 
 
-def catalogue_json(text):
-    if isinstance(text, bytes):
-        text = text.decode("utf-8")
-    if not isinstance(text, str):
-        raise TypeError("catalogue JSON must be text")
-    depth = 0
-    for bracket in _JSON_BRACKET.findall(_JSON_STRING.sub("", text)):
-        depth += 1 if bracket in "[{" else -1
-        if depth > MAX_JSON_DEPTH:
-            raise ValueError("catalogue JSON is nested too deeply")
-    try:
-        return json.loads(text)
-    except RecursionError as exc:
-        raise ValueError("catalogue JSON is nested too deeply") from exc
-
-
 def planet_record(row) -> dict:
     result = dict(row)
-    result["source_data"] = catalogue_json(result["source_data"])
+    result["source_data"] = catalogue_json.loads(result["source_data"])
     return result
 
 
@@ -101,7 +78,7 @@ class ExoplanetQueries:
             planets = conn.execute("""SELECT p.*, h.name AS host_name, h.distance_pc
                 FROM exoplanets p JOIN exoplanet_hosts h ON h.id=p.host_id
                 WHERE p.host_id=? ORDER BY p.name""", (row["id"],)).fetchall()
-        result["coordinate_metadata"] = _decode(lambda: catalogue_json(result["coordinate_metadata"]))
+        result["coordinate_metadata"] = _decode(lambda: catalogue_json.loads(result["coordinate_metadata"]))
         result["planets"] = _decode(lambda: [planet_record(p) for p in planets])
         return result
 

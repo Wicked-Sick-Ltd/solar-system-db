@@ -8,7 +8,6 @@ mistake.
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import sqlite3
@@ -18,6 +17,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from . import catalogue_json
 from .positions import solar_longitude_deg
 from .exoplanets import ExoplanetQueries
 from .starter_catalogues import StarterCatalogueQueries
@@ -294,7 +294,7 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
                 atm = dict(row) if row else None
                 if atm and atm.get("composition_json"):
                     try:
-                        atm["composition"] = json.loads(atm.pop("composition_json"))
+                        atm["composition"] = catalogue_json.loads(atm.pop("composition_json"))
                     except ValueError:
                         atm["composition"] = None
                 out["atmosphere"] = atm
@@ -632,7 +632,7 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
         out = self._one("atmospheres", name_or_designation)
         if out and out.get("composition_json"):
             try:
-                out["composition"] = json.loads(out.pop("composition_json"))
+                out["composition"] = catalogue_json.loads(out.pop("composition_json"))
             except ValueError:
                 out["composition"] = None
         return out
@@ -750,7 +750,7 @@ class SolarDB(ExoplanetQueries, StarterCatalogueQueries):
         if not path.exists():
             return None
         try:
-            return json.loads(path.read_text())
+            return catalogue_json.loads(path.read_text())
         except ValueError:
             return None
 

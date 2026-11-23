@@ -83,6 +83,8 @@ separate per-IP invalid-key limit so a client cannot spray guesses.
 | `free` | Valid free key | 300/minute and 10,000/day **per key** |
 | `institution` | Valid institution key | 5,000/minute and **100,000/day per key** |
 
+A call refused by the minute limit does not count against the daily budget.
+
 The institution daily ceiling is `PU_INSTITUTION_PER_DAY` (default `100000`),
 pending a final decision. Cloudflare Pro still caps every caller, keyed or
 not, at 300 requests per minute per IP. The application budgets above that
@@ -152,6 +154,18 @@ MCP itself is not on these API key tiers.
 | `PU_INVALID_KEY_PER_MINUTE` | 30 | Per-IP cap on unknown or revoked keys. |
 | `PU_API_ACCESS_URL` | `https://publicuniverse.net/api-access` | Link returned with HTTP 429. |
 | `PU_TRUSTED_PROXIES` | loopback only | Extra proxy addresses allowed to supply a client IP. |
+| `SENTRY_DSN` | unset | Sentry DSN. Unset keeps error reporting off. Set it on the host, never in git. |
+| `SENTRY_ENVIRONMENT` | unset | Environment name shown in Sentry. Unset or empty is reported as `production`. |
+| `SENTRY_TRACES_SAMPLE_RATE` | unset | Tracing is opt-in. Unset, empty or `0` sends errors only; `0.1` traces 10% of requests. |
+
+With a DSN set, an unhandled error is sent as the exception type and a stack
+trace without local variables. The exception's message text is left out when
+the error happened while handling a request, because it can quote the request
+(an unknown `type=` filter value, for example). Nothing from the request goes
+with it: no URL or path, query string (so no observer coordinates), headers
+(so no `X-PU-Api-Key`), cookies, request body (so no observing plan or horizon
+mask) or client address, and no log lines. If tracing is switched on, a trace
+holds route templates and timings under the same rules.
 
 ## Data sources
 

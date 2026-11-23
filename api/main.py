@@ -39,6 +39,57 @@ from solar_db.sky_lookup import SkyLookupError, resolve_and_report
 from fair_use import FairUseGate, attach
 
 # --------------------------------------------------------------------------
+# Error monitoring: off, and sentry-sdk not imported, until SENTRY_DSN is set
+# --------------------------------------------------------------------------
+def _privacy_first(event, _hint):
+    """Sentry before_send hook: nothing from the HTTP request leaves this host."""
+    if event.pop("request", None) is not None:  # URL, query string, headers, cookies, body, env
+        for raised in (event.get("exception") or {}).get("values") or ():
+            raised.pop("value", None)  # raised while handling a request: its text may quote it
+    contexts = event.get("contexts") or {}
+    if event.get("type") == "transaction":
+        # Built from the caller's baggage header; it would become the envelope's trace header.
+        (contexts.get("trace") or {}).pop("dynamic_sampling_context", None)
+    else:
+        contexts.pop("trace", None)  # trace ids and baggage come from the caller's headers
+    if event.get("transaction_info", {}).get("source") == "url":
+        event["transaction"] = "unmatched route"  # no route matched: the name is the raw URL
+    for span in event.get("spans") or ():  # only present once tracing is opted into
+        if span.get("op") == "http.client":  # an outbound URL and its query string
+            span.pop("description", None)
+            span.pop("data", None)
+    return event
+
+
+def _init_sentry() -> None:
+    """An event is the exception and its stack trace, nothing else."""
+    if not os.environ.get("SENTRY_DSN"):
+        return
+    import sentry_sdk
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        environment=os.environ.get("SENTRY_ENVIRONMENT") or None,
+        # Tracing is opt-in: unset, empty or 0 reports errors only.
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE") or 0) or None,
+        send_default_pii=False,
+        max_request_body_size="never",  # observing plans: the observer's site
+        include_local_variables=False,  # locals hold the raw ASGI scope: headers, peer IP
+        max_breadcrumbs=0,  # log lines and outbound URLs, e.g. the access log's path
+        auto_session_tracking=False,  # no per-minute request counts either
+        trace_propagation_targets=[],  # no sentry-trace/baggage headers on outbound calls
+        before_send=_privacy_first,
+        before_send_transaction=_privacy_first,
+        # Only exceptions become events. A log line is whatever the code put in it,
+        # and a failure logged on a timer would be an event every interval.
+        integrations=[LoggingIntegration(event_level=None)],
+    )
+
+
+_init_sentry()  # before SolarDB() and the app are created
+
+# --------------------------------------------------------------------------
 # App + rate limiter
 # --------------------------------------------------------------------------
 db = SolarDB()

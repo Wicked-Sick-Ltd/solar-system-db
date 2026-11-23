@@ -129,7 +129,8 @@ def _rest_and_mcp(db, monkeypatch):
     return TestClient(api.app, raise_server_exceptions=False), server
 
 
-# 100000 overflows the C decoder; 2000 decodes but is too deep to serialise.
+# Both depths are past the shared 32-level cap: 100000 would overflow the C
+# decoder, and 2000 would decode but then break response serialisation.
 @pytest.mark.parametrize('depth', [100000, 2000])
 def test_nested_source_data_reports_unavailable(catalogue, monkeypatch, depth):
     from solar_db.response_snapshot import CatalogueReadError
@@ -153,19 +154,19 @@ def test_nested_source_data_reports_unavailable(catalogue, monkeypatch, depth):
 
 
 def test_catalogue_json_depth_limit_and_blob_cells(catalogue, monkeypatch):
-    from solar_db.exoplanets import MAX_JSON_DEPTH, catalogue_json
+    from solar_db import catalogue_json
     conn, rows, db = catalogue
     write_exoplanets(conn, rows)
     with conn:
-        conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (_nested(MAX_JSON_DEPTH), 'Proxima Cen b'))
+        conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (_nested(catalogue_json.MAX_DEPTH), 'Proxima Cen b'))
         conn.execute('UPDATE exoplanets SET source_data=? WHERE name=?', (b'{"pl_name": "51 Peg b"}', '51 Peg b'))
     client, server = _rest_and_mcp(db, monkeypatch)
     assert client.get('/api/v1/exoplanets/Proxima Cen b').status_code == 200
     assert server.get_exoplanet('51 Peg b')['source_data'] == {'pl_name': '51 Peg b'}
-    assert catalogue_json(json.dumps({'k': '[' * 100000})) == {'k': '[' * 100000}
-    for text in (_nested(MAX_JSON_DEPTH + 1), '{"a":' * 5000 + '1' + '}' * 5000, '"' + '[' * 100000):
+    assert catalogue_json.loads(json.dumps({'k': '[' * 100000})) == {'k': '[' * 100000}
+    for text in (_nested(catalogue_json.MAX_DEPTH + 1), '{"a":' * 5000 + '1' + '}' * 5000, '"' + '[' * 100000):
         with pytest.raises(ValueError):
-            catalogue_json(text)
+            catalogue_json.loads(text)
 
 
 def test_nested_host_metadata_reports_unavailable(catalogue, monkeypatch):

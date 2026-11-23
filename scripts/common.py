@@ -524,7 +524,8 @@ BACKOFF_CAP = 120.0
 # One fetch may try this many times, and may spend this many seconds of wall
 # clock doing so. Both limits are deliberate:
 #   * attempts alone do not cover an outage — eight attempts on this schedule
-#     wait at most 2+4+8+16+32+64+120 = 246 s, and the 03:00/04:05 UTC JPL SBDB
+#     wait at most 2+4+8+16+32+64+120 = 246 s (at least half that, see
+#     backoff_seconds), and the 03:00/04:05 UTC JPL SBDB
 #     502s on 2026-09-20 each ran for a few minutes;
 #   * time alone does not bound the work — with no attempt limit a fast-failing
 #     endpoint would be hammered flat out until the budget ran down.
@@ -533,8 +534,14 @@ FETCH_BUDGET_SECONDS = 300.0
 
 
 def backoff_seconds(attempt: int, *, base: float = BACKOFF_BASE, cap: float = BACKOFF_CAP) -> float:
-    """Exponential back-off with full jitter: 0..min(cap, base * 2**attempt)."""
-    return random.uniform(0, min(cap, base * (2 ** attempt)))
+    """Exponential back-off with equal jitter: step/2..step, step = min(cap, base * 2**attempt).
+
+    The floor matters: with full jitter (0..step) the 2026-11-19 nightly drew
+    eight attempts into 30 s and gave up on a JPL CAD 403 that cleared soon
+    after. Half-step floors guarantee eight attempts span at least 123 s.
+    """
+    step = min(cap, base * (2 ** attempt))
+    return random.uniform(step / 2, step)
 
 
 class RetryBudget:
