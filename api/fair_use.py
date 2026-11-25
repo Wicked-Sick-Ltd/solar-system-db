@@ -251,6 +251,27 @@ class KeyStore:
             self._conn.close()
 
     def add(self, key_id: str, key_hash: str, tier: str, label: str) -> None:
+        """Insert a newly issued key. A hash or id that is already stored is an error."""
+        if tier not in KEY_TIERS:
+            raise ValueError("tier must be free or institution")
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO api_keys (id, key_hash, tier, label, revoked_at, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?)
+                """,
+                (key_id, key_hash, tier, label[:200], now),
+            )
+            self._conn.commit()
+
+    def bootstrap(self, key_id: str, key_hash: str, tier: str, label: str) -> None:
+        """Insert a startup key, or refresh tier and label of a stored active one.
+
+        Runs on every process start. A revoked row is left revoked: the
+        revocation and this statement are each a single atomic UPDATE on the
+        same row, so neither can undo the other.
+        """
         if tier not in KEY_TIERS:
             raise ValueError("tier must be free or institution")
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -261,8 +282,8 @@ class KeyStore:
                 VALUES (?, ?, ?, ?, NULL, ?)
                 ON CONFLICT(key_hash) DO UPDATE SET
                     tier = excluded.tier,
-                    label = excluded.label,
-                    revoked_at = NULL
+                    label = excluded.label
+                WHERE api_keys.revoked_at IS NULL
                 """,
                 (key_id, key_hash, tier, label[:200], now),
             )
@@ -383,7 +404,10 @@ class FairUseGate:
         return gate
 
     def load_bootstrap(self, raw_json: str) -> None:
-        """Upsert keys from ``PU_API_KEYS`` (a JSON list). Secrets stay in the environment."""
+        """Load keys from ``PU_API_KEYS`` (a JSON list). Secrets stay in the environment.
+
+        A key whose hash is already stored and revoked stays revoked.
+        """
         try:
             payload = json.loads(raw_json)
             if not isinstance(payload, list):
@@ -397,7 +421,7 @@ class FairUseGate:
                     raise ValueError("expected key and tier")
                 label = item.get("label") if isinstance(item.get("label"), str) else ""
                 key_id = item.get("id") if isinstance(item.get("id"), str) and item.get("id") else secrets.token_hex(8)
-                self.store.add(key_id, hash_key(secret.strip(), self.pepper), tier, label)
+                self.store.bootstrap(key_id, hash_key(secret.strip(), self.pepper), tier, label)
         except (json.JSONDecodeError, ValueError, sqlite3.Error):
             print(
                 "solar-system-db API: ignoring PU_API_KEYS because it is not a list of {key, tier} objects",
