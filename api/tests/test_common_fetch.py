@@ -159,3 +159,34 @@ def test_a_stall_earns_only_one_extra_try(clock, monkeypatch):
     monkeypatch.setattr(common.session, "get", get)
     with pytest.raises(RuntimeError, match=r"gave up after 2/8 attempts"):
         common.fetch_json("https://x", timeout=600)
+
+
+def test_a_body_read_stall_wrapped_as_connection_error_gets_a_retry(clock, monkeypatch):
+    """Requests re-raises a stall during the body read as ConnectionError
+    wrapping urllib3's ReadTimeoutError; that is a stall too."""
+    from urllib3.exceptions import ReadTimeoutError
+    calls = []
+
+    def get(*a, timeout=None, **k):
+        calls.append(timeout)
+        if len(calls) == 1:
+            clock.now += timeout
+            raise requests.ConnectionError(
+                ReadTimeoutError(None, "https://x", "Read timed out."))
+        return _Resp(200, {"ok": True})
+
+    monkeypatch.setattr(common.session, "get", get)
+    assert common.fetch_json("https://x", timeout=600) == {"ok": True}
+    assert calls == [600, 600]
+
+
+def test_an_unrelated_connection_error_does_not_earn_the_stall_retry(clock, monkeypatch):
+    """A refused or reset connection is not a stall: once the budget is spent
+    it gives up without the extra try."""
+    def get(*a, timeout=None, **k):
+        clock.now += timeout
+        raise requests.ConnectionError("Connection refused")
+
+    monkeypatch.setattr(common.session, "get", get)
+    with pytest.raises(RuntimeError, match=r"gave up after 1/8 attempts"):
+        common.fetch_json("https://x", timeout=600)

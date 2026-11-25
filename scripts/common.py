@@ -579,6 +579,22 @@ class RetryBudget:
         return min(backoff_seconds(attempt, base=base), remaining)
 
 
+def _is_stall(err: Exception) -> bool:
+    """True when a request failed because the upstream stopped sending.
+
+    A stall before the headers arrive is a `requests.Timeout`. A stall while
+    the body is being read is re-raised by Requests as a plain
+    `requests.ConnectionError` wrapping urllib3's `ReadTimeoutError`, so that
+    shape counts too. Other connection failures (refused, reset, DNS) do not.
+    """
+    if isinstance(err, requests.Timeout):
+        return True
+    if isinstance(err, requests.ConnectionError):
+        from urllib3.exceptions import ReadTimeoutError
+        return any(isinstance(a, ReadTimeoutError) for a in err.args)
+    return False
+
+
 def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: int,
            budget: float, extract):
     """Shared retry loop for fetch_json / fetch_bytes.
@@ -604,7 +620,7 @@ def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: i
                 return extract(r)
         except (requests.RequestException, ValueError) as e:
             last_err = e
-            stalled = isinstance(e, requests.Timeout)
+            stalled = _is_stall(e)
             status = getattr(getattr(e, "response", None), "status_code", None)
             if status is not None:
                 last_status = status
