@@ -129,3 +129,33 @@ def test_retry_budget_refuses_to_plan_past_its_limits(clock):
     assert budget.next_delay(2) is None  # attempt limit reached
     clock.sleep(60.0)
     assert budget.next_delay(0) is None  # time budget spent
+
+
+def test_a_stalled_request_longer_than_the_budget_still_gets_a_retry(clock, monkeypatch):
+    """2026-11-25: one JPL CAD read timed out after 600 s against a 300 s
+    budget, so the fetch gave up after 1/8 attempts and failed the nightly.
+    A single stall must never use up the whole budget."""
+    calls = []
+
+    def get(*a, timeout=None, **k):
+        calls.append(timeout)
+        if len(calls) == 1:
+            clock.now += timeout  # the stalled read burns its full timeout
+            raise requests.ReadTimeout("Read timed out. (read timeout=600)")
+        return _Resp(200, {"ok": True})
+
+    monkeypatch.setattr(common.session, "get", get)
+
+    assert common.fetch_json("https://x", timeout=600) == {"ok": True}
+    assert calls == [600, 600]
+
+
+def test_a_stall_earns_only_one_extra_try(clock, monkeypatch):
+    """The extra try is bounded: two stalls in a row still give up."""
+    def get(*a, timeout=None, **k):
+        clock.now += timeout
+        raise requests.ReadTimeout("Read timed out.")
+
+    monkeypatch.setattr(common.session, "get", get)
+    with pytest.raises(RuntimeError, match=r"gave up after 2/8 attempts"):
+        common.fetch_json("https://x", timeout=600)

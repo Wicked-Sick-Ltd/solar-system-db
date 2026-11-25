@@ -593,6 +593,7 @@ def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: i
     for attempt in range(policy.max_attempts):
         attempts = attempt + 1
         base = BACKOFF_BASE
+        stalled = False
         try:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
@@ -603,10 +604,19 @@ def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: i
                 return extract(r)
         except (requests.RequestException, ValueError) as e:
             last_err = e
+            stalled = isinstance(e, requests.Timeout)
             status = getattr(getattr(e, "response", None), "status_code", None)
             if status is not None:
                 last_status = status
         delay = policy.next_delay(attempt, base=base)
+        if delay is None and stalled and attempt == 0 and policy.max_attempts > 1:
+            # A stalled request runs for its full `timeout`, which can be
+            # longer than the whole budget: the 2026-11-25 nightly lost two
+            # hours of work to one 600 s JPL CAD read timeout against a 300 s
+            # budget ("gave up after 1/8 attempts"). A single stall must not
+            # use up every retry, so a first-attempt timeout always earns one
+            # more try.
+            delay = backoff_seconds(attempt, base=base)
         if delay is None:
             break
         time.sleep(delay)
