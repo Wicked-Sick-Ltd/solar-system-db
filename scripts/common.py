@@ -579,6 +579,22 @@ class RetryBudget:
         return min(backoff_seconds(attempt, base=base), remaining)
 
 
+def _is_stall(err: Exception) -> bool:
+    """True when a request failed because the upstream stopped sending.
+
+    A stall before the headers arrive is a `requests.Timeout`. A stall while
+    the body is being read is re-raised by Requests as a plain
+    `requests.ConnectionError` wrapping urllib3's `ReadTimeoutError`, so that
+    shape counts too. Other connection failures (refused, reset, DNS) do not.
+    """
+    if isinstance(err, requests.Timeout):
+        return True
+    if isinstance(err, requests.ConnectionError):
+        from urllib3.exceptions import ReadTimeoutError
+        return any(isinstance(a, ReadTimeoutError) for a in err.args)
+    return False
+
+
 def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: int,
            budget: float, extract):
     """Shared retry loop for fetch_json / fetch_bytes.
@@ -593,6 +609,7 @@ def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: i
     for attempt in range(policy.max_attempts):
         attempts = attempt + 1
         base = BACKOFF_BASE
+        stalled = False
         try:
             r = session.get(url, params=params, timeout=timeout)
             if r.status_code == 429:
@@ -603,10 +620,19 @@ def _fetch(what: str, url: str, *, params: dict | None, retries: int, timeout: i
                 return extract(r)
         except (requests.RequestException, ValueError) as e:
             last_err = e
+            stalled = _is_stall(e)
             status = getattr(getattr(e, "response", None), "status_code", None)
             if status is not None:
                 last_status = status
         delay = policy.next_delay(attempt, base=base)
+        if delay is None and stalled and attempt == 0 and policy.max_attempts > 1:
+            # A stalled request runs for its full `timeout`, which can be
+            # longer than the whole budget: the 2026-11-25 nightly lost two
+            # hours of work to one 600 s JPL CAD read timeout against a 300 s
+            # budget ("gave up after 1/8 attempts"). A single stall must not
+            # use up every retry, so a first-attempt timeout always earns one
+            # more try.
+            delay = backoff_seconds(attempt, base=base)
         if delay is None:
             break
         time.sleep(delay)
